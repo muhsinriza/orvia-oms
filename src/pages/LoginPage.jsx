@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const data = await login(email, password)
-      setUser(data.user)
+      setUser(data)
       navigate('/')
     } catch (err) {
       setError(err.message || 'Giriş başarısız')

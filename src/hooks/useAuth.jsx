@@ -9,7 +9,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     getMe()
-      .then(data => setUser(data.user))
+      .then(data => setUser(data))
       .catch(() => setUser(null))
       .finally(() => setLoading(false))
   }, [])
@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
   const refresh = async () => {
     try {
       const data = await getMe()
-      setUser(data.user)
+      setUser(data)
     } catch {
       setUser(null)
     }
