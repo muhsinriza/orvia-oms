@@ -1,28 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Arka plan -->
-  <rect width="512" height="512" rx="96" fill="#16a34a"/>
-
-  <!-- Beyaz "O" harfi - kalın ve temiz -->
+  <rect width="512" height="512" rx="80" fill="#16a34a"/>
   <text
     x="256"
-    y="340"
-    font-family="'Helvetica Neue', Arial, sans-serif"
-    font-size="300"
-    font-weight="900"
+    y="310"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="200"
+    font-weight="700"
     text-anchor="middle"
-    fill="white"
-    letter-spacing="-10"
-  >O</text>
-
-  <!-- Alt çizgi / Orvia yazısı -->
-  <text
-    x="256"
-    y="440"
-    font-family="'Helvetica Neue', Arial, sans-serif"
-    font-size="72"
-    font-weight="600"
-    text-anchor="middle"
-    fill="rgba(255,255,255,0.75)"
-    letter-spacing="8"
+    fill="#f5f0e8"
+    letter-spacing="6"
   >ORVIA</text>
 </svg>
