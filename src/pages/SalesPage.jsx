@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { generateSalesInvoicePDF, generatePackingListPDF } from '../lib/pdf'
 import Modal from '../components/ui/Modal'
@@ -191,7 +192,7 @@ export default function SalesPage() {
               {filtered.map(o => (
                 <div key={o.id} className="px-4 py-3">
                   <div className="flex items-start gap-2 mb-1">
-                    <span className="font-mono font-semibold text-primary-700 text-sm">{o.party_no}</span>
+                    <Link to={`/sales/${o.id}`} className="font-mono font-semibold text-primary-700 text-sm hover:underline">{o.party_no}</Link>
                     <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
                       o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :
                       o.sales_type === 'transit' ? 'bg-purple-100 text-purple-700' :
@@ -226,7 +227,9 @@ export default function SalesPage() {
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map(o => (
                     <tr key={o.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">{o.party_no}</td>
+                      <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">
+                        <Link to={`/sales/${o.id}`} className="hover:underline">{o.party_no}</Link>
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                           o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :

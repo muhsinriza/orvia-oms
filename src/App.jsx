@@ -6,7 +6,9 @@ import Layout from './components/layout/Layout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import PurchasingPage from './pages/PurchasingPage'
+import PurchasingDetailPage from './pages/PurchasingDetailPage'
 import SalesPage from './pages/SalesPage'
+import SalesDetailPage from './pages/SalesDetailPage'
 import SuppliersPage from './pages/SuppliersPage'
 import CustomersPage from './pages/CustomersPage'
 import ProductsPage from './pages/ProductsPage'
@@ -33,7 +35,9 @@ function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/purchasing" element={<PurchasingPage />} />
+        <Route path="/purchasing/:id" element={<PurchasingDetailPage />} />
         <Route path="/sales" element={<SalesPage />} />
+        <Route path="/sales/:id" element={<SalesDetailPage />} />
         <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/products" element={<ProductsPage />} />
