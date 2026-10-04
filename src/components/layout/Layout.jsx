@@ -55,12 +55,8 @@ export default function Layout() {
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-5 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-green-600 flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-                <path d="M8 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4z" strokeWidth="0" fill="white" fillOpacity="0.3"/>
-                <path d="M12 8v8M8 12h8" strokeOpacity="0.7"/>
-              </svg>
+            <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
+              <img src="/logo.svg" alt="ORVIA" className="w-full h-full object-cover"/>
             </div>
             <div>
               <div className="text-sm font-bold text-gray-900 leading-none">ORVIA OMS</div>
@@ -122,11 +118,8 @@ export default function Layout() {
             <Menu size={20} />
           </button>
           <div className="flex items-center gap-2 lg:hidden">
-            <div className="w-6 h-6 rounded bg-green-600 flex items-center justify-center">
-              <svg viewBox="0 0 40 40" width="14" height="14" fill="none">
-                <circle cx="20" cy="20" r="14" stroke="white" strokeWidth="3"/>
-                <path d="M14 20 Q17 14 20 20 Q23 26 26 20" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none"/>
-              </svg>
+            <div className="w-6 h-6 rounded overflow-hidden">
+              <img src="/logo.svg" alt="ORVIA" className="w-full h-full object-cover"/>
             </div>
             <span className="font-bold text-gray-900 text-sm">ORVIA OMS</span>
           </div>

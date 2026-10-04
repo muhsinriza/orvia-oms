@@ -31,12 +31,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-green-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <svg viewBox="0 0 40 40" width="36" height="36" fill="none">
-              <circle cx="20" cy="20" r="14" stroke="white" strokeWidth="2.5"/>
-              <path d="M14 20 Q17 14 20 20 Q23 26 26 20" stroke="white" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
-              <circle cx="20" cy="20" r="2.5" fill="white"/>
-            </svg>
+          <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-4 shadow-lg">
+            <img src="/logo.svg" alt="ORVIA" className="w-full h-full object-cover"/>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">ORVIA OMS</h1>
           <p className="text-sm text-gray-500 mt-1">Sipariş Yönetim Sistemi</p>
