@@ -1,0 +1,23 @@
+{
+  "name": "Orvia OMS",
+  "short_name": "Orvia",
+  "description": "Orvia Sipariş Yönetim Sistemi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#16a34a",
+  "theme_color": "#16a34a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
