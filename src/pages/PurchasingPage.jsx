@@ -155,91 +155,115 @@ export default function PurchasingPage() {
   const DOCS = ['Phyto', 'EUR.1', 'CMR', 'Invoice', 'Packing List', 'A.TR', 'Menşe Şahadetnamesi']
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Satın Alma</h1>
           <p className="text-sm text-gray-500 mt-0.5">{orders.length} sipariş</p>
         </div>
-        <button className="btn-primary" onClick={openAdd}><Plus size={16} />Yeni Sipariş</button>
+        <button className="btn-primary text-sm" onClick={openAdd}><Plus size={15} />Yeni</button>
       </div>
 
       {/* Filtreler */}
-      <div className="flex flex-wrap gap-2">
-        <div className="relative">
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-0">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input className="input pl-8 w-56" placeholder="Ara..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="input pl-8" placeholder="Ara..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <select className="select w-auto" value={filterStatus} onChange={e => setFilter(e.target.value)}>
-          <option value="all">Tüm Durumlar</option>
+          <option value="all">Tüm</option>
           {STATUSES.map(s => <option key={s} value={s}>{STATUS_TR[s]}</option>)}
         </select>
       </div>
 
       {/* Tablo */}
       <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Party No</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Tip</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Tedarikçi</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Ürün</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Miktar</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-600">Tutar</th>
-                <th className="text-center px-4 py-3 font-medium text-gray-600">Durum</th>
-                <th className="text-center px-4 py-3 font-medium text-gray-600">İşlem</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Yükleniyor...</td></tr>
-              )}
-              {!loading && filtered.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">Kayıt bulunamadı</td></tr>
-              )}
+        {loading ? (
+          <div className="p-12 text-center text-gray-400">Yükleniyor...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-10 text-center text-gray-400 text-sm">Kayıt bulunamadı</div>
+        ) : (
+          <>
+            {/* Mobile card list */}
+            <div className="lg:hidden divide-y divide-gray-100">
               {filtered.map(o => (
-                <tr key={o.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <Link to={`/purchasing/${o.id}`} className="font-medium text-primary-600 hover:underline">
-                      {o.party_no}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${o.purchase_type === 'yerli' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                      {PURCHASE_TYPE_TR[o.purchase_type] || o.purchase_type || 'İthalat'}
+                <div key={o.id} className="px-4 py-3">
+                  <div className="flex items-start gap-2 mb-1">
+                    <Link to={`/purchasing/${o.id}`} className="font-mono font-semibold text-primary-600 text-sm hover:underline">{o.party_no}</Link>
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${o.purchase_type === 'yerli' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                      {PURCHASE_TYPE_TR[o.purchase_type] || 'İthalat'}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{o.supplier?.company_name || '—'}</td>
-                  <td className="px-4 py-3 text-gray-700">{o.product?.name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
-                  <td className="px-4 py-3 text-right text-gray-700">{Number(o.quantity_kg).toLocaleString('tr-TR')} kg</td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900">
-                    {Number(o.total_amount).toLocaleString('tr-TR', {minimumFractionDigits:2,maximumFractionDigits:2})} {o.currency}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`badge badge-${o.status}`}>{STATUS_TR[o.status] || o.status}</span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex items-center justify-center gap-1">
+                    <span className={`ml-auto badge badge-${o.status} text-xs`}>{STATUS_TR[o.status] || o.status}</span>
+                  </div>
+                  <div className="text-sm text-gray-700 truncate">{o.supplier?.company_name || '—'}</div>
+                  <div className="text-xs text-gray-400 truncate">{o.product?.name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-gray-500">{Number(o.quantity_kg).toLocaleString('tr-TR')} kg · {Number(o.total_amount).toLocaleString('tr-TR', {maximumFractionDigits:0})} {o.currency}</span>
+                    <div className="flex gap-1">
                       <button className="btn-ghost px-2 py-1 text-xs" onClick={() => openEdit(o)}>Düzenle</button>
-                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => generatePurchaseOrderPDF({...o, supplier: suppliers.find(s=>s.id===o.supplier_id), product: products.find(p=>p.id===o.product_id)})}>
-                        <FileText size={13} />
-                      </button>
+                      <button className="btn-ghost px-2 py-1" onClick={() => generatePurchaseOrderPDF({...o, supplier: suppliers.find(s=>s.id===o.supplier_id), product: products.find(p=>p.id===o.product_id)})}><FileText size={13}/></button>
                     </div>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Party No</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Tip</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Tedarikçi</th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Ürün</th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Miktar</th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Tutar</th>
+                    <th className="text-center px-4 py-3 font-medium text-gray-600 whitespace-nowrap">Durum</th>
+                    <th className="text-center px-4 py-3 font-medium text-gray-600 whitespace-nowrap">İşlem</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filtered.map(o => (
+                    <tr key={o.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <Link to={`/purchasing/${o.id}`} className="font-medium text-primary-600 hover:underline">{o.party_no}</Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${o.purchase_type === 'yerli' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                          {PURCHASE_TYPE_TR[o.purchase_type] || o.purchase_type || 'İthalat'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{o.supplier?.company_name || '—'}</td>
+                      <td className="px-4 py-3 text-gray-700">{o.product?.name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{Number(o.quantity_kg).toLocaleString('tr-TR')} kg</td>
+                      <td className="px-4 py-3 text-right font-medium text-gray-900">
+                        {Number(o.total_amount).toLocaleString('tr-TR', {minimumFractionDigits:2,maximumFractionDigits:2})} {o.currency}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`badge badge-${o.status}`}>{STATUS_TR[o.status] || o.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button className="btn-ghost px-2 py-1 text-xs" onClick={() => openEdit(o)}>Düzenle</button>
+                          <button className="btn-ghost px-2 py-1 text-xs" onClick={() => generatePurchaseOrderPDF({...o, supplier: suppliers.find(s=>s.id===o.supplier_id), product: products.find(p=>p.id===o.product_id)})}>
+                            <FileText size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editOrder ? `Düzenle — ${editOrder.party_no}` : 'Yeni Satın Alma Siparişi'} size="xl">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Tip seçimi */}
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className="label">Alım Tipi *</label>
             <div className="flex gap-3">
               {Object.entries(PURCHASE_TYPE_TR).map(([val, label]) => (
@@ -254,7 +278,7 @@ export default function PurchasingPage() {
           </div>
 
           {/* Tedarikçi */}
-          <div className="col-span-2 grid grid-cols-2 gap-4">
+          <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="label">Tedarikçi *</label>
               <select className="select" value={form.supplier_id} onChange={e => set('supplier_id', e.target.value)}>
@@ -362,7 +386,7 @@ export default function PurchasingPage() {
           {/* Ambalaj */}
           <div className="col-span-2 border-t border-gray-100 pt-3 mt-1">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Ambalaj</p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label">Kutu Tipi</label>
                 <input className="input" value={form.box_type} onChange={e => set('box_type', e.target.value)} placeholder="Örn: Karton 10kg" />
@@ -389,7 +413,7 @@ export default function PurchasingPage() {
           {/* Kalite */}
           <div className="col-span-2 border-t border-gray-100 pt-3 mt-1">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Kalite</p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label">Kalite Sınıfı</label>
                 <select className="select" value={form.grade} onChange={e => set('grade', e.target.value)}>
@@ -400,7 +424,7 @@ export default function PurchasingPage() {
                 <label className="label">Boyut Aralığı</label>
                 <input className="input" value={form.size_range} onChange={e => set('size_range', e.target.value)} placeholder="Örn: 57-102 mm" />
               </div>
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <label className="label">Kalite Notları</label>
                 <textarea className="input" rows={2} value={form.quality_notes} onChange={e => set('quality_notes', e.target.value)} />
               </div>
@@ -439,7 +463,7 @@ export default function PurchasingPage() {
           </div>
 
           {/* Notlar */}
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <label className="label">Özel Notlar</label>
             <textarea className="input" rows={2} value={form.special_notes} onChange={e => set('special_notes', e.target.value)} />
           </div>

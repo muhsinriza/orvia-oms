@@ -159,22 +159,22 @@ export default function SalesPage() {
   }
 
   return (
-    <div className="p-6 max-w-full">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-3 md:p-6 max-w-full">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Satış Siparişleri</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Satış Siparişleri</h1>
           <p className="text-sm text-gray-500 mt-0.5">{filtered.length} sipariş</p>
         </div>
-        <button className="btn-primary" onClick={openAdd}><Plus size={16}/>Yeni Sipariş</button>
+        <button className="btn-primary text-sm" onClick={openAdd}><Plus size={15}/>Yeni</button>
       </div>
 
-      <div className="card mb-4 p-4 flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-48">
+      <div className="card mb-3 p-3 flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-0">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
           <input className="input pl-9" placeholder="Party No veya müşteri ara..." value={search} onChange={e=>setSearch(e.target.value)}/>
         </div>
-        <select className="select w-44" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
-          <option value="">Tüm Durumlar</option>
+        <select className="select w-auto" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
+          <option value="">Tüm</option>
           {STATUS_OPTS.map(s=><option key={s} value={s}>{STATUS_TR[s]}</option>)}
         </select>
       </div>
@@ -182,52 +182,80 @@ export default function SalesPage() {
       <div className="card overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-400">Yükleniyor...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-10 text-center text-gray-400 text-sm">Sipariş bulunamadı</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {['Party No','Tip','Müşteri','Ürün','Miktar (kg)','Fiyat','Para','Durum','Tarih','İşlemler'].map(h=>(
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={10} className="px-4 py-10 text-center text-gray-400">Sipariş bulunamadı</td></tr>
-                ) : filtered.map(o => (
-                  <tr key={o.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">{o.party_no}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :
-                        o.sales_type === 'transit' ? 'bg-purple-100 text-purple-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {SALES_TYPE_TR[o.sales_type] || 'İhracat'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">{o.customer_name}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{Number(o.quantity_kg).toLocaleString()}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{Number(o.price_per_unit).toFixed(2)}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{o.currency}</td>
-                    <td className="px-4 py-3"><span className={`badge-${o.status}`}>{STATUS_TR[o.status]}</span></td>
-                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{o.created_at ? new Date(o.created_at).toLocaleDateString('tr-TR') : ''}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1 flex-wrap">
-                        <button className="btn-ghost px-2 py-1 text-xs" onClick={()=>openEdit(o)} title="Düzenle"><Edit2 size={13}/></button>
-                        <button className="btn-ghost px-2 py-1 text-xs" onClick={()=>generateSalesInvoicePDF(o)} title="Fatura PDF"><FileText size={13}/></button>
-                        <button className="btn-ghost px-2 py-1 text-xs" onClick={()=>generatePackingListPDF(o)} title="Paket Listesi PDF"><Package size={13}/></button>
-                        <button className="btn-ghost px-2 py-1 text-xs" onClick={()=>openLinks(o)} title="Bağlantılar"><Link2 size={13}/></button>
-                        <button className="btn-ghost px-2 py-1 text-xs text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(o)} title="Sil"><Trash2 size={13}/></button>
-                      </div>
-                    </td>
+          <>
+            {/* Mobile card list */}
+            <div className="lg:hidden divide-y divide-gray-100">
+              {filtered.map(o => (
+                <div key={o.id} className="px-4 py-3">
+                  <div className="flex items-start gap-2 mb-1">
+                    <span className="font-mono font-semibold text-primary-700 text-sm">{o.party_no}</span>
+                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                      o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :
+                      o.sales_type === 'transit' ? 'bg-purple-100 text-purple-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>{SALES_TYPE_TR[o.sales_type] || 'İhracat'}</span>
+                    <span className={`ml-auto badge-${o.status} text-xs`}>{STATUS_TR[o.status]}</span>
+                  </div>
+                  <div className="text-sm text-gray-700 truncate">{o.customer_name}</div>
+                  <div className="text-xs text-gray-400 truncate">{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-gray-500">{Number(o.quantity_kg).toLocaleString()} kg · {Number(o.price_per_unit).toFixed(2)} {o.currency}</span>
+                    <div className="flex gap-1">
+                      <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(o)}><Edit2 size={13}/></button>
+                      <button className="btn-ghost px-2 py-1" onClick={()=>generateSalesInvoicePDF(o)}><FileText size={13}/></button>
+                      <button className="btn-ghost px-2 py-1" onClick={()=>openLinks(o)}><Link2 size={13}/></button>
+                      <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(o)}><Trash2 size={13}/></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    {['Party No','Tip','Müşteri','Ürün','Miktar (kg)','Fiyat','Para','Durum','Tarih','İşlemler'].map(h=>(
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.map(o => (
+                    <tr key={o.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">{o.party_no}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                          o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :
+                          o.sales_type === 'transit' ? 'bg-purple-100 text-purple-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>{SALES_TYPE_TR[o.sales_type] || 'İhracat'}</span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">{o.customer_name}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{Number(o.quantity_kg).toLocaleString()}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{Number(o.price_per_unit).toFixed(2)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{o.currency}</td>
+                      <td className="px-4 py-3"><span className={`badge-${o.status}`}>{STATUS_TR[o.status]}</span></td>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{o.created_at ? new Date(o.created_at).toLocaleDateString('tr-TR') : ''}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(o)} title="Düzenle"><Edit2 size={13}/></button>
+                          <button className="btn-ghost px-2 py-1" onClick={()=>generateSalesInvoicePDF(o)} title="Fatura PDF"><FileText size={13}/></button>
+                          <button className="btn-ghost px-2 py-1" onClick={()=>generatePackingListPDF(o)} title="Paket Listesi PDF"><Package size={13}/></button>
+                          <button className="btn-ghost px-2 py-1" onClick={()=>openLinks(o)} title="Bağlantılar"><Link2 size={13}/></button>
+                          <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(o)} title="Sil"><Trash2 size={13}/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

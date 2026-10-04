@@ -90,17 +90,17 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="p-6 max-w-full">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-3 md:p-6 max-w-full">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Ürünler</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Ürünler</h1>
           <p className="text-sm text-gray-500 mt-0.5">{filtered.length} ürün</p>
         </div>
-        {isAdmin && <button className="btn-primary" onClick={openAdd}><Plus size={16}/>Yeni Ürün</button>}
+        {isAdmin && <button className="btn-primary text-sm" onClick={openAdd}><Plus size={15}/>Yeni</button>}
       </div>
 
-      <div className="card mb-4 p-4">
-        <div className="relative max-w-sm">
+      <div className="card mb-3 p-3">
+        <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
           <input className="input pl-9" placeholder="İsim, çeşit veya kategori ara..." value={search} onChange={e=>setSearch(e.target.value)}/>
         </div>
@@ -109,49 +109,74 @@ export default function ProductsPage() {
       <div className="card overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-400">Yükleniyor...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-10 text-center text-gray-400 text-sm">Ürün bulunamadı</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {['Ürün Adı','Çeşit','Kategori','Birim','Kutu (net/brüt kg)','Palet/Kutu','Durum',...(isAdmin?['İşlemler']:[])].map(h=>(
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={isAdmin?8:7} className="px-4 py-10 text-center text-gray-400">Ürün bulunamadı</td></tr>
-                ) : filtered.map(item=>(
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium">{item.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{item.variety || '—'}</td>
-                    <td className="px-4 py-3 text-gray-600">{item.category || '—'}</td>
-                    <td className="px-4 py-3">{UNIT_TR[item.unit] || item.unit}</td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {item.box_net_kg ? `${item.box_net_kg} / ${item.box_gross_kg ?? '?'}` : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {item.boxes_per_pallet ? `${item.boxes_per_pallet} kutu` : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={item.is_active ? 'badge-completed' : 'badge-cancelled'}>
-                        {item.is_active ? 'Aktif' : 'Pasif'}
-                      </span>
-                    </td>
-                    {isAdmin && (
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(item)}><Edit2 size={13}/></button>
-                          <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(item)}><Trash2 size={13}/></button>
-                        </div>
-                      </td>
-                    )}
+          <>
+            {/* Mobile card list */}
+            <div className="lg:hidden divide-y divide-gray-100">
+              {filtered.map(item => (
+                <div key={item.id} className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+                    <span className="text-amber-600 text-sm font-bold">{(item.name||'?')[0].toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm text-gray-900 truncate">{item.name}{item.variety ? ` · ${item.variety}` : ''}</div>
+                    <div className="text-xs text-gray-400">{item.category || '—'} · {UNIT_TR[item.unit] || item.unit}</div>
+                    {item.box_net_kg && <div className="text-xs text-gray-400">Kutu: {item.box_net_kg}kg · Palet: {item.boxes_per_pallet} kutu</div>}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className={item.is_active ? 'badge-completed' : 'badge-cancelled'}>{item.is_active ? 'Aktif' : 'Pasif'}</span>
+                    {isAdmin && <>
+                      <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(item)}><Edit2 size={14}/></button>
+                      <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(item)}><Trash2 size={14}/></button>
+                    </>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    {['Ürün Adı','Çeşit','Kategori','Birim','Kutu (net/brüt kg)','Palet/Kutu','Durum',...(isAdmin?['İşlemler']:[])].map(h=>(
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.map(item=>(
+                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-medium">{item.name}</td>
+                      <td className="px-4 py-3 text-gray-600">{item.variety || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{item.category || '—'}</td>
+                      <td className="px-4 py-3">{UNIT_TR[item.unit] || item.unit}</td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {item.box_net_kg ? `${item.box_net_kg} / ${item.box_gross_kg ?? '?'}` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {item.boxes_per_pallet ? `${item.boxes_per_pallet} kutu` : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={item.is_active ? 'badge-completed' : 'badge-cancelled'}>
+                          {item.is_active ? 'Aktif' : 'Pasif'}
+                        </span>
+                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(item)}><Edit2 size={13}/></button>
+                            <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(item)}><Trash2 size={13}/></button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

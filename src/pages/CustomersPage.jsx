@@ -64,17 +64,17 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="p-6 max-w-full">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-3 md:p-6 max-w-full">
+      <div className="flex items-center justify-between mb-4 md:mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Müşteriler</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Müşteriler</h1>
           <p className="text-sm text-gray-500 mt-0.5">{filtered.length} müşteri</p>
         </div>
-        <button className="btn-primary" onClick={openAdd}><Plus size={16}/>Yeni Müşteri</button>
+        <button className="btn-primary text-sm" onClick={openAdd}><Plus size={15}/>Yeni</button>
       </div>
 
-      <div className="card mb-4 p-4">
-        <div className="relative max-w-sm">
+      <div className="card mb-3 p-3">
+        <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
           <input className="input pl-9" placeholder="İsim, ülke veya kişi ara..." value={search} onChange={e=>setSearch(e.target.value)}/>
         </div>
@@ -83,38 +83,60 @@ export default function CustomersPage() {
       <div className="card overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-gray-400">Yükleniyor...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-10 text-center text-gray-400 text-sm">Müşteri bulunamadı</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  {['İsim','Ülke','Şehir','İletişim Kişisi','E-posta','Telefon','İşlemler'].map(h=>(
-                    <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={7} className="px-4 py-10 text-center text-gray-400">Müşteri bulunamadı</td></tr>
-                ) : filtered.map(item=>(
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium">{item.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{item.country}</td>
-                    <td className="px-4 py-3 text-gray-600">{item.city}</td>
-                    <td className="px-4 py-3">{item.contact_name}</td>
-                    <td className="px-4 py-3 text-gray-600">{item.email}</td>
-                    <td className="px-4 py-3 text-gray-600">{item.phone}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(item)}><Edit2 size={13}/></button>
-                        <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(item)}><Trash2 size={13}/></button>
-                      </div>
-                    </td>
+          <>
+            {/* Mobile card list */}
+            <div className="lg:hidden divide-y divide-gray-100">
+              {filtered.map(item => (
+                <div key={item.id} className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                    <span className="text-blue-600 text-sm font-bold">{(item.name||'?')[0].toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm text-gray-900 truncate">{item.name}</div>
+                    <div className="text-xs text-gray-400 truncate">{[item.country, item.city].filter(Boolean).join(', ') || '—'}</div>
+                    {item.phone && <div className="text-xs text-gray-500">{item.phone}</div>}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(item)}><Edit2 size={14}/></button>
+                    <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(item)}><Trash2 size={14}/></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    {['İsim','Ülke','Şehir','İletişim Kişisi','E-posta','Telefon','İşlemler'].map(h=>(
+                      <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.map(item=>(
+                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 font-medium">{item.name}</td>
+                      <td className="px-4 py-3 text-gray-600">{item.country}</td>
+                      <td className="px-4 py-3 text-gray-600">{item.city}</td>
+                      <td className="px-4 py-3">{item.contact_name}</td>
+                      <td className="px-4 py-3 text-gray-600">{item.email}</td>
+                      <td className="px-4 py-3 text-gray-600">{item.phone}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(item)}><Edit2 size={13}/></button>
+                          <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(item)}><Trash2 size={13}/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
