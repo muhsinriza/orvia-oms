@@ -50,7 +50,11 @@ router.delete('/:id', async (req, res) => {
   try {
     await db.query('DELETE FROM customers WHERE id=$1', [req.params.id])
     res.json({ ok: true })
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
+  } catch (e) {
+    console.error(e)
+    if (e.code === '23503') return res.status(409).json({ error: 'Bu müşteriye ait siparişler var, önce siparişleri silin' })
+    res.status(500).json({ error: 'Sunucu hatası' })
+  }
 })
 
 module.exports = router
