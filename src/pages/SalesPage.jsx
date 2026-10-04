@@ -13,11 +13,15 @@ const TRANSPORT_MODES = ['Sea','Air','Road','Rail']
 const DOC_KEYS = ['invoice','packing_list','health_certificate','phytosanitary','certificate_of_origin']
 const DOC_TR = { invoice:'Fatura', packing_list:'Paket Listesi', health_certificate:'Sağlık Sertifikası', phytosanitary:'Fitosanitari', certificate_of_origin:'Menşe Şahadetnamesi' }
 
+const SALES_TYPE_TR = { ihracat:'İhracat', yerli:'Yerli Satış', transit:'Transit' }
+
 const EMPTY_FORM = {
+  sales_type:'ihracat',
   customer_id:'', product_id:'', variety:'', origin:'',
   quantity_kg:'', price_per_unit:'', currency:'USD',
   payment_method:'', payment_term:'', incoterm:'FOB',
   port_loading:'', port_discharge:'',
+  dest_country:'', transit_entry:'', transit_exit:'',
   shipment_date:'', delivery_date:'',
   transport_mode:'Sea', box_type:'', box_weight_kg:'', pallets:'',
   quality_notes:'', notes:'', status:'draft',
@@ -77,8 +81,10 @@ export default function SalesPage() {
   function openEdit(o) {
     setEditing(o)
     setForm({
+      sales_type: o.sales_type||'ihracat',
       customer_id: o.customer_id||'', product_id: o.product_id||'',
       variety: o.variety||'', origin: o.origin||'',
+      dest_country: o.dest_country||'', transit_entry: o.transit_entry||'', transit_exit: o.transit_exit||'',
       quantity_kg: o.quantity_kg||'', price_per_unit: o.price_per_unit||'',
       currency: o.currency||'USD', payment_method: o.payment_method||'',
       payment_term: o.payment_term||'', incoterm: o.incoterm||'FOB',
@@ -181,17 +187,26 @@ export default function SalesPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  {['Party No','Müşteri','Ürün','Miktar (kg)','Fiyat','Para','Durum','Tarih','İşlemler'].map(h=>(
+                  {['Party No','Tip','Müşteri','Ürün','Miktar (kg)','Fiyat','Para','Durum','Tarih','İşlemler'].map(h=>(
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400">Sipariş bulunamadı</td></tr>
+                  <tr><td colSpan={10} className="px-4 py-10 text-center text-gray-400">Sipariş bulunamadı</td></tr>
                 ) : filtered.map(o => (
                   <tr key={o.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">{o.party_no}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :
+                        o.sales_type === 'transit' ? 'bg-purple-100 text-purple-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {SALES_TYPE_TR[o.sales_type] || 'İhracat'}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap">{o.customer_name}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{o.product_name}{o.variety ? ` / ${o.variety}` : ''}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{Number(o.quantity_kg).toLocaleString()}</td>
@@ -219,6 +234,18 @@ export default function SalesPage() {
       {/* Add/Edit Modal */}
       <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title={editing ? `Sipariş Düzenle — ${editing.party_no}` : 'Yeni Satış Siparişi'} size="xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Satış Tipi */}
+          <div className="sm:col-span-2 lg:col-span-3">
+            <label className="label">Satış Tipi *</label>
+            <div className="flex gap-3">
+              {Object.entries(SALES_TYPE_TR).map(([val, label]) => (
+                <button key={val} type="button" onClick={()=>setField('sales_type', val)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${form.sales_type === val ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400'}`}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="label">Müşteri *</label>
             <select className="select" value={form.customer_id} onChange={e=>setField('customer_id',e.target.value)}>
@@ -277,6 +304,29 @@ export default function SalesPage() {
             <label className="label">Varış Limanı</label>
             <input className="input" value={form.port_discharge} onChange={e=>setField('port_discharge',e.target.value)} placeholder="Örn: Rotterdam"/>
           </div>
+
+          {/* İhracat ek alanları */}
+          {form.sales_type === 'ihracat' && (
+            <div>
+              <label className="label">Varış Ülkesi</label>
+              <input className="input" value={form.dest_country} onChange={e=>setField('dest_country',e.target.value)} placeholder="Örn: Polonya"/>
+            </div>
+          )}
+
+          {/* Transit ek alanları */}
+          {form.sales_type === 'transit' && (
+            <>
+              <div>
+                <label className="label">Giriş Gümrüğü</label>
+                <input className="input" value={form.transit_entry} onChange={e=>setField('transit_entry',e.target.value)} placeholder="Örn: Kapıkule"/>
+              </div>
+              <div>
+                <label className="label">Çıkış Gümrüğü</label>
+                <input className="input" value={form.transit_exit} onChange={e=>setField('transit_exit',e.target.value)} placeholder="Örn: Gürbulak"/>
+              </div>
+            </>
+          )}
+
           <div>
             <label className="label">Yükleme Tarihi</label>
             <input className="input" type="date" value={form.shipment_date} onChange={e=>setField('shipment_date',e.target.value)}/>

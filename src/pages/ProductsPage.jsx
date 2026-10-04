@@ -5,9 +5,14 @@ import { useToast } from '../components/ui/Toast'
 import { useAuth } from '../hooks/useAuth'
 import { Search, Plus, Edit2, Trash2 } from 'lucide-react'
 
-const UNITS = ['kg','ton','piece']
-const UNIT_TR = { kg:'kg', ton:'ton', piece:'Adet' }
-const EMPTY = { name:'', variety:'', category:'', unit:'kg', is_active:true, notes:'' }
+const UNITS = ['kg','kutu','adet','palet']
+const UNIT_TR = { kg:'kg', kutu:'Kutu', adet:'Adet', palet:'Palet' }
+
+const EMPTY = {
+  name:'', variety:'', category:'', unit:'kg',
+  box_net_kg:'', box_gross_kg:'', units_per_box:'', boxes_per_pallet:'',
+  is_active:true, notes:''
+}
 
 export default function ProductsPage() {
   const { user } = useAuth()
@@ -39,18 +44,34 @@ export default function ProductsPage() {
   })
 
   function openAdd() { setEditing(null); setForm(EMPTY); setModalOpen(true) }
-  function openEdit(item) { setEditing(item); setForm({ ...EMPTY, ...item }); setModalOpen(true) }
+  function openEdit(item) {
+    setEditing(item)
+    setForm({ ...EMPTY, ...item,
+      box_net_kg: item.box_net_kg ?? '',
+      box_gross_kg: item.box_gross_kg ?? '',
+      units_per_box: item.units_per_box ?? '',
+      boxes_per_pallet: item.boxes_per_pallet ?? '',
+    })
+    setModalOpen(true)
+  }
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
   async function handleSave() {
     if (!form.name.trim()) { showToast('Ürün adı zorunludur', 'error'); return }
     setSaving(true)
     try {
+      const payload = {
+        ...form,
+        box_net_kg:      form.box_net_kg      !== '' ? Number(form.box_net_kg)      : null,
+        box_gross_kg:    form.box_gross_kg    !== '' ? Number(form.box_gross_kg)    : null,
+        units_per_box:   form.units_per_box   !== '' ? Number(form.units_per_box)   : null,
+        boxes_per_pallet:form.boxes_per_pallet!== '' ? Number(form.boxes_per_pallet): null,
+      }
       if (editing) {
-        await api.put(`/products/${editing.id}`, form)
+        await api.put(`/products/${editing.id}`, payload)
         showToast('Ürün güncellendi', 'success')
       } else {
-        await api.post('/products', form)
+        await api.post('/products', payload)
         showToast('Ürün eklendi', 'success')
       }
       setModalOpen(false)
@@ -93,20 +114,26 @@ export default function ProductsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  {['Ürün Adı','Çeşit','Kategori','Birim','Durum',...(isAdmin?['İşlemler']:[])].map(h=>(
+                  {['Ürün Adı','Çeşit','Kategori','Birim','Kutu (net/brüt kg)','Palet/Kutu','Durum',...(isAdmin?['İşlemler']:[])].map(h=>(
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={isAdmin?6:5} className="px-4 py-10 text-center text-gray-400">Ürün bulunamadı</td></tr>
+                  <tr><td colSpan={isAdmin?8:7} className="px-4 py-10 text-center text-gray-400">Ürün bulunamadı</td></tr>
                 ) : filtered.map(item=>(
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 font-medium">{item.name}</td>
                     <td className="px-4 py-3 text-gray-600">{item.variety || '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{item.category || '—'}</td>
                     <td className="px-4 py-3">{UNIT_TR[item.unit] || item.unit}</td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {item.box_net_kg ? `${item.box_net_kg} / ${item.box_gross_kg ?? '?'}` : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">
+                      {item.boxes_per_pallet ? `${item.boxes_per_pallet} kutu` : '—'}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={item.is_active ? 'badge-completed' : 'badge-cancelled'}>
                         {item.is_active ? 'Aktif' : 'Pasif'}
@@ -157,6 +184,28 @@ export default function ProductsPage() {
                   <span className="ml-2 text-sm text-gray-700">Aktif</span>
                 </label>
               </div>
+
+              {/* Paketleme Detayları */}
+              <div className="sm:col-span-2">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 pt-2 border-t border-gray-100">Paketleme & Paletleme</p>
+              </div>
+              <div>
+                <label className="label">Kutu Net Ağırlık (kg)</label>
+                <input className="input" type="number" step="0.001" value={form.box_net_kg} onChange={e=>setField('box_net_kg',e.target.value)} placeholder="Örn: 10"/>
+              </div>
+              <div>
+                <label className="label">Kutu Brüt Ağırlık (kg)</label>
+                <input className="input" type="number" step="0.001" value={form.box_gross_kg} onChange={e=>setField('box_gross_kg',e.target.value)} placeholder="Örn: 10.5"/>
+              </div>
+              <div>
+                <label className="label">Kutu Başına Adet</label>
+                <input className="input" type="number" value={form.units_per_box} onChange={e=>setField('units_per_box',e.target.value)} placeholder="Adet ürünler için"/>
+              </div>
+              <div>
+                <label className="label">Palet Başına Kutu</label>
+                <input className="input" type="number" value={form.boxes_per_pallet} onChange={e=>setField('boxes_per_pallet',e.target.value)} placeholder="Örn: 80"/>
+              </div>
+
               <div className="sm:col-span-2">
                 <label className="label">Notlar</label>
                 <textarea className="input" rows={2} value={form.notes} onChange={e=>setField('notes',e.target.value)}/>

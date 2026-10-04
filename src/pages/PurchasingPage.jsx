@@ -13,9 +13,13 @@ const STATUS_TR = {
 
 const STATUSES = Object.keys(STATUS_TR)
 
+const PURCHASE_TYPE_TR = { ithalat: 'İthalat', yerli: 'Yerli Alım' }
+
 function emptyForm() {
   return {
+    purchase_type: 'ithalat',
     supplier_id: '', product_id: '', variety: '', origin: '',
+    origin_country: '', customs_ref: '',
     quantity_kg: '', unit_price: '', currency: 'USD',
     payment_method: 'T/T Wire Transfer', payment_term: '',
     incoterm: 'FOB', loading_port: '', destination: '',
@@ -70,10 +74,13 @@ export default function PurchasingPage() {
   function openEdit(o) {
     setEditOrder(o)
     setForm({
+      purchase_type: o.purchase_type || 'ithalat',
       supplier_id: o.supplier_id || '',
       product_id:  o.product_id  || '',
       variety:     o.variety     || '',
       origin:      o.origin      || '',
+      origin_country: o.origin_country || '',
+      customs_ref:    o.customs_ref    || '',
       quantity_kg: o.quantity_kg || '',
       unit_price:  o.unit_price  || '',
       currency:    o.currency    || 'USD',
@@ -175,6 +182,7 @@ export default function PurchasingPage() {
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50">
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Party No</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Tip</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Tedarikçi</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Ürün</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Miktar</th>
@@ -196,6 +204,11 @@ export default function PurchasingPage() {
                     <Link to={`/purchasing/${o.id}`} className="font-medium text-primary-600 hover:underline">
                       {o.party_no}
                     </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${o.purchase_type === 'yerli' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                      {PURCHASE_TYPE_TR[o.purchase_type] || o.purchase_type || 'İthalat'}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-gray-700">{o.supplier?.company_name || '—'}</td>
                   <td className="px-4 py-3 text-gray-700">{o.product?.name || '—'}{o.variety ? ` / ${o.variety}` : ''}</td>
@@ -224,6 +237,21 @@ export default function PurchasingPage() {
       {/* Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editOrder ? `Düzenle — ${editOrder.party_no}` : 'Yeni Satın Alma Siparişi'} size="xl">
         <div className="grid grid-cols-2 gap-4">
+          {/* Tip seçimi */}
+          <div className="col-span-2">
+            <label className="label">Alım Tipi *</label>
+            <div className="flex gap-3">
+              {Object.entries(PURCHASE_TYPE_TR).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => set('purchase_type', val)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${form.purchase_type === val ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400'}`}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
+
           {/* Tedarikçi */}
           <div className="col-span-2 grid grid-cols-2 gap-4">
             <div>
@@ -250,6 +278,19 @@ export default function PurchasingPage() {
             <label className="label">Menşei</label>
             <input className="input" value={form.origin} onChange={e => set('origin', e.target.value)} placeholder="Örn: Mısır" />
           </div>
+
+          {form.purchase_type === 'ithalat' && (
+            <>
+              <div>
+                <label className="label">Menşei Ülke</label>
+                <input className="input" value={form.origin_country} onChange={e => set('origin_country', e.target.value)} placeholder="Örn: Mısır" />
+              </div>
+              <div>
+                <label className="label">Gümrük Ref No</label>
+                <input className="input" value={form.customs_ref} onChange={e => set('customs_ref', e.target.value)} placeholder="Gümrük takip no" />
+              </div>
+            </>
+          )}
 
           <div>
             <label className="label">Miktar (kg) *</label>
