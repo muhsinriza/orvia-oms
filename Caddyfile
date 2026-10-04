@@ -1,0 +1,13 @@
+{$DOMAIN:orviaoms.com} {
+  encode gzip
+
+  handle /api/* {
+    reverse_proxy backend:3001
+  }
+
+  handle {
+    root * /srv/www
+    try_files {path} /index.html
+    file_server
+  }
+}
