@@ -63,8 +63,8 @@ export default function Layout() {
               </svg>
             </div>
             <div>
-              <div className="text-sm font-bold text-gray-900 leading-none">Orvia</div>
-              <div className="text-[10px] text-gray-400 mt-0.5">OMS v1.0</div>
+              <div className="text-sm font-bold text-gray-900 leading-none">ORVIA OMS</div>
+              <div className="text-[10px] text-gray-400 mt-0.5">v1.0</div>
             </div>
           </div>
           <button className="lg:hidden p-1 text-gray-400" onClick={() => setSidebarOpen(false)}>
@@ -128,7 +128,7 @@ export default function Layout() {
                 <path d="M14 20 Q17 14 20 20 Q23 26 26 20" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none"/>
               </svg>
             </div>
-            <span className="font-bold text-gray-900 text-sm">Orvia</span>
+            <span className="font-bold text-gray-900 text-sm">ORVIA OMS</span>
           </div>
           <div className="flex-1" />
           <div className="text-xs text-gray-400 hidden sm:block">{user?.full_name}</div>

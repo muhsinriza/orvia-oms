@@ -38,7 +38,7 @@ export default function LoginPage() {
               <circle cx="20" cy="20" r="2.5" fill="white"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Orvia</h1>
+          <h1 className="text-2xl font-bold text-gray-900">ORVIA OMS</h1>
           <p className="text-sm text-gray-500 mt-1">Sipariş Yönetim Sistemi</p>
         </div>
 
