@@ -9,6 +9,8 @@ const db = require('./db')
 const app = express()
 const PORT = process.env.PORT || 3001
 
+app.set('trust proxy', 1)
+
 // CORS — allow dev origin and production domain
 const allowedOrigins = [
   'http://localhost:5173',
