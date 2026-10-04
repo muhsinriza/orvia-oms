@@ -2,6 +2,15 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
+const COMPANY = {
+  name:    'ORVIA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.',
+  address: 'Fener Mah. 1964 Sk. Hacı M Gebizli Sit. D Blok No:6/A No:3',
+  city:    'Muratpaşa / Antalya / Türkiye',
+  tax:     'Vergi No: 6481831271 | Antalya Kurumlar V.D.',
+  web:     'www.orviatropical.com',
+  email:   'muhsinriza@hotmail.com',
+}
+
 const fmt = (n, dec = 2) => {
   if (n == null || n === '') return '—'
   return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec })
@@ -21,17 +30,20 @@ export function generatePurchaseOrderPDF(po) {
   doc.setFillColor(...GREEN)
   doc.rect(0, 0, W, 28, 'F')
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(16).setFont('helvetica', 'bold')
-  doc.text('ORVIA TROPICAL LTD', M, 12)
-  doc.setFontSize(9).setFont('helvetica', 'normal')
-  doc.text('PURCHASE ORDER / SATIN ALMA SİPARİŞİ', M, 19)
+  doc.setFontSize(13).setFont('helvetica', 'bold')
+  doc.text(COMPANY.name, M, 10)
+  doc.setFontSize(7).setFont('helvetica', 'normal')
+  doc.text(`${COMPANY.address}  |  ${COMPANY.city}`, M, 16)
+  doc.text(`${COMPANY.tax}  |  ${COMPANY.web}`, M, 21)
+  doc.setFontSize(9).setFont('helvetica', 'bold')
+  doc.text('PURCHASE ORDER / SATIN ALMA SİPARİŞİ', M, 27)
   doc.setFontSize(11).setFont('helvetica', 'bold')
   doc.text(po.party_no || '—', W - M, 12, { align: 'right' })
   doc.setFontSize(8).setFont('helvetica', 'normal')
   doc.text(`Tarih: ${fmtDate(po.created_at)}`, W - M, 19, { align: 'right' })
 
   doc.setTextColor(...DARK)
-  let y = 36
+  let y = 38
 
   // Tedarikçi & Ürün bilgileri
   autoTable(doc, {
@@ -127,9 +139,9 @@ export function generatePurchaseOrderPDF(po) {
 
   // Footer
   doc.setFillColor(...GREEN)
-  doc.rect(0, 285, W, 12, 'F')
+  doc.rect(0, 284, W, 13, 'F')
   doc.setTextColor(255, 255, 255).setFontSize(7)
-  doc.text('Orvia Tropical Ltd  |  orviatropical.com', W / 2, 292, { align: 'center' })
+  doc.text(`${COMPANY.name}  |  ${COMPANY.web}  |  ${COMPANY.email}`, W / 2, 291, { align: 'center' })
 
   doc.save(`PO_${po.party_no || 'siparis'}.pdf`)
 }
@@ -143,17 +155,20 @@ export function generateSalesInvoicePDF(so) {
   doc.setFillColor(...GREEN)
   doc.rect(0, 0, W, 28, 'F')
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(16).setFont('helvetica', 'bold')
-  doc.text('ORVIA TROPICAL LTD', M, 12)
-  doc.setFontSize(9).setFont('helvetica', 'normal')
-  doc.text('COMMERCIAL INVOICE / TİCARİ FATURA', M, 19)
+  doc.setFontSize(13).setFont('helvetica', 'bold')
+  doc.text(COMPANY.name, M, 10)
+  doc.setFontSize(7).setFont('helvetica', 'normal')
+  doc.text(`${COMPANY.address}  |  ${COMPANY.city}`, M, 16)
+  doc.text(`${COMPANY.tax}  |  ${COMPANY.web}`, M, 21)
+  doc.setFontSize(9).setFont('helvetica', 'bold')
+  doc.text('COMMERCIAL INVOICE / TİCARİ FATURA', M, 27)
   doc.setFontSize(11).setFont('helvetica', 'bold')
   doc.text(so.party_no || '—', W - M, 12, { align: 'right' })
   doc.setFontSize(8).setFont('helvetica', 'normal')
   doc.text(`Tarih: ${fmtDate(so.created_at)}`, W - M, 19, { align: 'right' })
 
   doc.setTextColor(...DARK)
-  let y = 36
+  let y = 38
 
   autoTable(doc, {
     startY: y,
@@ -215,9 +230,9 @@ export function generateSalesInvoicePDF(so) {
   })
 
   doc.setFillColor(...GREEN)
-  doc.rect(0, 285, W, 12, 'F')
+  doc.rect(0, 284, W, 13, 'F')
   doc.setTextColor(255, 255, 255).setFontSize(7)
-  doc.text('Orvia Tropical Ltd  |  orviatropical.com', W / 2, 292, { align: 'center' })
+  doc.text(`${COMPANY.name}  |  ${COMPANY.web}  |  ${COMPANY.email}`, W / 2, 291, { align: 'center' })
 
   doc.save(`Invoice_${so.party_no || 'satis'}.pdf`)
 }
@@ -230,10 +245,13 @@ export function generatePackingListPDF(so) {
   doc.setFillColor(...GREEN)
   doc.rect(0, 0, W, 28, 'F')
   doc.setTextColor(255, 255, 255)
-  doc.setFontSize(16).setFont('helvetica', 'bold')
-  doc.text('ORVIA TROPICAL LTD', M, 12)
-  doc.setFontSize(9).setFont('helvetica', 'normal')
-  doc.text('PACKING LIST / PAKET LİSTESİ', M, 19)
+  doc.setFontSize(13).setFont('helvetica', 'bold')
+  doc.text(COMPANY.name, M, 10)
+  doc.setFontSize(7).setFont('helvetica', 'normal')
+  doc.text(`${COMPANY.address}  |  ${COMPANY.city}`, M, 16)
+  doc.text(`${COMPANY.tax}  |  ${COMPANY.web}`, M, 21)
+  doc.setFontSize(9).setFont('helvetica', 'bold')
+  doc.text('PACKING LIST / PAKET LİSTESİ', M, 27)
   doc.setFontSize(11).setFont('helvetica', 'bold')
   doc.text(so.party_no || '—', W - M, 12, { align: 'right' })
   doc.setFontSize(8).setFont('helvetica', 'normal')
@@ -249,7 +267,7 @@ export function generatePackingListPDF(so) {
     : '—'
 
   autoTable(doc, {
-    startY: 36,
+    startY: 38,
     margin: { left: M, right: M },
     head: [['ALAN', 'BİLGİ', 'ALAN', 'BİLGİ']],
     body: [
@@ -291,9 +309,9 @@ export function generatePackingListPDF(so) {
   })
 
   doc.setFillColor(...GREEN)
-  doc.rect(0, 285, W, 12, 'F')
+  doc.rect(0, 284, W, 13, 'F')
   doc.setTextColor(255, 255, 255).setFontSize(7)
-  doc.text('Orvia Tropical Ltd  |  orviatropical.com', W / 2, 292, { align: 'center' })
+  doc.text(`${COMPANY.name}  |  ${COMPANY.web}  |  ${COMPANY.email}`, W / 2, 291, { align: 'center' })
 
   doc.save(`PackingList_${so.party_no || 'satis'}.pdf`)
 }
