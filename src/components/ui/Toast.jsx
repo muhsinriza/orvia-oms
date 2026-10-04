@@ -41,5 +41,10 @@ export function ToastProvider({ children }) {
 }
 
 export function useToast() {
-  return useContext(ToastContext)
+  const addToast = useContext(ToastContext)
+  // Support both patterns:
+  //   const toast = useToast(); toast('msg', 'error')
+  //   const { showToast } = useToast(); showToast('msg', 'error')
+  if (addToast) addToast.showToast = addToast
+  return addToast
 }

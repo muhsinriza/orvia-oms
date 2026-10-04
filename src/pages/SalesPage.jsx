@@ -42,6 +42,7 @@ export default function SalesPage() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [linksModal, setLinksModal] = useState(null) // { soId, partyNo }
   const [links, setLinks] = useState([])
   const [linkForm, setLinkForm] = useState({ purchase_order_id:'', linked_kg:'' })
@@ -112,24 +113,28 @@ export default function SalesPage() {
     try {
       if (editing) {
         await api.put(`/sales-orders/${editing.id}`, form)
+        setModalOpen(false)
+        load()
         showToast('Satış siparişi güncellendi', 'success')
       } else {
         await api.post('/sales-orders', form)
+        setModalOpen(false)
+        load()
         showToast('Satış siparişi oluşturuldu', 'success')
       }
-      setModalOpen(false)
-      load()
     } catch (e) { showToast(e.message, 'error') }
     finally { setSaving(false) }
   }
 
   async function handleDelete(id) {
+    setDeleting(true)
     try {
       await api.delete(`/sales-orders/${id}`)
-      showToast('Silindi', 'success')
       setDeleteConfirm(null)
       load()
+      showToast('Sipariş silindi', 'success')
     } catch (e) { showToast(e.message, 'error') }
+    finally { setDeleting(false) }
   }
 
   async function openLinks(o) {

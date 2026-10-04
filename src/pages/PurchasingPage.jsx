@@ -20,7 +20,7 @@ function emptyForm() {
     purchase_type: 'ithalat',
     supplier_id: '', product_id: '', variety: '', caliber: '', origin: '',
     origin_country: '', customs_ref: '',
-    quantity_kg: '', unit_price: '', currency: 'USD',
+    quantity_kg: '', price_per_unit: '', currency: 'USD',
     payment_method: 'T/T Wire Transfer', payment_term: '',
     incoterm: 'FOB', loading_port: '', destination: '',
     shipment_date: '', arrival_date: '',
@@ -83,7 +83,7 @@ export default function PurchasingPage() {
       origin_country: o.origin_country || '',
       customs_ref:    o.customs_ref    || '',
       quantity_kg: o.quantity_kg || '',
-      unit_price:  o.unit_price  || '',
+      price_per_unit: o.price_per_unit || '',
       currency:    o.currency    || 'USD',
       payment_method:  o.payment_method  || '',
       payment_term:    o.payment_term    || '',
@@ -111,7 +111,7 @@ export default function PurchasingPage() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   async function handleSave() {
-    if (!form.supplier_id || !form.product_id || !form.quantity_kg || !form.unit_price) {
+    if (!form.supplier_id || !form.product_id || !form.quantity_kg || !form.price_per_unit) {
       toast('Tedarikçi, ürün, miktar ve fiyat zorunludur', 'error')
       return
     }
@@ -119,8 +119,8 @@ export default function PurchasingPage() {
     try {
       const payload = {
         ...form,
-        quantity_kg: parseFloat(form.quantity_kg) || 0,
-        unit_price:  parseFloat(form.unit_price)  || 0,
+        quantity_kg:    parseFloat(form.quantity_kg)    || 0,
+        price_per_unit: parseFloat(form.price_per_unit) || 0,
         net_weight_box:   form.net_weight_box   ? parseFloat(form.net_weight_box)   : null,
         boxes_per_pallet: form.boxes_per_pallet ? parseInt(form.boxes_per_pallet)   : null,
         total_pallets:    form.total_pallets    ? parseInt(form.total_pallets)       : null,
@@ -129,13 +129,15 @@ export default function PurchasingPage() {
       }
       if (editOrder) {
         await api.put(`/purchase-orders/${editOrder.id}`, payload)
+        setModalOpen(false)
+        fetchAll()
         toast('Sipariş güncellendi')
       } else {
         await api.post('/purchase-orders', payload)
+        setModalOpen(false)
+        fetchAll()
         toast('Sipariş oluşturuldu')
       }
-      setModalOpen(false)
-      fetchAll()
     } catch (e) {
       toast(e.message, 'error')
     } finally {
@@ -328,7 +330,7 @@ export default function PurchasingPage() {
           <div>
             <label className="label">Birim Fiyat *</label>
             <div className="flex gap-2">
-              <input className="input" type="number" step="0.001" value={form.unit_price} onChange={e => set('unit_price', e.target.value)} placeholder="0.000" />
+              <input className="input" type="number" step="0.001" value={form.price_per_unit} onChange={e => set('price_per_unit', e.target.value)} placeholder="0.000" />
               <select className="select w-24" value={form.currency} onChange={e => set('currency', e.target.value)}>
                 <option>USD</option><option>EUR</option><option>TRY</option><option>GBP</option>
               </select>

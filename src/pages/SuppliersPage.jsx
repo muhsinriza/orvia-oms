@@ -15,6 +15,7 @@ export default function SuppliersPage() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(EMPTY)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
 
   const load = useCallback(async () => {
@@ -55,12 +56,14 @@ export default function SuppliersPage() {
   }
 
   async function handleDelete(id) {
+    setDeleting(true)
     try {
       await api.delete(`/suppliers/${id}`)
-      showToast('Silindi', 'success')
       setDeleteConfirm(null)
+      showToast('Tedarikçi silindi', 'success')
       load()
     } catch (e) { showToast(e.message, 'error') }
+    finally { setDeleting(false) }
   }
 
   return (
@@ -189,7 +192,7 @@ export default function SuppliersPage() {
         <p className="text-gray-700 mb-6"><strong>{deleteConfirm?.name}</strong> tedarikçisini silmek istediğinizden emin misiniz?</p>
         <div className="flex justify-end gap-3">
           <button className="btn-secondary" onClick={()=>setDeleteConfirm(null)}>İptal</button>
-          <button className="btn-danger" onClick={()=>handleDelete(deleteConfirm.id)}>Sil</button>
+          <button className="btn-danger" onClick={()=>handleDelete(deleteConfirm.id)} disabled={deleting}>{deleting ? 'Siliniyor...' : 'Sil'}</button>
         </div>
       </Modal>
     </div>
