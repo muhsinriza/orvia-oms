@@ -17,7 +17,7 @@ const SALES_TYPE_TR = { ihracat:'İhracat', yerli:'Yerli Satış', transit:'Tran
 
 const EMPTY_FORM = {
   sales_type:'ihracat',
-  customer_id:'', product_id:'', variety:'', origin:'',
+  customer_id:'', product_id:'', variety:'', caliber:'', origin:'',
   quantity_kg:'', price_per_unit:'', currency:'USD',
   payment_method:'', payment_term:'', incoterm:'FOB',
   port_loading:'', port_discharge:'',
@@ -83,7 +83,7 @@ export default function SalesPage() {
     setForm({
       sales_type: o.sales_type||'ihracat',
       customer_id: o.customer_id||'', product_id: o.product_id||'',
-      variety: o.variety||'', origin: o.origin||'',
+      variety: o.variety||'', caliber: o.caliber||'', origin: o.origin||'',
       dest_country: o.dest_country||'', transit_entry: o.transit_entry||'', transit_exit: o.transit_exit||'',
       quantity_kg: o.quantity_kg||'', price_per_unit: o.price_per_unit||'',
       currency: o.currency||'USD', payment_method: o.payment_method||'',
@@ -208,7 +208,7 @@ export default function SalesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">{o.customer_name}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{o.product_name}{o.variety ? ` / ${o.variety}` : ''}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{Number(o.quantity_kg).toLocaleString()}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{Number(o.price_per_unit).toFixed(2)}</td>
                     <td className="px-4 py-3 whitespace-nowrap">{o.currency}</td>
@@ -263,6 +263,10 @@ export default function SalesPage() {
           <div>
             <label className="label">Çeşit</label>
             <input className="input" value={form.variety} onChange={e=>setField('variety',e.target.value)} placeholder="Örn: Fuji"/>
+          </div>
+          <div>
+            <label className="label">Kalibr / Boy</label>
+            <input className="input" value={form.caliber} onChange={e=>setField('caliber',e.target.value)} placeholder="Örn: 100, 110-120, 135+"/>
           </div>
           <div>
             <label className="label">Menşei</label>

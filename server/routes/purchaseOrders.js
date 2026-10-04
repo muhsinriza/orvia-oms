@@ -54,7 +54,7 @@ router.get('/:id', async (req, res) => {
 // POST /purchase-orders
 router.post('/', async (req, res) => {
   const {
-    supplier_id, product_id, variety, origin,
+    supplier_id, product_id, variety, caliber, origin,
     quantity_kg, price_per_unit, currency,
     payment_method, payment_term, incoterm,
     port_loading, port_discharge, shipment_date, delivery_date,
@@ -64,15 +64,15 @@ router.post('/', async (req, res) => {
   try {
     const { rows } = await db.query(`
       INSERT INTO purchase_orders
-        (supplier_id, product_id, variety, origin,
+        (supplier_id, product_id, variety, caliber, origin,
          quantity_kg, price_per_unit, currency,
          payment_method, payment_term, incoterm,
          port_loading, port_discharge, shipment_date, delivery_date,
          transport_mode, box_type, box_weight_kg, pallets,
          quality_notes, required_docs, notes, status, created_by)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
       RETURNING *
-    `, [supplier_id, product_id, variety, origin,
+    `, [supplier_id, product_id, variety, caliber || null, origin,
         quantity_kg, price_per_unit, currency || 'USD',
         payment_method, payment_term, incoterm,
         port_loading, port_discharge, shipment_date || null, delivery_date || null,
@@ -86,7 +86,7 @@ router.post('/', async (req, res) => {
 // PUT /purchase-orders/:id
 router.put('/:id', async (req, res) => {
   const {
-    supplier_id, product_id, variety, origin,
+    supplier_id, product_id, variety, caliber, origin,
     quantity_kg, price_per_unit, currency,
     payment_method, payment_term, incoterm,
     port_loading, port_discharge, shipment_date, delivery_date,
@@ -96,15 +96,15 @@ router.put('/:id', async (req, res) => {
   try {
     const { rows } = await db.query(`
       UPDATE purchase_orders SET
-        supplier_id=$1, product_id=$2, variety=$3, origin=$4,
-        quantity_kg=$5, price_per_unit=$6, currency=$7,
-        payment_method=$8, payment_term=$9, incoterm=$10,
-        port_loading=$11, port_discharge=$12, shipment_date=$13, delivery_date=$14,
-        transport_mode=$15, box_type=$16, box_weight_kg=$17, pallets=$18,
-        quality_notes=$19, required_docs=$20, notes=$21, status=$22
-      WHERE id=$23
+        supplier_id=$1, product_id=$2, variety=$3, caliber=$4, origin=$5,
+        quantity_kg=$6, price_per_unit=$7, currency=$8,
+        payment_method=$9, payment_term=$10, incoterm=$11,
+        port_loading=$12, port_discharge=$13, shipment_date=$14, delivery_date=$15,
+        transport_mode=$16, box_type=$17, box_weight_kg=$18, pallets=$19,
+        quality_notes=$20, required_docs=$21, notes=$22, status=$23
+      WHERE id=$24
       RETURNING *
-    `, [supplier_id, product_id, variety, origin,
+    `, [supplier_id, product_id, variety, caliber || null, origin,
         quantity_kg, price_per_unit, currency,
         payment_method, payment_term, incoterm,
         port_loading, port_discharge, shipment_date || null, delivery_date || null,

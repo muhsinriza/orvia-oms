@@ -18,7 +18,7 @@ const PURCHASE_TYPE_TR = { ithalat: 'İthalat', yerli: 'Yerli Alım' }
 function emptyForm() {
   return {
     purchase_type: 'ithalat',
-    supplier_id: '', product_id: '', variety: '', origin: '',
+    supplier_id: '', product_id: '', variety: '', caliber: '', origin: '',
     origin_country: '', customs_ref: '',
     quantity_kg: '', unit_price: '', currency: 'USD',
     payment_method: 'T/T Wire Transfer', payment_term: '',
@@ -78,6 +78,7 @@ export default function PurchasingPage() {
       supplier_id: o.supplier_id || '',
       product_id:  o.product_id  || '',
       variety:     o.variety     || '',
+      caliber:     o.caliber     || '',
       origin:      o.origin      || '',
       origin_country: o.origin_country || '',
       customs_ref:    o.customs_ref    || '',
@@ -211,7 +212,7 @@ export default function PurchasingPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-700">{o.supplier?.company_name || '—'}</td>
-                  <td className="px-4 py-3 text-gray-700">{o.product?.name || '—'}{o.variety ? ` / ${o.variety}` : ''}</td>
+                  <td className="px-4 py-3 text-gray-700">{o.product?.name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
                   <td className="px-4 py-3 text-right text-gray-700">{Number(o.quantity_kg).toLocaleString('tr-TR')} kg</td>
                   <td className="px-4 py-3 text-right font-medium text-gray-900">
                     {Number(o.total_amount).toLocaleString('tr-TR', {minimumFractionDigits:2,maximumFractionDigits:2})} {o.currency}
@@ -273,6 +274,10 @@ export default function PurchasingPage() {
           <div>
             <label className="label">Çeşit</label>
             <input className="input" value={form.variety} onChange={e => set('variety', e.target.value)} placeholder="Örn: Salkım" />
+          </div>
+          <div>
+            <label className="label">Kalibr / Boy</label>
+            <input className="input" value={form.caliber} onChange={e => set('caliber', e.target.value)} placeholder="Örn: 100, 110-120, 135+" />
           </div>
           <div>
             <label className="label">Menşei</label>
