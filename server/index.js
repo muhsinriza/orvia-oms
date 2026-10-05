@@ -58,6 +58,7 @@ app.use('/api/customers',       require('./routes/customers'))
 app.use('/api/products',        require('./routes/products'))
 app.use('/api/order-links',     require('./routes/orderLinks'))
 app.use('/api/shipment-events', require('./routes/shipmentEvents'))
+app.use('/api/pdf',             require('./routes/pdf'))
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ ok: true }))
