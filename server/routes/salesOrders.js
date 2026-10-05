@@ -61,7 +61,7 @@ router.post('/', async (req, res) => {
     transport_mode, box_type, box_weight_kg, pallets,
     quality_notes, required_docs, notes, status,
     tracking_number, container_number, seawaybill_number, vessel_name,
-    flight_number, driver_name, driver_phone,
+    flight_number, driver_name, driver_phone, etd, eta,
   } = req.body
   try {
     const { rows } = await db.query(`
@@ -73,8 +73,8 @@ router.post('/', async (req, res) => {
          transport_mode, box_type, box_weight_kg, pallets,
          quality_notes, required_docs, notes, status, created_by,
          tracking_number, container_number, seawaybill_number, vessel_name,
-         flight_number, driver_name, driver_phone)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31)
+         flight_number, driver_name, driver_phone, etd, eta)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
       RETURNING *
     `, [customer_id, product_id, variety, caliber || null, origin,
         quantity_kg, price_per_unit, currency || 'USD',
@@ -84,7 +84,8 @@ router.post('/', async (req, res) => {
         quality_notes, JSON.stringify(required_docs || {}), notes,
         status || 'draft', req.session.userId,
         tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
-        flight_number || null, driver_name || null, driver_phone || null])
+        flight_number || null, driver_name || null, driver_phone || null,
+        etd || null, eta || null])
     res.status(201).json(rows[0])
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
@@ -99,7 +100,7 @@ router.put('/:id', async (req, res) => {
     transport_mode, box_type, box_weight_kg, pallets,
     quality_notes, required_docs, notes, status,
     tracking_number, container_number, seawaybill_number, vessel_name,
-    flight_number, driver_name, driver_phone,
+    flight_number, driver_name, driver_phone, etd, eta,
   } = req.body
   try {
     const { rows } = await db.query(`
@@ -111,7 +112,7 @@ router.put('/:id', async (req, res) => {
         transport_mode=$16, box_type=$17, box_weight_kg=$18, pallets=$19,
         quality_notes=$20, required_docs=$21, notes=$22, status=$23,
         tracking_number=$25, container_number=$26, seawaybill_number=$27, vessel_name=$28,
-        flight_number=$29, driver_name=$30, driver_phone=$31
+        flight_number=$29, driver_name=$30, driver_phone=$31, etd=$32, eta=$33
       WHERE id=$24
       RETURNING *
     `, [customer_id, product_id, variety, caliber || null, origin,
@@ -122,7 +123,8 @@ router.put('/:id', async (req, res) => {
         quality_notes, JSON.stringify(required_docs || {}), notes, status,
         req.params.id,
         tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
-        flight_number || null, driver_name || null, driver_phone || null])
+        flight_number || null, driver_name || null, driver_phone || null,
+        etd || null, eta || null])
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
     res.json(rows[0])
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }

@@ -23,7 +23,7 @@ const EMPTY_FORM = {
   payment_method:'', payment_term:'', incoterm:'FOB',
   port_loading:'', port_discharge:'',
   dest_country:'', transit_entry:'', transit_exit:'',
-  shipment_date:'', delivery_date:'',
+  shipment_date:'', delivery_date:'', etd:'', eta:'',
   transport_mode:'Sea', box_type:'', box_weight_kg:'', pallets:'',
   quality_notes:'', notes:'', status:'draft',
   required_docs: { invoice:false, packing_list:false, health_certificate:false, phytosanitary:false, certificate_of_origin:false }
@@ -93,6 +93,8 @@ export default function SalesPage() {
       port_loading: o.port_loading||'', port_discharge: o.port_discharge||'',
       shipment_date: o.shipment_date ? o.shipment_date.slice(0,10) : '',
       delivery_date: o.delivery_date ? o.delivery_date.slice(0,10) : '',
+      etd: o.etd ? o.etd.slice(0,10) : '',
+      eta: o.eta ? o.eta.slice(0,10) : '',
       transport_mode: o.transport_mode||'Sea', box_type: o.box_type||'',
       box_weight_kg: o.box_weight_kg||'', pallets: o.pallets||'',
       quality_notes: o.quality_notes||'', notes: o.notes||'',
@@ -374,6 +376,14 @@ export default function SalesPage() {
           <div>
             <label className="label">Teslim Tarihi</label>
             <input className="input" type="date" value={form.delivery_date} onChange={e=>setField('delivery_date',e.target.value)}/>
+          </div>
+          <div>
+            <label className="label">ETD (Tahmini Kalkış)</label>
+            <input className="input" type="date" value={form.etd} onChange={e=>setField('etd',e.target.value)}/>
+          </div>
+          <div>
+            <label className="label">ETA (Tahmini Varış)</label>
+            <input className="input" type="date" value={form.eta} onChange={e=>setField('eta',e.target.value)}/>
           </div>
           <div>
             <label className="label">Taşıma Modu</label>

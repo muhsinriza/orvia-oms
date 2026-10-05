@@ -24,6 +24,7 @@ function emptyForm() {
     payment_method: 'T/T Wire Transfer', payment_term: '',
     incoterm: 'FOB', loading_port: '', destination: '',
     shipment_date: '', arrival_date: '',
+    etd: '', eta: '',
     transport_type: 'Karayolu TIR',
     box_type: '', net_weight_box: '', boxes_per_pallet: '', total_pallets: '', pallet_type: '',
     grade: 'Extra', size_range: '', quality_notes: '',
@@ -92,6 +93,8 @@ export default function PurchasingPage() {
       destination:     o.destination     || '',
       shipment_date:   o.shipment_date   ? o.shipment_date.slice(0,10) : '',
       arrival_date:    o.arrival_date    ? o.arrival_date.slice(0,10)  : '',
+      etd:             o.etd             ? o.etd.slice(0,10)           : '',
+      eta:             o.eta             ? o.eta.slice(0,10)           : '',
       transport_type:  o.transport_type  || 'Karayolu TIR',
       box_type:        o.box_type        || '',
       net_weight_box:  o.net_weight_box  || '',
@@ -126,6 +129,8 @@ export default function PurchasingPage() {
         total_pallets:    form.total_pallets    ? parseInt(form.total_pallets)       : null,
         shipment_date: form.shipment_date || null,
         arrival_date:  form.arrival_date  || null,
+        etd: form.etd || null,
+        eta: form.eta || null,
       }
       if (editOrder) {
         await api.put(`/purchase-orders/${editOrder.id}`, payload)
@@ -383,6 +388,14 @@ export default function PurchasingPage() {
           <div>
             <label className="label">Tahmini Varış</label>
             <input className="input" type="date" value={form.arrival_date} onChange={e => set('arrival_date', e.target.value)} />
+          </div>
+          <div>
+            <label className="label">ETD (Tahmini Kalkış)</label>
+            <input className="input" type="date" value={form.etd} onChange={e => set('etd', e.target.value)} />
+          </div>
+          <div>
+            <label className="label">ETA (Tahmini Varış)</label>
+            <input className="input" type="date" value={form.eta} onChange={e => set('eta', e.target.value)} />
           </div>
 
           {/* Ambalaj */}
