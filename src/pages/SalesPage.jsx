@@ -18,6 +18,7 @@ const SALES_TYPE_TR = { ihracat:'İhracat', yerli:'Yerli Satış', transit:'Tran
 
 const EMPTY_FORM = {
   sales_type:'ihracat',
+  sa_number:'',
   customer_id:'', product_id:'', variety:'', caliber:'', origin:'',
   quantity_kg:'', price_per_unit:'', currency:'USD',
   payment_method:'', payment_term:'', incoterm:'FOB',
@@ -84,6 +85,7 @@ export default function SalesPage() {
     setEditing(o)
     setForm({
       sales_type: o.sales_type||'ihracat',
+      sa_number: o.sa_number||'',
       customer_id: o.customer_id||'', product_id: o.product_id||'',
       variety: o.variety||'', caliber: o.caliber||'', origin: o.origin||'',
       dest_country: o.dest_country||'', transit_entry: o.transit_entry||'', transit_exit: o.transit_exit||'',
@@ -272,8 +274,8 @@ export default function SalesPage() {
       {/* Add/Edit Modal */}
       <Modal open={modalOpen} onClose={()=>setModalOpen(false)} title={editing ? `Sipariş Düzenle — ${editing.party_no}` : 'Yeni Satış Siparişi'} size="xl">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Satış Tipi */}
-          <div className="sm:col-span-2 lg:col-span-3">
+          {/* Satış Tipi + SA Number */}
+          <div className="sm:col-span-2">
             <label className="label">Satış Tipi *</label>
             <div className="flex gap-3">
               {Object.entries(SALES_TYPE_TR).map(([val, label]) => (
@@ -282,6 +284,10 @@ export default function SalesPage() {
                 >{label}</button>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="label">SA Numarası</label>
+            <input className="input" value={form.sa_number} onChange={e=>setField('sa_number',e.target.value)} placeholder="Örn: SA-2024-001"/>
           </div>
 
           <div>
