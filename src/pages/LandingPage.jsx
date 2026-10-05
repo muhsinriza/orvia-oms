@@ -59,7 +59,7 @@ export default function LandingPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { num: '3', label: 'Target Markets' },
+                { num: '3', label: 'Continents Served' },
                 { num: '10+', label: 'Product Lines' },
                 { num: '🇹🇷', label: 'Turkey-Based Operations' },
                 { num: '2024', label: 'Year Founded' },
