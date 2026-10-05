@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth'
 import { ToastProvider } from './components/ui/Toast'
 import Layout from './components/layout/Layout'
 import LoginPage from './pages/LoginPage'
+import LandingPage from './pages/LandingPage'
 import DashboardPage from './pages/DashboardPage'
 import PurchasingPage from './pages/PurchasingPage'
 import PurchasingDetailPage from './pages/PurchasingDetailPage'
@@ -31,9 +32,10 @@ function ProtectedRoute() {
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<DashboardPage />} />
+        <Route path="/app" element={<DashboardPage />} />
         <Route path="/purchasing" element={<PurchasingPage />} />
         <Route path="/purchasing/:id" element={<PurchasingDetailPage />} />
         <Route path="/sales" element={<SalesPage />} />

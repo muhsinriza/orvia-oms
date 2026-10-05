@@ -18,7 +18,7 @@ export default function LoginPage() {
     try {
       const data = await login(email, password)
       setUser(data)
-      navigate('/')
+      navigate('/app')
     } catch (err) {
       setError(err.message || 'Giriş başarısız')
     } finally {

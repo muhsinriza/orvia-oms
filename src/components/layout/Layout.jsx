@@ -9,7 +9,7 @@ import {
 import clsx from 'clsx'
 
 const NAV = [
-  { to: '/',              icon: LayoutDashboard, label: 'Dashboard',     roles: ['admin','accounting','purchasing','sales'] },
+  { to: '/app',           icon: LayoutDashboard, label: 'Dashboard',     roles: ['admin','accounting','purchasing','sales'] },
   { to: '/purchasing',    icon: ShoppingCart,    label: 'Satın Alma',    roles: ['admin','purchasing','accounting'] },
   { to: '/sales',         icon: TrendingUp,      label: 'Satış',         roles: ['admin','sales','accounting'] },
   { to: '/suppliers',     icon: Building2,       label: 'Tedarikçiler',  roles: ['admin','purchasing'] },
