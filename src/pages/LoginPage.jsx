@@ -20,7 +20,7 @@ export default function LoginPage() {
       setUser(data)
       navigate('/app')
     } catch (err) {
-      setError(err.message || 'Giriş başarısız')
+      setError(err.message || 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -35,26 +35,27 @@ export default function LoginPage() {
             <img src="/logo.svg" alt="ORVIA" className="w-full h-full object-cover"/>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">ORVIA OMS</h1>
-          <p className="text-sm text-gray-500 mt-1">Sipariş Yönetim Sistemi</p>
+          <p className="text-sm text-gray-500 mt-1">Order Management System</p>
         </div>
 
         {/* Form */}
         <div className="card p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="label">E-posta</label>
+              <label className="label">Username</label>
               <input
                 type="email"
                 className="input"
-                placeholder="ornek@orvia.com"
+                placeholder="sample@orviaoms.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
                 autoFocus
+                autoComplete="username"
               />
             </div>
             <div>
-              <label className="label">Şifre</label>
+              <label className="label">Password</label>
               <input
                 type="password"
                 className="input"
@@ -62,6 +63,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
             {error && (
@@ -70,10 +72,14 @@ export default function LoginPage() {
               </div>
             )}
             <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>
-              {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
         </div>
+
+        <p className="text-center text-xs text-gray-400 mt-4">
+          Access restricted to authorised company members only.
+        </p>
       </div>
     </div>
   )
