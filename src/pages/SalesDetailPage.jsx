@@ -3,15 +3,30 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useToast } from '../components/ui/Toast'
 import Modal from '../components/ui/Modal'
-import { ArrowLeft, Truck, Ship, Plane, Plus, Trash2, MapPin, Clock, FileText, Edit2 } from 'lucide-react'
+import {
+  ArrowLeft, Truck, Ship, Plane, Plus, Trash2, MapPin, Clock,
+  FileText, Edit2, Package, FileSignature, ChevronRight, CheckCircle2,
+  Download, Loader2
+} from 'lucide-react'
 
+const STATUS_FLOW = ['draft', 'confirmed', 'in_transit', 'arrived', 'completed']
 const STATUS_TR = {
-  draft: 'Taslak', confirmed: 'Onaylı', in_transit: 'Transitte',
-  arrived: 'Geldi', completed: 'Tamamlandı', cancelled: 'İptal',
+  draft: 'Taslak',
+  confirmed: 'Onaylandı',
+  in_transit: 'Transitte',
+  arrived: 'Geldi',
+  completed: 'Tamamlandı',
+  delivered: 'Teslim Edildi',
+  cancelled: 'İptal',
 }
 const STATUS_COLOR = {
-  draft: 'badge-draft', confirmed: 'badge-confirmed', in_transit: 'badge-transit',
-  arrived: 'badge-arrived', completed: 'badge-completed', cancelled: 'badge-cancelled',
+  draft: 'badge-draft',
+  confirmed: 'badge-confirmed',
+  in_transit: 'badge-transit',
+  arrived: 'badge-arrived',
+  completed: 'badge-completed',
+  cancelled: 'badge-cancelled',
+  delivered: 'badge-delivered',
 }
 
 const EVENT_TYPES = [
@@ -22,11 +37,173 @@ const EVENT_TYPES = [
 ]
 
 function TrackingIcon({ mode }) {
-  if (mode === 'Deniz Yolu') return <Ship size={18} className="text-blue-600"/>
-  if (mode === 'Hava Yolu') return <Plane size={18} className="text-sky-500"/>
-  return <Truck size={18} className="text-amber-600"/>
+  if (mode === 'Deniz Yolu' || mode === 'Sea') return <Ship size={18} className="text-blue-600" />
+  if (mode === 'Hava Yolu' || mode === 'Air') return <Plane size={18} className="text-sky-500" />
+  return <Truck size={18} className="text-amber-600" />
 }
 
+// ── STATUS BAR ────────────────────────────────────────────────────────────────
+function StatusBar({ status, onStatusChange }) {
+  const current = STATUS_FLOW.indexOf(status)
+  const cancelled = status === 'cancelled'
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold text-gray-900 text-sm">Sipariş Durumu</h2>
+        {cancelled && (
+          <span className="badge badge-cancelled text-xs">İptal Edildi</span>
+        )}
+      </div>
+      <div className="flex items-center gap-1 overflow-x-auto pb-1">
+        {STATUS_FLOW.map((s, i) => {
+          const done = i < current
+          const active = i === current
+          const isLast = i === STATUS_FLOW.length - 1
+          return (
+            <React.Fragment key={s}>
+              <button
+                onClick={() => !cancelled && onStatusChange(s)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors
+                  ${active ? 'bg-primary-600 text-white shadow-sm' :
+                    done ? 'bg-primary-100 text-primary-700 hover:bg-primary-200' :
+                    'bg-gray-100 text-gray-400 hover:bg-gray-200'}
+                  ${cancelled ? 'cursor-default opacity-50' : 'cursor-pointer'}`}
+              >
+                {done && <CheckCircle2 size={12} />}
+                {STATUS_TR[s]}
+              </button>
+              {!isLast && (
+                <ChevronRight size={14} className={`shrink-0 ${done ? 'text-primary-400' : 'text-gray-200'}`} />
+              )}
+            </React.Fragment>
+          )
+        })}
+      </div>
+      {!cancelled && (
+        <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+          <button
+            onClick={() => onStatusChange('delivered')}
+            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+              status === 'delivered'
+                ? 'bg-teal-600 text-white border-teal-600'
+                : 'border-gray-300 text-gray-500 hover:border-teal-400 hover:text-teal-600'
+            }`}
+          >
+            ✓ Teslim Edildi
+          </button>
+          <button
+            onClick={() => onStatusChange('cancelled')}
+            className="text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-400 hover:border-red-400 hover:text-red-500 transition-colors"
+          >
+            ✕ İptal Et
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── DOCUMENTS SECTION ─────────────────────────────────────────────────────────
+function DocumentsSection({ order }) {
+  const [loading, setLoading] = useState({})
+  const { showToast } = useToast()
+
+  const shippedStatuses = ['in_transit', 'arrived', 'completed', 'delivered']
+  const isShipped = shippedStatuses.includes(order.status)
+
+  async function downloadPDF(endpoint, filename) {
+    setLoading(l => ({ ...l, [filename]: true }))
+    try {
+      const res = await fetch(endpoint, { credentials: 'include' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'PDF oluşturulamadı' }))
+        throw new Error(err.error || 'PDF oluşturulamadı')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      showToast(e.message, 'error')
+    } finally {
+      setLoading(l => ({ ...l, [filename]: false }))
+    }
+  }
+
+  const docs = [
+    {
+      key: 'sa',
+      icon: <FileSignature size={22} className="text-primary-600" />,
+      label: 'Sales Agreement',
+      sublabel: 'Satış sözleşmesi',
+      filename: `SA_${order.party_no || 'sa'}.pdf`,
+      endpoint: `/api/pdf/sales-agreement/${order.id}`,
+      always: true,
+    },
+    {
+      key: 'inv',
+      icon: <FileText size={22} className="text-amber-600" />,
+      label: 'Commercial Invoice',
+      sublabel: 'Ticari fatura',
+      filename: `Invoice_${order.party_no || 'inv'}.pdf`,
+      endpoint: `/api/pdf/invoice/${order.id}`,
+      always: false,
+    },
+    {
+      key: 'pl',
+      icon: <Package size={22} className="text-blue-600" />,
+      label: 'Packing List',
+      sublabel: 'Paketleme listesi',
+      filename: `PackingList_${order.party_no || 'pl'}.pdf`,
+      endpoint: `/api/pdf/packing-list/${order.id}`,
+      always: false,
+    },
+  ]
+
+  return (
+    <div className="card p-4">
+      <h2 className="font-semibold text-gray-900 mb-3">Dokümanlar</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {docs.map(doc => {
+          const active = doc.always || isShipped
+          const isLoading = loading[doc.filename]
+          return (
+            <div
+              key={doc.key}
+              className={`rounded-xl border-2 p-4 flex flex-col items-center gap-2 text-center transition-all
+                ${active
+                  ? 'border-gray-200 hover:border-primary-300 hover:shadow-sm cursor-pointer bg-white'
+                  : 'border-dashed border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
+                }`}
+              onClick={() => active && !isLoading && downloadPDF(doc.endpoint, doc.filename)}
+            >
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${active ? 'bg-gray-50' : 'bg-gray-100'}`}>
+                {isLoading ? <Loader2 size={22} className="animate-spin text-gray-400" /> : doc.icon}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">{doc.label}</p>
+                <p className="text-xs text-gray-400">{doc.sublabel}</p>
+              </div>
+              {active ? (
+                <span className="flex items-center gap-1 text-xs text-primary-600 font-medium">
+                  <Download size={12} /> PDF İndir
+                </span>
+              ) : (
+                <span className="text-xs text-gray-400">Sevk sonrası aktif</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── TRACKING SECTION ──────────────────────────────────────────────────────────
 function TrackingSection({ order, onSaved }) {
   const { showToast } = useToast()
   const [editing, setEditing] = useState(false)
@@ -40,7 +217,7 @@ function TrackingSection({ order, onSaved }) {
     driver_phone: order.driver_phone || '',
   })
   const [saving, setSaving] = useState(false)
-  const mode = order.transport_type || order.transport_mode || 'Karayolu TIR'
+  const mode = order.transport_type || order.transport_mode || 'Road'
 
   async function save() {
     setSaving(true)
@@ -53,10 +230,9 @@ function TrackingSection({ order, onSaved }) {
     finally { setSaving(false) }
   }
 
-  const isSea = mode === 'Deniz Yolu'
-  const isAir = mode === 'Hava Yolu'
+  const isSea = mode === 'Deniz Yolu' || mode === 'Sea'
+  const isAir = mode === 'Hava Yolu' || mode === 'Air'
   const isRoad = !isSea && !isAir
-
   const hasInfo = form.tracking_number || form.container_number || form.flight_number || form.driver_name
 
   return (
@@ -70,7 +246,7 @@ function TrackingSection({ order, onSaved }) {
           <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{mode}</span>
         </div>
         <button className="btn-ghost px-2 py-1 text-xs" onClick={() => setEditing(true)}>
-          <Edit2 size={13}/> Düzenle
+          <Edit2 size={13} /> Düzenle
         </button>
       </div>
 
@@ -130,18 +306,18 @@ function TrackingSection({ order, onSaved }) {
               <div>
                 <label className="label">TIR Plakası</label>
                 <input className="input" placeholder="34 ABC 1234" value={form.tracking_number}
-                  onChange={e => setForm(f => ({ ...f, tracking_number: e.target.value }))}/>
+                  onChange={e => setForm(f => ({ ...f, tracking_number: e.target.value }))} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="label">Şoför Adı</label>
                   <input className="input" value={form.driver_name}
-                    onChange={e => setForm(f => ({ ...f, driver_name: e.target.value }))}/>
+                    onChange={e => setForm(f => ({ ...f, driver_name: e.target.value }))} />
                 </div>
                 <div>
                   <label className="label">Şoför Telefonu</label>
                   <input className="input" value={form.driver_phone}
-                    onChange={e => setForm(f => ({ ...f, driver_phone: e.target.value }))}/>
+                    onChange={e => setForm(f => ({ ...f, driver_phone: e.target.value }))} />
                 </div>
               </div>
             </>
@@ -152,18 +328,18 @@ function TrackingSection({ order, onSaved }) {
                 <div>
                   <label className="label">Konteyner No</label>
                   <input className="input font-mono" placeholder="MSCU1234567" value={form.container_number}
-                    onChange={e => setForm(f => ({ ...f, container_number: e.target.value }))}/>
+                    onChange={e => setForm(f => ({ ...f, container_number: e.target.value }))} />
                 </div>
                 <div>
                   <label className="label">Seawaybill No</label>
                   <input className="input font-mono" value={form.seawaybill_number}
-                    onChange={e => setForm(f => ({ ...f, seawaybill_number: e.target.value }))}/>
+                    onChange={e => setForm(f => ({ ...f, seawaybill_number: e.target.value }))} />
                 </div>
               </div>
               <div>
                 <label className="label">Gemi Adı</label>
                 <input className="input" value={form.vessel_name}
-                  onChange={e => setForm(f => ({ ...f, vessel_name: e.target.value }))}/>
+                  onChange={e => setForm(f => ({ ...f, vessel_name: e.target.value }))} />
               </div>
             </>
           )}
@@ -172,18 +348,20 @@ function TrackingSection({ order, onSaved }) {
               <div>
                 <label className="label">AWB Numarası</label>
                 <input className="input font-mono" placeholder="235-12345678" value={form.tracking_number}
-                  onChange={e => setForm(f => ({ ...f, tracking_number: e.target.value }))}/>
+                  onChange={e => setForm(f => ({ ...f, tracking_number: e.target.value }))} />
               </div>
               <div>
                 <label className="label">Uçuş No</label>
                 <input className="input font-mono" placeholder="TK 123" value={form.flight_number}
-                  onChange={e => setForm(f => ({ ...f, flight_number: e.target.value }))}/>
+                  onChange={e => setForm(f => ({ ...f, flight_number: e.target.value }))} />
               </div>
             </>
           )}
           <div className="flex gap-2 pt-1">
             <button className="btn-secondary text-sm" onClick={() => setEditing(false)}>İptal</button>
-            <button className="btn-primary text-sm" onClick={save} disabled={saving}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</button>
+            <button className="btn-primary text-sm" onClick={save} disabled={saving}>
+              {saving ? 'Kaydediliyor...' : 'Kaydet'}
+            </button>
           </div>
         </div>
       )}
@@ -191,6 +369,7 @@ function TrackingSection({ order, onSaved }) {
   )
 }
 
+// ── EVENT TIMELINE ────────────────────────────────────────────────────────────
 function EventTimeline({ orderId, orderType }) {
   const { showToast } = useToast()
   const [events, setEvents] = useState([])
@@ -234,10 +413,10 @@ function EventTimeline({ orderId, orderType }) {
   }
 
   function eventIcon(type) {
-    if (type === 'location') return <MapPin size={14} className="text-blue-500"/>
-    if (type === 'status_change') return <Clock size={14} className="text-green-500"/>
-    if (type === 'document') return <FileText size={14} className="text-purple-500"/>
-    return <Clock size={14} className="text-gray-400"/>
+    if (type === 'location') return <MapPin size={14} className="text-blue-500" />
+    if (type === 'status_change') return <Clock size={14} className="text-green-500" />
+    if (type === 'document') return <FileText size={14} className="text-purple-500" />
+    return <Clock size={14} className="text-gray-400" />
   }
 
   return (
@@ -245,7 +424,7 @@ function EventTimeline({ orderId, orderType }) {
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-gray-900">Takip Geçmişi</h2>
         <button className="btn-primary text-xs px-3 py-1.5" onClick={() => setAddOpen(true)}>
-          <Plus size={13}/> Olay Ekle
+          <Plus size={13} /> Olay Ekle
         </button>
       </div>
 
@@ -255,7 +434,7 @@ function EventTimeline({ orderId, orderType }) {
         <div className="py-8 text-center text-gray-400 text-sm">Henüz olay kaydedilmedi</div>
       ) : (
         <div className="relative">
-          <div className="absolute left-3.5 top-2 bottom-2 w-px bg-gray-200"/>
+          <div className="absolute left-3.5 top-2 bottom-2 w-px bg-gray-200" />
           <div className="space-y-4">
             {events.map(ev => (
               <div key={ev.id} className="flex gap-3 relative">
@@ -269,17 +448,17 @@ function EventTimeline({ orderId, orderType }) {
                       {ev.description && <p className="text-xs text-gray-500 mt-0.5">{ev.description}</p>}
                       {ev.location && (
                         <p className="text-xs text-blue-600 mt-0.5 flex items-center gap-1">
-                          <MapPin size={11}/>{ev.location}
+                          <MapPin size={11} />{ev.location}
                         </p>
                       )}
                     </div>
                     <button className="text-gray-300 hover:text-red-500 shrink-0 p-1"
                       onClick={() => deleteEvent(ev.id)}>
-                      <Trash2 size={13}/>
+                      <Trash2 size={13} />
                     </button>
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
-                    {new Date(ev.event_date).toLocaleString('tr-TR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}
+                    {new Date(ev.event_date).toLocaleString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     {ev.created_by_name && ` · ${ev.created_by_name}`}
                   </p>
                 </div>
@@ -299,21 +478,21 @@ function EventTimeline({ orderId, orderType }) {
           </div>
           <div>
             <label className="label">Başlık *</label>
-            <input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Kısaca ne oldu?"/>
+            <input className="input" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Kısaca ne oldu?" />
           </div>
           <div>
             <label className="label">Açıklama</label>
-            <textarea className="input" rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}/>
+            <textarea className="input" rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Konum</label>
-              <input className="input" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="Şehir / Liman..."/>
+              <input className="input" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="Şehir / Liman..." />
             </div>
             <div>
               <label className="label">Tarih / Saat</label>
               <input className="input" type="datetime-local" value={form.event_date}
-                onChange={e => setForm(f => ({ ...f, event_date: e.target.value }))}/>
+                onChange={e => setForm(f => ({ ...f, event_date: e.target.value }))} />
             </div>
           </div>
         </div>
@@ -326,6 +505,7 @@ function EventTimeline({ orderId, orderType }) {
   )
 }
 
+// ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 export default function SalesDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -343,17 +523,27 @@ export default function SalesDetailPage() {
 
   useEffect(() => { load() }, [load])
 
-  if (loading) return (
-    <div className="p-6 text-center text-gray-400">Yükleniyor...</div>
-  )
+  async function handleStatusChange(newStatus) {
+    try {
+      await api.patch(`/sales-orders/${id}/status`, { status: newStatus })
+      setOrder(o => ({ ...o, status: newStatus }))
+      showToast(`Durum güncellendi: ${STATUS_TR[newStatus]}`, 'success')
+    } catch (e) { showToast(e.message, 'error') }
+  }
+
+  if (loading) return <div className="p-6 text-center text-gray-400">Yükleniyor...</div>
   if (!order) return null
+
+  const totalKg = Number(order.quantity_kg) || 0
+  const unitPrice = Number(order.price_per_unit) || 0
+  const total = totalKg * unitPrice
 
   return (
     <div className="p-3 md:p-6 max-w-3xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <button onClick={() => navigate('/sales')} className="btn-ghost p-2 -ml-2">
-          <ArrowLeft size={18}/>
+          <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -364,25 +554,38 @@ export default function SalesDetailPage() {
           </div>
           <p className="text-sm text-gray-500">
             {order.customer_name} · {order.product_name}{order.variety ? ` ${order.variety}` : ''}
+            {order.caliber ? ` · ${order.caliber}` : ''}
           </p>
         </div>
       </div>
 
       <div className="space-y-4">
-        {/* Tracking section */}
-        <TrackingSection order={order} onSaved={load} />
 
-        {/* Order summary */}
+        {/* Status Bar */}
+        <StatusBar status={order.status} onStatusChange={handleStatusChange} />
+
+        {/* Documents */}
+        <DocumentsSection order={order} />
+
+        {/* Order Summary */}
         <div className="card p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Sipariş Özeti</h2>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
             <div>
               <dt className="text-gray-500 text-xs">Miktar</dt>
-              <dd className="font-medium">{Number(order.quantity_kg).toLocaleString('tr-TR')} kg</dd>
+              <dd className="font-medium">{totalKg.toLocaleString('tr-TR')} kg</dd>
             </div>
             <div>
               <dt className="text-gray-500 text-xs">Birim Fiyat</dt>
-              <dd className="font-medium">{order.price_per_unit} {order.currency}</dd>
+              <dd className="font-medium">{unitPrice.toFixed(2)} {order.currency}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-500 text-xs">Toplam Tutar</dt>
+              <dd className="font-semibold text-primary-700">{total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {order.currency}</dd>
+            </div>
+            <div>
+              <dt className="text-gray-500 text-xs">Incoterm</dt>
+              <dd className="font-medium">{order.incoterm || '—'}</dd>
             </div>
             <div>
               <dt className="text-gray-500 text-xs">Yükleme Limanı</dt>
@@ -404,7 +607,20 @@ export default function SalesDetailPage() {
                 <dd className="font-medium">{new Date(order.delivery_date).toLocaleDateString('tr-TR')}</dd>
               </div>
             )}
+            {order.payment_method && (
+              <div>
+                <dt className="text-gray-500 text-xs">Ödeme Yöntemi</dt>
+                <dd className="font-medium">{order.payment_method}</dd>
+              </div>
+            )}
+            {order.payment_term && (
+              <div>
+                <dt className="text-gray-500 text-xs">Ödeme Vadesi</dt>
+                <dd className="font-medium">{order.payment_term}</dd>
+              </div>
+            )}
           </dl>
+
           {(order.links || []).length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-500 mb-1">Bağlı Alım Siparişleri</p>
@@ -420,8 +636,12 @@ export default function SalesDetailPage() {
           )}
         </div>
 
+        {/* Tracking */}
+        <TrackingSection order={order} onSaved={load} />
+
         {/* Timeline */}
         <EventTimeline orderId={id} orderType="sales" />
+
       </div>
     </div>
   )
