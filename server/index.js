@@ -129,7 +129,15 @@ async function runMigrations () {
     await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS iec_no   TEXT`)
     await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS pan_no   TEXT`)
     await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS fssai_no TEXT`)
-    // shipment_events table
+    // shipment_events table — fix old schema if order_id was INTEGER instead of UUID
+    const seCheck = await db.query(`
+      SELECT data_type FROM information_schema.columns
+      WHERE table_name='shipment_events' AND column_name='order_id'
+    `)
+    if (seCheck.rows[0] && seCheck.rows[0].data_type !== 'uuid') {
+      console.log('[migrate] Dropping old shipment_events (order_id was integer, not uuid)')
+      await db.query(`DROP TABLE IF EXISTS shipment_events CASCADE`)
+    }
     await db.query(`
       CREATE TABLE IF NOT EXISTS shipment_events (
         id         SERIAL PRIMARY KEY,
