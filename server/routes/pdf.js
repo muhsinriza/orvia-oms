@@ -1300,7 +1300,21 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
     ).join('')
 
     const html = wrap(`
-  ${headerHTML(so.sa_number || so.party_no, so.shipment_date || new Date(), 'Sales Agreement')}
+  <div class="hdr" style="min-height:56px;">
+    <div class="hdr-brand">
+      <div class="hdr-logo">ORVIA <span>TROPICAL</span></div>
+      <div class="hdr-co">
+        ${CO.name}<br>
+        ${CO.address}<br>
+        Tel: ${CO.tel} · Tax No: ${CO.tax} · ${CO.web}
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div style="color:#6ee7b7;font-size:8.5pt;font-weight:800;letter-spacing:2px;text-transform:uppercase;">SALES AGREEMENT</div>
+      <div class="hdr-docno" style="font-size:13pt;">${val(so.sa_number || so.party_no)}</div>
+      <div class="hdr-date">${fmtDate(so.shipment_date || new Date())}</div>
+    </div>
+  </div>
 
   <!-- Parties -->
   <div class="parties">
