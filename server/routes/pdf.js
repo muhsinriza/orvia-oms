@@ -321,9 +321,10 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
       return s + b * bw * 1.05
     }, 0)
     const totalValue = orderItems.reduce((s, it) => {
-      const bw = Number(it.box_weight_kg || 0)
-      const b  = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
-      return s + b * Number(it.price_per_unit || 0)
+      const bw    = Number(it.box_weight_kg || 0)
+      const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+      const price = Number(it.price_per_unit || 0)
+      return s + ((it.sell_by || 'box') === 'kg' ? Number(it.quantity_kg || 0) * price : b * price)
     }, 0)
 
     const itemRowsHTML = orderItems.map((it, idx) => {
@@ -332,7 +333,8 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
       const net   = Number(it.quantity_kg || 0)
       const gross = b * bw * 1.05
       const price = Number(it.price_per_unit || 0)
-      const total = b * price
+      const total = (it.sell_by || 'box') === 'kg' ? net * price : b * price
+      const unitLabel = (it.sell_by || 'box') === 'kg' ? '/kg' : '/box'
       return `
       <tr>
         <td>${idx + 1}</td>
@@ -343,7 +345,7 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
         <td class="r">${fmtNum(b, 0)}</td>
         <td class="r">${fmtNum(net)}</td>
         <td class="r">${fmtNum(gross)}</td>
-        <td class="r">${fmtNum(price)}</td>
+        <td class="r">${fmtNum(price)} <span style="font-size:5pt;color:#64748b;">${unitLabel}</span></td>
         <td class="r">${fmtNum(total)}</td>
       </tr>`
     }).join('')

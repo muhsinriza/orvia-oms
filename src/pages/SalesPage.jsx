@@ -17,7 +17,7 @@ const DOC_TR = { invoice:'Fatura', packing_list:'Paket Listesi', health_certific
 
 const SALES_TYPE_TR = { ihracat:'İhracat', yerli:'Yerli Satış', transit:'Transit' }
 
-const EMPTY_ITEM = { product_id:'', variety:'', caliber:'', origin:'', quantity_kg:'', price_per_unit:'', box_type:'', box_weight_kg:'' }
+const EMPTY_ITEM = { product_id:'', variety:'', caliber:'', origin:'', quantity_kg:'', price_per_unit:'', box_type:'', box_weight_kg:'', sell_by:'box' }
 
 const EMPTY_FORM = {
   sales_type:'ihracat',
@@ -102,10 +102,11 @@ export default function SalesPage() {
         price_per_unit: it.price_per_unit||'',
         box_type: it.box_type||'',
         box_weight_kg: it.box_weight_kg||'',
+        sell_by: it.sell_by||'box',
       }))
     } catch (_) {}
     if (loadedItems.length === 0) {
-      loadedItems = [{ product_id: o.product_id||'', variety: o.variety||'', caliber: o.caliber||'', origin: o.origin||'', quantity_kg: o.quantity_kg||'', price_per_unit: o.price_per_unit||'', box_type: o.box_type||'', box_weight_kg: o.box_weight_kg||'' }]
+      loadedItems = [{ product_id: o.product_id||'', variety: o.variety||'', caliber: o.caliber||'', origin: o.origin||'', quantity_kg: o.quantity_kg||'', price_per_unit: o.price_per_unit||'', box_type: o.box_type||'', box_weight_kg: o.box_weight_kg||'', sell_by: 'box' }]
     }
     setForm({
       sales_type: o.sales_type||'ihracat',
@@ -372,7 +373,8 @@ export default function SalesPage() {
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Kutu Tipi</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-20">Kutu (kg)</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Miktar (kg)*</th>
-                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-28">Birim Fiyat/Kutu*</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-20">Birim*</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-28">Birim Fiyat*</th>
                     <th className="px-2 py-2 w-8"></th>
                   </tr>
                 </thead>
@@ -391,6 +393,12 @@ export default function SalesPage() {
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" value={it.box_type} onChange={e=>setItemField(idx,'box_type',e.target.value)} placeholder="10kg karton"/></td>
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" step="0.01" value={it.box_weight_kg} onChange={e=>setItemField(idx,'box_weight_kg',e.target.value)} placeholder="10"/></td>
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" value={it.quantity_kg} onChange={e=>setItemField(idx,'quantity_kg',e.target.value)} placeholder="5000"/></td>
+                      <td className="px-2 py-1.5">
+                        <select className="select text-xs py-1" value={it.sell_by||'box'} onChange={e=>setItemField(idx,'sell_by',e.target.value)}>
+                          <option value="box">Kutu</option>
+                          <option value="kg">KG</option>
+                        </select>
+                      </td>
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" step="0.01" value={it.price_per_unit} onChange={e=>setItemField(idx,'price_per_unit',e.target.value)} placeholder="8.50"/></td>
                       <td className="px-2 py-1.5 text-center">
                         {form.items.length > 1 && <button type="button" onClick={()=>removeItem(idx)} className="text-red-400 hover:text-red-600 p-0.5"><X size={14}/></button>}
@@ -405,7 +413,9 @@ export default function SalesPage() {
               const totVal = form.items.reduce((s,it) => {
                 const bw = Number(it.box_weight_kg||0)
                 const boxes = bw > 0 ? Math.round(Number(it.quantity_kg||0)/bw) : 0
-                return s + boxes * Number(it.price_per_unit||0)
+                const price = Number(it.price_per_unit||0)
+                if ((it.sell_by||'box') === 'kg') return s + Number(it.quantity_kg||0) * price
+                return s + boxes * price
               }, 0)
               return totKg > 0 ? (
                 <div className="flex gap-4 mt-1.5 text-xs text-gray-500 px-1">

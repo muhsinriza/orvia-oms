@@ -71,8 +71,8 @@ async function upsertItems(client, salesOrderId, items) {
     const it = items[i]
     await client.query(`
       INSERT INTO sales_order_items
-        (sales_order_id, product_id, variety, caliber, origin, quantity_kg, price_per_unit, box_type, box_weight_kg, sort_order)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        (sales_order_id, product_id, variety, caliber, origin, quantity_kg, price_per_unit, box_type, box_weight_kg, sell_by, sort_order)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
     `, [
       salesOrderId,
       it.product_id ? parseInt(it.product_id) : null,
@@ -83,6 +83,7 @@ async function upsertItems(client, salesOrderId, items) {
       it.price_per_unit || null,
       it.box_type || null,
       it.box_weight_kg || null,
+      it.sell_by || 'box',
       i,
     ])
   }
@@ -133,9 +134,11 @@ router.post('/', async (req, res) => {
         price_per_unit NUMERIC,
         box_type       TEXT,
         box_weight_kg  NUMERIC,
+        sell_by        TEXT DEFAULT 'box',
         sort_order     INTEGER DEFAULT 0
       )
     `)
+    await client.query(`ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS sell_by TEXT DEFAULT 'box'`)
 
     // Auto-generate SA number if not provided
     let finalSaNumber = sa_number || null
@@ -241,9 +244,11 @@ router.put('/:id', async (req, res) => {
         price_per_unit NUMERIC,
         box_type       TEXT,
         box_weight_kg  NUMERIC,
+        sell_by        TEXT DEFAULT 'box',
         sort_order     INTEGER DEFAULT 0
       )
     `)
+    await client.query(`ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS sell_by TEXT DEFAULT 'box'`)
 
     const firstItem = Array.isArray(items) && items.length > 0 ? items[0] : null
     const effProductId    = (firstItem?.product_id) || product_id
