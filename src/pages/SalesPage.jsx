@@ -286,8 +286,8 @@ export default function SalesPage() {
             </div>
           </div>
           <div>
-            <label className="label">SA Numarası</label>
-            <input className="input" value={form.sa_number} onChange={e=>setField('sa_number',e.target.value)} placeholder="Örn: SA-2024-001"/>
+            <label className="label">SA Numarası <span className="text-gray-400 font-normal text-xs">(boş bırakılırsa otomatik)</span></label>
+            <input className="input" value={form.sa_number} onChange={e=>setField('sa_number',e.target.value)} placeholder="Otomatik — örn: SA-2026-001"/>
           </div>
 
           <div>

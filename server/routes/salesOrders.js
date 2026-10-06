@@ -77,6 +77,18 @@ router.post('/', async (req, res) => {
         ADD COLUMN IF NOT EXISTS transit_exit  TEXT
     `)
 
+    // Auto-generate SA number if not provided
+    let finalSaNumber = sa_number || null
+    if (!finalSaNumber) {
+      const year = new Date().getFullYear()
+      const { rows: countRows } = await db.query(
+        `SELECT COUNT(*) FROM sales_orders WHERE sa_number LIKE $1`,
+        [`SA-${year}-%`]
+      )
+      const seq = String(parseInt(countRows[0].count) + 1).padStart(3, '0')
+      finalSaNumber = `SA-${year}-${seq}`
+    }
+
     const { rows } = await db.query(`
       INSERT INTO sales_orders
         (sales_type, sa_number,
@@ -93,7 +105,7 @@ router.post('/', async (req, res) => {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38)
       RETURNING *
     `, [
-      sales_type || 'ihracat', sa_number || null,
+      sales_type || 'ihracat', finalSaNumber,
       customer_id, product_id, variety, caliber || null, origin,
       quantity_kg, price_per_unit, currency || 'USD',
       payment_method, payment_term, incoterm,
