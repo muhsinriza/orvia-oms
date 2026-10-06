@@ -273,11 +273,68 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
     const so = rows[0]
 
-    const boxes      = Math.round(so.quantity_kg / so.box_weight_kg)
-    const totalNet   = so.quantity_kg
-    const totalGross = boxes * so.box_weight_kg * 1.05
-    const unitPrice  = Number(so.price_per_unit)
-    const totalValue = boxes * unitPrice
+    // Load multi-line items (fall back to legacy single-row if none)
+    let orderItems = []
+    try {
+      const itemsRes = await db.query(`
+        SELECT soi.*, p.name AS product_name
+        FROM sales_order_items soi
+        LEFT JOIN products p ON p.id = soi.product_id
+        WHERE soi.sales_order_id = $1
+        ORDER BY soi.sort_order
+      `, [req.params.id])
+      orderItems = itemsRes.rows
+    } catch (_) {}
+    if (orderItems.length === 0) {
+      orderItems = [{
+        product_name:   so.product_name,
+        variety:        so.variety,
+        caliber:        so.caliber,
+        origin:         so.origin,
+        quantity_kg:    so.quantity_kg,
+        price_per_unit: so.price_per_unit,
+        box_type:       so.box_type,
+        box_weight_kg:  so.box_weight_kg,
+      }]
+    }
+
+    const totalNet   = orderItems.reduce((s, it) => s + Number(it.quantity_kg || 0), 0)
+    const totalBoxes = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || 0)
+      return s + (bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0)
+    }, 0)
+    const totalGross = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || 0)
+      const b  = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+      return s + b * bw * 1.05
+    }, 0)
+    const totalValue = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || 0)
+      const b  = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+      return s + b * Number(it.price_per_unit || 0)
+    }, 0)
+
+    const itemRowsHTML = orderItems.map((it, idx) => {
+      const bw    = Number(it.box_weight_kg || 0)
+      const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+      const net   = Number(it.quantity_kg || 0)
+      const gross = b * bw * 1.05
+      const price = Number(it.price_per_unit || 0)
+      const total = b * price
+      return `
+      <tr>
+        <td>${idx + 1}</td>
+        <td>${val(it.product_name)}</td>
+        <td>${[it.variety, it.caliber].filter(Boolean).join(' / ') || '—'}</td>
+        <td>${val(it.origin)}</td>
+        <td>${val(it.box_type)}</td>
+        <td class="r">${fmtNum(b, 0)}</td>
+        <td class="r">${fmtNum(net)}</td>
+        <td class="r">${fmtNum(gross)}</td>
+        <td class="r">${fmtNum(price)}</td>
+        <td class="r">${fmtNum(total)}</td>
+      </tr>`
+    }).join('')
 
     const html = wrap(`
   ${headerHTML(so.party_no, so.shipment_date || new Date(), 'Commercial Invoice')}
@@ -348,24 +405,11 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
         <th class="r">Total (${val(so.currency)})</th>
       </tr>
     </thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>${val(so.product_name)}</td>
-        <td>${[so.variety, so.caliber].filter(Boolean).join(' / ') || '—'}</td>
-        <td>${val(so.origin)}</td>
-        <td>${val(so.box_type)}</td>
-        <td class="r">${fmtNum(boxes, 0)}</td>
-        <td class="r">${fmtNum(totalNet)}</td>
-        <td class="r">${fmtNum(totalGross)}</td>
-        <td class="r">${fmtNum(unitPrice)}</td>
-        <td class="r">${fmtNum(totalValue)}</td>
-      </tr>
-    </tbody>
+    <tbody>${itemRowsHTML}</tbody>
     <tfoot>
       <tr>
         <td colspan="5" style="font-weight:700;">TOTALS</td>
-        <td class="r">${fmtNum(boxes, 0)}</td>
+        <td class="r">${fmtNum(totalBoxes, 0)}</td>
         <td class="r">${fmtNum(totalNet)} kg</td>
         <td class="r">${fmtNum(totalGross)} kg</td>
         <td class="r"></td>
@@ -416,36 +460,99 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
     const so = rows[0]
 
-    const boxes            = Math.round(so.quantity_kg / so.box_weight_kg)
-    const grossKgPerBox    = so.box_weight_kg * 1.05
-    const palletCount      = so.pallets || 1
-    const boxesPerPallet   = Math.floor(boxes / palletCount)
-    const remainder        = boxes % palletCount
-    const totalNet         = so.quantity_kg
-    const totalGross       = boxes * grossKgPerBox
+    // Load multi-line items (fall back to legacy single-row if none)
+    let orderItems = []
+    try {
+      const itemsRes = await db.query(`
+        SELECT soi.*, p.name AS product_name
+        FROM sales_order_items soi
+        LEFT JOIN products p ON p.id = soi.product_id
+        WHERE soi.sales_order_id = $1
+        ORDER BY soi.sort_order
+      `, [req.params.id])
+      orderItems = itemsRes.rows
+    } catch (_) {}
+    if (orderItems.length === 0) {
+      orderItems = [{
+        product_name:   so.product_name,
+        variety:        so.variety,
+        caliber:        so.caliber,
+        origin:         so.origin,
+        quantity_kg:    so.quantity_kg,
+        price_per_unit: so.price_per_unit,
+        box_type:       so.box_type,
+        box_weight_kg:  so.box_weight_kg,
+      }]
+    }
 
-    // Build pallet rows
+    const palletCount    = so.pallets || 1
+    const totalBoxes     = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || 0)
+      return s + (bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0)
+    }, 0)
+    const totalNet  = orderItems.reduce((s, it) => s + Number(it.quantity_kg || 0), 0)
+    const totalGross = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || 0)
+      const b  = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+      return s + b * bw * 1.05
+    }, 0)
+
+    // Build pallet rows: distribute boxes across pallets, then list each product line per pallet
+    const boxesPerPallet = Math.floor(totalBoxes / palletCount)
+    const remainder      = totalBoxes % palletCount
     const palletRows = []
     for (let i = 0; i < palletCount; i++) {
       const palletBoxes = i < remainder ? boxesPerPallet + 1 : boxesPerPallet
-      const netKg       = palletBoxes * so.box_weight_kg
-      const grossKg     = palletBoxes * grossKgPerBox
-      palletRows.push({ pallet: i + 1, palletBoxes, netKg, grossKg })
+      // Attribute all items on this pallet (simplified: first item's product info)
+      const firstIt = orderItems[0] || {}
+      const bw = Number(firstIt.box_weight_kg || 0)
+      palletRows.push({
+        pallet:      i + 1,
+        palletBoxes,
+        netKg:       palletBoxes * bw,
+        grossKg:     palletBoxes * bw * 1.05,
+        product_name: firstIt.product_name,
+        variety:      firstIt.variety,
+        caliber:      firstIt.caliber,
+        origin:       firstIt.origin,
+        box_type:     firstIt.box_type,
+        box_weight_kg: bw,
+      })
     }
 
-    const palletRowsHTML = palletRows.map((r, idx) => `
+    // For multi-item orders, show one row per item instead of per pallet
+    const useItemRows = orderItems.length > 1
+    const palletRowsHTML = useItemRows
+      ? orderItems.map((it, idx) => {
+          const bw    = Number(it.box_weight_kg || 0)
+          const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+          const net   = Number(it.quantity_kg || 0)
+          const gross = b * bw * 1.05
+          return `
+      <tr>
+        <td>Item ${idx + 1}</td>
+        <td>${val(it.product_name)}</td>
+        <td>${[it.variety, it.caliber].filter(Boolean).join(' / ') || '—'}</td>
+        <td>${val(it.origin)}</td>
+        <td>${val(it.box_type)}</td>
+        <td class="r">${fmtNum(b, 0)}</td>
+        <td class="r">${fmtNum(bw)} kg</td>
+        <td class="r">${fmtNum(net)} kg</td>
+        <td class="r">${fmtNum(gross)} kg</td>
+      </tr>`
+        }).join('')
+      : palletRows.map(r => `
       <tr>
         <td>Pallet ${r.pallet}</td>
-        <td>${val(so.product_name)}</td>
-        <td>${[so.variety, so.caliber].filter(Boolean).join(' / ') || '—'}</td>
-        <td>${val(so.origin)}</td>
-        <td>${val(so.box_type)}</td>
+        <td>${val(r.product_name)}</td>
+        <td>${[r.variety, r.caliber].filter(Boolean).join(' / ') || '—'}</td>
+        <td>${val(r.origin)}</td>
+        <td>${val(r.box_type)}</td>
         <td class="r">${fmtNum(r.palletBoxes, 0)}</td>
-        <td class="r">${fmtNum(so.box_weight_kg)} kg</td>
+        <td class="r">${fmtNum(r.box_weight_kg)} kg</td>
         <td class="r">${fmtNum(r.netKg)} kg</td>
         <td class="r">${fmtNum(r.grossKg)} kg</td>
-      </tr>
-    `).join('')
+      </tr>`).join('')
 
     const html = wrap(`
   ${headerHTML(so.party_no, so.shipment_date || new Date(), 'Packing List')}
@@ -492,18 +599,18 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
   <!-- Package summary strip -->
   <div class="pkg-strip mt6">
     <div class="pkg-item"><div class="lbl">Total Pallets</div><div class="val">${palletCount}</div></div>
-    <div class="pkg-item"><div class="lbl">Total Boxes</div><div class="val">${fmtNum(boxes, 0)}</div></div>
+    <div class="pkg-item"><div class="lbl">Total Boxes</div><div class="val">${fmtNum(totalBoxes, 0)}</div></div>
     <div class="pkg-item"><div class="lbl">Net Weight</div><div class="val">${fmtNum(totalNet)} kg</div></div>
     <div class="pkg-item"><div class="lbl">Gross Weight</div><div class="val">${fmtNum(totalGross)} kg</div></div>
-    <div class="pkg-item"><div class="lbl">Box Type</div><div class="val">${val(so.box_type)}</div></div>
-    <div class="pkg-item"><div class="lbl">Net / Box</div><div class="val">${fmtNum(so.box_weight_kg)} kg</div></div>
+    <div class="pkg-item"><div class="lbl">Box Type</div><div class="val">${val(orderItems[0]?.box_type || so.box_type)}</div></div>
+    <div class="pkg-item"><div class="lbl">Net / Box</div><div class="val">${fmtNum(orderItems[0]?.box_weight_kg || so.box_weight_kg)} kg</div></div>
   </div>
 
-  <div class="sec g" style="margin-top:5px;">Pallet Breakdown</div>
+  <div class="sec g" style="margin-top:5px;">${useItemRows ? 'Item Breakdown' : 'Pallet Breakdown'}</div>
   <table class="pl-table">
     <thead>
       <tr>
-        <th>Pallet</th>
+        <th>${useItemRows ? 'Item' : 'Pallet'}</th>
         <th>Product</th>
         <th>Variety / Caliber</th>
         <th>Origin</th>
@@ -518,7 +625,7 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
     <tfoot>
       <tr>
         <td colspan="5">TOTALS — ${palletCount} Pallet(s)</td>
-        <td class="r">${fmtNum(boxes, 0)} boxes</td>
+        <td class="r">${fmtNum(totalBoxes, 0)} boxes</td>
         <td class="r">—</td>
         <td class="r">${fmtNum(totalNet)} kg</td>
         <td class="r">${fmtNum(totalGross)} kg</td>

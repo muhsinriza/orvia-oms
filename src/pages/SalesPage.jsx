@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
-import { generateSalesInvoicePDF, generatePackingListPDF } from '../lib/pdf'
+import { generateSalesInvoicePDF, generatePackingListPDF, generateSalesAgreementPDF } from '../lib/pdf'
 import Modal from '../components/ui/Modal'
 import { useToast } from '../components/ui/Toast'
 import { Search, Plus, Edit2, FileText, Package, Link2, Trash2, X } from 'lucide-react'
@@ -520,9 +520,24 @@ export default function SalesPage() {
             <textarea className="input" rows={2} value={form.notes} onChange={e=>setField('notes',e.target.value)}/>
           </div>
         </div>
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
-          <button className="btn-secondary" onClick={()=>setModalOpen(false)}>İptal</button>
-          <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</button>
+        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+          {editing ? (
+            <div className="flex gap-2">
+              <button className="btn-secondary flex items-center gap-1.5 text-xs" onClick={()=>generateSalesAgreementPDF(editing)} title="Satış Sözleşmesi PDF">
+                <FileText size={13}/> SA
+              </button>
+              <button className="btn-secondary flex items-center gap-1.5 text-xs" onClick={()=>generateSalesInvoicePDF(editing)} title="Commercial Invoice PDF">
+                <FileText size={13}/> Invoice
+              </button>
+              <button className="btn-secondary flex items-center gap-1.5 text-xs" onClick={()=>generatePackingListPDF(editing)} title="Packing List PDF">
+                <Package size={13}/> Packing List
+              </button>
+            </div>
+          ) : <div/>}
+          <div className="flex gap-3">
+            <button className="btn-secondary" onClick={()=>setModalOpen(false)}>İptal</button>
+            <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</button>
+          </div>
         </div>
       </Modal>
 
