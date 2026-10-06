@@ -195,7 +195,7 @@ router.post('/', async (req, res) => {
     res.status(201).json(rows[0])
   } catch (e) {
     await client.query('ROLLBACK')
-    console.error(e); res.status(500).json({ error: 'Sunucu hatası' })
+    console.error(e); res.status(500).json({ error: 'Sunucu hatası', detail: e.message })
   } finally {
     client.release()
   }

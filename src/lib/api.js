@@ -11,7 +11,7 @@ async function req(method, path, body) {
   const res = await fetch(BASE + path, opts)
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'Sunucu hatası' }))
-    throw new Error(err.error || 'İstek başarısız')
+    throw new Error(err.detail ? `${err.error}: ${err.detail}` : (err.error || 'İstek başarısız'))
   }
   return res.json()
 }
