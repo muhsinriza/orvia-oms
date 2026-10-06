@@ -26,9 +26,7 @@ async function htmlToPDF (html) {
   const browser = await launchBrowser()
   try {
     const page = await browser.newPage()
-    // Use domcontentloaded so we don't wait for Google Fonts (may time out in Docker)
     await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 })
-    // Give fonts a moment to load if available
     await page.evaluate(() => document.fonts?.ready).catch(() => {})
     const pdf = await page.pdf({
       format: 'A4',
@@ -42,7 +40,7 @@ async function htmlToPDF (html) {
   }
 }
 
-// ─── Shared helpers ───────────────────────────────────────────────────────────
+// ─── Shared constants ─────────────────────────────────────────────────────────
 
 const CO = {
   name:    'ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.',
@@ -60,6 +58,8 @@ const CO = {
   usd:         'TR72 0006 2001 1280 0009 0700 75',
   eur:         'TR02 0006 2001 1280 0009 0700 74',
 }
+
+// ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function fmtDate (d) {
   if (!d) return '—'
@@ -81,220 +81,427 @@ function fmtNum (n, dec = 2) {
 
 function val (v) { return v || '—' }
 
-// ─── Shared CSS ───────────────────────────────────────────────────────────────
+// ─── Design System CSS ────────────────────────────────────────────────────────
 
 const CSS = `
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #fff; color: #1a1a1a; font-size: 7pt; }
-.hdr { display: flex; background: #0a5c3a; }
-.hdr-brand { padding: 10px 14px; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
-.hdr-logo { color: #fff; font-size: 18pt; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
-.hdr-logo span { color: #6ee7b7; font-weight: 300; letter-spacing: 1px; }
-.hdr-co { color: #a7f3d0; font-size: 5pt; font-weight: 500; letter-spacing: 0.3px; line-height: 1.5; margin-top: 2px; word-break: break-word; overflow-wrap: break-word; }
-.hdr-right { background: #064e32; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; padding: 10px 14px; min-width: 175px; }
-.hdr-docno { color: #fff; font-size: 16pt; font-weight: 800; letter-spacing: 0.5px; }
-.hdr-date { color: #6ee7b7; font-size: 6pt; margin-top: 3px; }
-.hdr-type { color: #a7f3d0; font-size: 5.5pt; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; margin-top: 2px; }
-.sec { font-size: 5pt; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 8px; margin-top: 5px; color: #fff; }
-.sec.g { background: #0a5c3a; }
-.sec.s { background: #334155; }
-.buyer-block { padding: 5px 13px 4px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 24px; background: #f8fafc; }
-.buyer-label { font-size: 5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #1d4ed8; margin-bottom: 2px; }
-.buyer-name { font-size: 8.5pt; font-weight: 700; color: #1a1a1a; }
-.buyer-detail { font-size: 6pt; color: #475569; line-height: 1.65; margin-top: 2px; }
-.buyer-col { flex: 1; }
-.buyer-col.narrow { flex: 0 0 170px; }
-.g4  { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; border-left: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
-.g3  { display: grid; grid-template-columns: 1fr 1fr 1fr; border-left: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
-.g2  { display: grid; grid-template-columns: 1fr 1fr; border-left: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
-.g21 { display: grid; grid-template-columns: 2fr 1fr; border-left: 1px solid #e2e8f0; border-top: 1px solid #e2e8f0; }
-.c { border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 4px 8px; }
-.c .lbl { font-size: 5pt; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 1px; }
-.c .val { font-size: 7pt; font-weight: 500; color: #1a1a1a; }
-.c.wide-text .val { font-size: 6.5pt; line-height: 1.5; }
-.goods-table { width: 100%; border-collapse: collapse; font-size: 6.5pt; }
-.goods-table thead tr { background: #f0fdf4; }
-.goods-table thead th { border: 1px solid #e2e8f0; padding: 4px 7px; font-size: 5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #064e32; text-align: left; }
-.goods-table thead th.r { text-align: right; }
-.goods-table tbody td { border: 1px solid #e2e8f0; padding: 4px 7px; color: #1a1a1a; vertical-align: top; }
-.goods-table tbody td.r { text-align: right; font-variant-numeric: tabular-nums; }
-.goods-table tfoot tr { background: #0a5c3a; }
-.goods-table tfoot td { border: 1px solid #064e32; padding: 4px 7px; color: #fff; font-weight: 700; font-size: 7pt; vertical-align: middle; }
-.goods-table tfoot td.r { text-align: right; font-variant-numeric: tabular-nums; font-size: 7.5pt; vertical-align: middle; }
-.goods-table tbody tr:nth-child(even) td { background: #f8fafc; }
-.bank-block { margin-top: 5px; border: 1px solid #e2e8f0; background: #f8fafc; }
-.bank-hdr { background: #334155; color: #fff; font-size: 5.5pt; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 8px; }
-.e-issued { border: 1px solid #dbeafe; background: #eff6ff; padding: 3px 8px; margin-top: 5px; display: flex; align-items: center; gap: 6px; }
-.e-issued-text { font-size: 6pt; color: #1e40af; line-height: 1.5; }
-.e-issued-text strong { font-weight: 700; color: #1d4ed8; }
-.issuer-block { margin-top: 5px; border: 1px solid #e2e8f0; display: flex; }
-.issuer-cell { flex: 1; padding: 5px 10px; }
-.issuer-cell + .issuer-cell { border-left: 1px solid #e2e8f0; flex: 0 0 175px; }
-.issuer-title { font-size: 5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 3px; }
-.issuer-name { font-size: 7.5pt; font-weight: 700; color: #0a5c3a; }
-.issuer-detail { font-size: 5.5pt; color: #64748b; margin-top: 2px; line-height: 1.6; }
-.issuer-stamp { background: #f0fdf4; border: 1.5px dashed #86efac; padding: 3px 6px; margin-top: 5px; text-align: center; }
-.issuer-stamp .stamp-text { font-size: 5.5pt; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 1.5px; }
-.issuer-stamp .stamp-sub { font-size: 5pt; color: #4ade80; margin-top: 1px; }
-.parties { display: grid; grid-template-columns: 1fr 1fr; margin-top: 6px; }
-.pty { padding: 7px 10px; border: 1px solid #e2e8f0; }
-.pty.l { border-right: none; }
-.pty-hdr { font-size: 5pt; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 6px; margin: -7px -10px 6px; color: #fff; }
-.pty-hdr.g { background: #0a5c3a; }
-.pty-hdr.b { background: #1d4ed8; }
-.pty-name { font-size: 7.5pt; font-weight: 700; color: #0a5c3a; margin: 5px 0 2px; }
-.pty-detail { font-size: 6pt; color: #475569; line-height: 1.65; }
-.clauses { columns: 2; column-gap: 12px; padding: 0 12px 8px; margin-top: 6px; }
-.clause { margin-bottom: 6px; break-inside: avoid; }
-.clause-t { font-size: 6pt; font-weight: 700; color: #0a5c3a; margin-bottom: 1px; }
-.clause-b { font-size: 6pt; color: #374151; line-height: 1.55; }
-.footer { background: #064e32; color: #a7f3d0; font-size: 4.5pt; padding: 3px 10px; display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 8px; overflow: hidden; }
-.footer > * { flex-shrink: 0; }
-.footer .footer-mid { flex-shrink: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.footer-r { color: #6ee7b7; font-size: 4.5pt; }
-.pl-table { width: 100%; border-collapse: collapse; font-size: 6.5pt; }
-.pl-table thead tr { background: #f0fdf4; }
-.pl-table thead th { border: 1px solid #e2e8f0; padding: 4px 7px; font-size: 5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #064e32; text-align: left; }
-.pl-table thead th.r { text-align: right; }
-.pl-table tbody td { border: 1px solid #e2e8f0; padding: 3px 7px; color: #1a1a1a; }
-.pl-table tbody td.r { text-align: right; font-variant-numeric: tabular-nums; }
-.pl-table tbody tr:nth-child(even) td { background: #f8fafc; }
-.pl-table tfoot tr { background: #0a5c3a; }
-.pl-table tfoot td { border: 1px solid #064e32; padding: 4px 7px; color: #fff; font-weight: 700; font-size: 7pt; }
-.pl-table tfoot td.r { text-align: right; }
-.pkg-strip { background: #f0fdf4; border: 1px solid #bbf7d0; display: flex; gap: 0; }
-.pkg-item { flex: 1; padding: 4px 8px; border-right: 1px solid #bbf7d0; }
-.pkg-item:last-child { border-right: none; }
-.pkg-item .lbl { font-size: 5pt; font-weight: 600; color: #064e32; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 1px; }
-.pkg-item .val { font-size: 7pt; font-weight: 600; color: #0a5c3a; }
-.mt6 { margin-top: 6px; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',sans-serif; font-size:7.5pt; color:#111827; background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+.page { width:210mm; min-height:297mm; padding:8mm; display:flex; flex-direction:column; }
+.page-body { flex:1; display:flex; flex-direction:column; }
+
+/* HEADER */
+.doc-header { background:#0a5c3a; color:#fff; padding:5mm 0 4mm; margin-bottom:4mm; border-radius:2px; }
+.doc-header-inner { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:4mm; padding:0 5mm; }
+.co-name { font-size:8.5pt; font-weight:700; line-height:1.3; }
+.co-sub { font-size:6pt; opacity:0.85; margin-top:1mm; }
+.doc-title { text-align:center; font-size:14pt; font-weight:800; letter-spacing:0.5px; }
+.doc-meta { text-align:right; font-size:7pt; line-height:1.7; }
+.doc-num { font-size:9pt; font-weight:700; }
+
+/* INFO GRID */
+.info-grid { display:grid; gap:0; margin-bottom:3mm; border:1px solid #e5e7eb; border-radius:2px; overflow:hidden; }
+.info-row { display:grid; border-bottom:1px solid #e5e7eb; }
+.info-row:last-child { border-bottom:none; }
+.info-cell { padding:2mm 3mm; border-right:1px solid #e5e7eb; }
+.info-cell:last-child { border-right:none; }
+.info-label { font-size:5.5pt; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:#6b7280; margin-bottom:0.5mm; }
+.info-value { font-size:7.5pt; font-weight:600; color:#111827; line-height:1.3; }
+.section-header { background:#0a5c3a; color:#fff; font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; padding:1.5mm 3mm; margin:3mm 0 0; }
+
+/* PARTIES */
+.parties { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid #e5e7eb; border-radius:2px; overflow:hidden; margin-bottom:3mm; }
+.party-col { padding:3mm; }
+.party-col:first-child { border-right:1px solid #e5e7eb; }
+.party-label { font-size:6pt; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#6b7280; margin-bottom:1.5mm; padding-bottom:1mm; border-bottom:2px solid #0a5c3a; }
+.party-name { font-size:8.5pt; font-weight:700; color:#111827; margin-bottom:1mm; }
+.party-detail { font-size:6.5pt; color:#374151; line-height:1.6; }
+.india-tag { display:inline-block; background:#eff6ff; border:1px solid #bfdbfe; color:#1d4ed8; font-size:5.5pt; font-weight:600; padding:0.3mm 1.5mm; border-radius:2px; margin-bottom:1mm; }
+
+/* TABLE */
+table { width:100%; border-collapse:collapse; margin-bottom:0; }
+thead th { background:#0a5c3a; color:#fff; padding:2mm 2.5mm; text-align:left; font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; }
+thead th.num { text-align:right; }
+tbody tr:nth-child(even) { background:#f9fafb; }
+tbody tr td { padding:2mm 2.5mm; font-size:7pt; border-bottom:1px solid #f3f4f6; vertical-align:top; }
+tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
+.tfoot-row td { background:#e8f5ee; font-weight:700; font-size:7.5pt; padding:2.5mm 2.5mm; border-top:2px solid #0a5c3a; color:#064e32; }
+.tfoot-row td.num { text-align:right; }
+.table-wrapper { border:1px solid #e5e7eb; border-radius:2px; overflow:hidden; margin-bottom:3mm; }
+
+/* NON-GMO */
+.nongmo-box { border:1px solid #bbf7d0; background:#f0fdf4; border-radius:2px; padding:2.5mm 3mm; margin-bottom:3mm; font-size:6.5pt; line-height:1.5; color:#166534; }
+.nongmo-box strong { display:block; margin-bottom:0.5mm; font-size:7pt; }
+
+/* BANK */
+.bank-grid { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid #e5e7eb; border-radius:2px; overflow:hidden; margin-bottom:3mm; }
+.bank-col { padding:3mm; }
+.bank-col:first-child { border-right:1px solid #e5e7eb; }
+.bank-currency { font-size:7pt; font-weight:700; color:#0a5c3a; margin-bottom:1mm; padding-bottom:1mm; border-bottom:1px solid #e5e7eb; }
+.bank-iban { font-size:8pt; font-weight:700; font-family:monospace; letter-spacing:0.5px; color:#111827; margin-bottom:1mm; }
+.bank-detail { font-size:6.5pt; color:#374151; line-height:1.6; }
+
+/* SIGNATURE */
+.sig-area { display:grid; gap:5mm; margin-top:auto; padding-top:4mm; }
+.sig-box { border-top:1.5px solid #0a5c3a; padding-top:2mm; }
+.sig-label { font-size:6pt; font-weight:600; text-transform:uppercase; color:#6b7280; margin-bottom:5mm; }
+.sig-name { font-size:7.5pt; font-weight:700; }
+.sig-title { font-size:6.5pt; color:#6b7280; }
+
+/* T&C */
+.tc-grid { display:grid; grid-template-columns:1fr 1fr; gap:2mm 4mm; margin-bottom:3mm; }
+.tc-item { font-size:6pt; line-height:1.5; }
+.tc-num { font-weight:700; color:#0a5c3a; }
+
+/* PAGE FOOTER */
+.page-footer { margin-top:auto; padding-top:3mm; border-top:1px solid #e5e7eb; text-align:center; font-size:5.5pt; color:#9ca3af; }
+
+/* PACKAGE STRIP */
+.pkg-strip { background:#f0fdf4; border:1px solid #bbf7d0; display:flex; gap:0; border-radius:2px; overflow:hidden; margin-bottom:3mm; }
+.pkg-item { flex:1; padding:2.5mm 3mm; border-right:1px solid #bbf7d0; }
+.pkg-item:last-child { border-right:none; }
+.pkg-item .pkg-lbl { font-size:5pt; font-weight:600; color:#064e32; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:1mm; }
+.pkg-item .pkg-val { font-size:7.5pt; font-weight:700; color:#0a5c3a; }
+
+/* REQUIRED DOCS */
+.doc-badge { display:inline-block; border:1px solid #86efac; background:#f0fdf4; color:#166534; font-size:5.5pt; font-weight:600; padding:0.5mm 2mm; border-radius:2px; margin:1mm 1mm 0 0; }
+.doc-badges-wrap { padding:2.5mm 3mm; border:1px solid #e5e7eb; border-radius:2px; margin-bottom:3mm; }
+
+/* NOTES */
+.notes-box { border:1px solid #e5e7eb; border-radius:2px; padding:2.5mm 3mm; margin-bottom:3mm; font-size:7pt; color:#374151; line-height:1.6; }
+
+/* PACKING LIST TABLE (static) */
+.pl-table { width:100%; border-collapse:collapse; }
+.pl-table thead th { background:#0a5c3a; color:#fff; padding:2mm 2.5mm; text-align:left; font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; }
+.pl-table thead th.r { text-align:right; }
+.pl-table tbody td { padding:2mm 2.5mm; font-size:7pt; border-bottom:1px solid #f3f4f6; vertical-align:top; }
+.pl-table tbody td.r { text-align:right; font-variant-numeric:tabular-nums; }
+.pl-table tbody tr:nth-child(even) { background:#f9fafb; }
+.pl-table tfoot td { background:#e8f5ee; font-weight:700; font-size:7.5pt; padding:2.5mm 2.5mm; border-top:2px solid #0a5c3a; color:#064e32; }
+.pl-table tfoot td.r { text-align:right; }
 `
 
-function headerHTML (docno, docdate, doctype) {
-  return `
-  <div class="hdr" style="min-height:56px;">
-    <div class="hdr-brand">
-      <div class="hdr-logo">ORVIA <span>TROPICAL</span></div>
-      <div class="hdr-co">
-        ${CO.name}<br>
-        ${CO.address}<br>
-        Tel: ${CO.tel} · ${CO.web}
-      </div>
-    </div>
-    <div class="hdr-right">
-      <div class="hdr-docno">${val(docno)}</div>
-      <div class="hdr-date">${fmtDate(docdate)}</div>
-      <div class="hdr-type">${doctype}</div>
-    </div>
-  </div>`
-}
-
-function footerHTML () {
-  return `
-  <div class="footer">
-    <span>${CO.name}</span>
-    <span class="footer-mid">${CO.address}</span>
-    <span class="footer-r">${CO.web}</span>
-  </div>`
-}
-
-function issuerBlockHTML (customerName, sellerOnly) {
-  const sellerCell = [
-    '<div style="padding:8px 10px;' + (sellerOnly ? '' : 'border-right:1px solid #e2e8f0;') + 'flex:1;">',
-    '  <div class="issuer-title">Seller / Satıcı</div>',
-    '  <div class="issuer-name" style="margin-top:3px;">' + CO.rep + '</div>',
-    '  <div class="issuer-detail">' + CO.title + '<br>' + CO.name + '</div>',
-    '  <div class="issuer-stamp" style="margin-top:6px;">',
-    '    <div class="stamp-text">ORVIA TROPICAL</div>',
-    '    <div class="stamp-sub">Electronically Issued · ' + now() + '</div>',
-    '  </div>',
-    '</div>',
-  ].join('')
-
-  const buyerCell = sellerOnly ? '' : [
-    '<div style="padding:8px 10px;flex:1;">',
-    '  <div class="issuer-title">Buyer / Alıcı — Authorized Signature</div>',
-    customerName ? '  <div style="font-size:7.5pt;font-weight:700;color:#1d4ed8;margin-top:6px;margin-bottom:8px;">' + customerName + '</div>' : '  <div style="margin-top:18px;"></div>',
-    '  <div style="border-bottom:1px solid #1a1a1a;width:80%;"></div>',
-    '  <div style="font-size:5.5pt;color:#64748b;margin-top:3px;">Name &amp; Title / İsim &amp; Unvan</div>',
-    '  <div style="margin-top:14px;border-bottom:1px solid #1a1a1a;width:60%;"></div>',
-    '  <div style="font-size:5.5pt;color:#64748b;margin-top:3px;">Date / Tarih</div>',
-    '</div>',
-  ].join('')
-
-  return [
-    '<div style="border:1px solid #bfdbfe;background:#eff6ff;padding:5px 10px;margin-top:6px;display:flex;align-items:flex-start;gap:8px;">',
-    '  <div style="font-size:14pt;color:#1d4ed8;line-height:1;margin-top:1px;">✦</div>',
-    '  <div style="font-size:6pt;color:#1e40af;line-height:1.6;">',
-    '    <strong style="font-weight:700;color:#1d4ed8;">This document has been electronically issued</strong> by ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ. and is legally valid without a wet signature.',
-    '    Issued on <strong>' + now() + '</strong> · Ref: ' + CO.web,
-    '  </div>',
-    '</div>',
-    '<div class="issuer-block" style="display:flex;border:1px solid #e2e8f0;margin-top:6px;">',
-    sellerCell,
-    buyerCell,
-    '</div>',
-  ].join('\n')
-}
-
-function bankBlockHTML (currency) {
-  const iban = (currency || '').toUpperCase() === 'EUR' ? CO.eur : CO.usd
-  const ccy  = (currency || '').toUpperCase() === 'EUR' ? 'EUR' : 'USD'
-  const lbl  = 'font-size:5pt;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;'
-  const val2 = 'font-size:6.5pt;font-weight:600;color:#1a1a1a;'
-  return `
-  <div class="bank-block mt6">
-    <div class="bank-hdr">Bank / Payment Details — Beneficiary: ${CO.name}</div>
-    <div style="padding:5px 10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;border-bottom:1px solid #e2e8f0;">
-      <div>
-        <div style="${lbl}">Bank Name</div>
-        <div style="${val2}">${CO.bank}</div>
-      </div>
-      <div>
-        <div style="${lbl}">Branch Code &amp; Name</div>
-        <div style="${val2}">${CO.bankBranch}</div>
-      </div>
-      <div>
-        <div style="${lbl}">Bank Address</div>
-        <div style="${val2}">${CO.bankAddress}</div>
-      </div>
-      <div>
-        <div style="${lbl}">SWIFT / BIC</div>
-        <div style="${val2}">${CO.bic}</div>
-      </div>
-    </div>
-    <div style="padding:5px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-      <div>
-        <div style="${lbl}">USD IBAN</div>
-        <div style="${val2}">${CO.usd}</div>
-      </div>
-      <div>
-        <div style="${lbl}">EUR IBAN</div>
-        <div style="${val2}">${CO.eur}</div>
-      </div>
-    </div>
-  </div>`
-}
+// ─── Shared template helpers ──────────────────────────────────────────────────
 
 function wrap (body) {
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-body { font-family: 'Inter', -apple-system, 'Segoe UI', Arial, sans-serif; min-height: 277mm; display: flex; flex-direction: column; }
-.page-content { flex: 1; display: flex; flex-direction: column; }
 ${CSS}
-</style>
-</head>
-<body>
-<div class="page-content">
-${body}
+</style></head><body>
+<div class="page">
+  <div class="page-body">${body}</div>
+  <div class="page-footer">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ. &nbsp;·&nbsp; Electronic Issue &nbsp;·&nbsp; This document is computer generated and valid without signature</div>
 </div>
-</body>
-</html>`
+</body></html>`
 }
+
+function headerHTML (docType, docNum, date, extra) {
+  extra = extra || ''
+  return `
+<div class="doc-header">
+  <div class="doc-header-inner">
+    <div>
+      <div class="co-name">${CO.short}</div>
+      <div class="co-sub">${CO.address}</div>
+      <div class="co-sub">${CO.tel} &nbsp;·&nbsp; ${CO.web}</div>
+    </div>
+    <div class="doc-title">${docType}</div>
+    <div class="doc-meta">
+      <div class="doc-num">${docNum}</div>
+      <div>${date}</div>
+      ${extra}
+    </div>
+  </div>
+</div>`
+}
+
+function partiesHTML (order, customer, showIndiaFields) {
+  showIndiaFields = showIndiaFields || false
+  const indiaFields = showIndiaFields ? `
+    ${customer.gst_no ? `<div style="margin-top:1mm;"><span class="india-tag">GST</span> <span style="font-size:6.5pt;font-weight:600;">${customer.gst_no}</span></div>` : ''}
+    ${customer.iec_no ? `<div style="margin-top:0.5mm;"><span class="india-tag">IEC</span> <span style="font-size:6.5pt;font-weight:600;">${customer.iec_no}</span></div>` : ''}
+    ${customer.pan_no ? `<div style="margin-top:0.5mm;"><span class="india-tag">PAN</span> <span style="font-size:6.5pt;font-weight:600;">${customer.pan_no}</span></div>` : ''}
+    ${customer.fssai_no ? `<div style="margin-top:0.5mm;"><span class="india-tag">FSSAI</span> <span style="font-size:6.5pt;font-weight:600;">${customer.fssai_no}</span></div>` : ''}
+  ` : ''
+  return `
+<div class="parties">
+  <div class="party-col">
+    <div class="party-label">Seller / Exporter</div>
+    <div class="party-name">${CO.name}</div>
+    <div class="party-detail">
+      ${CO.address}<br>
+      Tax ID: ${CO.tax}<br>
+      Tel: ${CO.tel}<br>
+      ${CO.web}
+    </div>
+  </div>
+  <div class="party-col">
+    <div class="party-label">Buyer / Importer</div>
+    <div class="party-name">${val(customer.name)}</div>
+    <div class="party-detail">
+      ${[customer.address, customer.country].filter(Boolean).join(', ')}
+      ${customer.contact_name ? `<br>Contact: ${customer.contact_name}` : ''}
+      ${customer.email ? `<br>${customer.email}` : ''}
+      ${customer.phone ? `<br>${customer.phone}` : ''}
+    </div>
+    ${showIndiaFields ? `<div>${indiaFields}</div>` : ''}
+  </div>
+</div>`
+}
+
+function partiesPOHTML (po) {
+  return `
+<div class="parties">
+  <div class="party-col">
+    <div class="party-label">Buyer / Importer</div>
+    <div class="party-name">${CO.name}</div>
+    <div class="party-detail">
+      ${CO.address}<br>
+      Tax ID: ${CO.tax}<br>
+      Tel: ${CO.tel}<br>
+      ${CO.web}
+    </div>
+  </div>
+  <div class="party-col">
+    <div class="party-label">Supplier / Exporter</div>
+    <div class="party-name">${val(po.supplier_name)}</div>
+    <div class="party-detail">
+      ${[po.supplier_address, po.supplier_country].filter(Boolean).join(', ')}
+    </div>
+  </div>
+</div>`
+}
+
+function shipmentInfoHTML (so) {
+  return `
+<div class="section-header">Shipment Details</div>
+<div class="info-grid" style="margin-bottom:3mm">
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">SA Number</div><div class="info-value">${val(so.sa_number || so.party_no)}</div></div>
+    <div class="info-cell"><div class="info-label">Invoice No</div><div class="info-value">${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="info-cell"><div class="info-label">Lot / Party No</div><div class="info-value">${val(so.lot_no)}</div></div>
+    <div class="info-cell"><div class="info-label">Shipment Date</div><div class="info-value">${fmtDate(so.shipment_date)}</div></div>
+  </div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(so.port_loading)}</div></div>
+    <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(so.port_discharge)}</div></div>
+    <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
+    <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
+  </div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Payment Terms</div><div class="info-value">${val(so.payment_term)}</div></div>
+    <div class="info-cell"><div class="info-label">Payment Method</div><div class="info-value">${val(so.payment_method)}</div></div>
+    <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(so.currency)}</div></div>
+    <div class="info-cell"><div class="info-label">Delivery Date</div><div class="info-value">${fmtDate(so.delivery_date)}</div></div>
+  </div>
+  ${(so.container_number || so.vessel_name || so.seawaybill_number || so.tracking_number) ? `
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
+    <div class="info-cell"><div class="info-label">Vessel Name</div><div class="info-value">${val(so.vessel_name)}</div></div>
+    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
+    <div class="info-cell"><div class="info-label">ETD / ETA</div><div class="info-value">${fmtDate(so.etd)} / ${fmtDate(so.eta)}</div></div>
+  </div>` : ''}
+</div>`
+}
+
+function invoiceGoodsTableHTML (orderItems, so) {
+  const currency = so.currency || 'USD'
+  const sym = currency === 'EUR' ? '€' : '$'
+  let totalNet = 0, totalGross = 0, totalAmt = 0, totalBoxes = 0
+
+  const rows = orderItems.map((it, i) => {
+    const bw    = Number(it.box_weight_kg || 0)
+    const qty   = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+    const net   = Number(it.quantity_kg || 0)
+    const gross = qty * bw * 1.05
+    const price = Number(it.price_per_unit || 0)
+    const amount = (it.sell_by || 'box') === 'kg' ? price * net : price * qty
+    const unitLabel = (it.sell_by || 'box') === 'kg' ? '/kg' : '/box'
+    totalNet += net; totalGross += gross; totalAmt += amount; totalBoxes += qty
+    return `<tr>
+      <td>${i + 1}</td>
+      <td>${val(it.product_name)}</td>
+      <td>${[it.variety, it.caliber].filter(Boolean).join(' / ') || '—'}</td>
+      <td>${val(it.origin)}</td>
+      <td>${val(it.box_type)}</td>
+      <td class="num">${fmtNum(qty, 0)}</td>
+      <td class="num">${fmtNum(net)}</td>
+      <td class="num">${fmtNum(gross)}</td>
+      <td class="num">${sym}${fmtNum(price)}<span style="font-size:5pt;color:#6b7280;">${unitLabel}</span></td>
+      <td class="num">${sym}${fmtNum(amount)}</td>
+    </tr>`
+  }).join('')
+
+  return `
+<div class="section-header">Description of Goods</div>
+<div class="table-wrapper">
+<table>
+  <thead><tr>
+    <th style="width:4%">#</th>
+    <th>Product</th>
+    <th style="width:14%">Variety / Caliber</th>
+    <th style="width:8%">Origin</th>
+    <th style="width:8%">Box Type</th>
+    <th class="num" style="width:6%">Boxes</th>
+    <th class="num" style="width:9%">Net KG</th>
+    <th class="num" style="width:9%">Gross KG</th>
+    <th class="num" style="width:10%">Unit Price</th>
+    <th class="num" style="width:10%">Amount</th>
+  </tr></thead>
+  <tbody>${rows}</tbody>
+  <tr class="tfoot-row">
+    <td colspan="5"><strong>TOTALS</strong></td>
+    <td class="num">${fmtNum(totalBoxes, 0)} Boxes</td>
+    <td class="num">${fmtNum(totalNet)} KG</td>
+    <td class="num">${fmtNum(totalGross)} KG</td>
+    <td class="num"></td>
+    <td class="num">${sym}${fmtNum(totalAmt)}</td>
+  </tr>
+</table>
+</div>`
+}
+
+function saGoodsTableHTML (orderItems, so) {
+  const currency = so.currency || 'USD'
+  const sym = currency === 'EUR' ? '€' : '$'
+  let totalNet = 0, totalGross = 0, totalAmt = 0, totalBoxes = 0
+
+  const rows = orderItems.map((it, i) => {
+    const bw      = Number(it.box_weight_kg || so.box_weight_kg || 0)
+    const itBoxes = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+    const itNet   = Number(it.quantity_kg || 0)
+    const itGross = itBoxes * bw * 1.05
+    const itValue = itBoxes * Number(it.price_per_unit || 0)
+    const prodName = it.product_name || so.product_name
+    totalNet += itNet; totalGross += itGross; totalAmt += itValue; totalBoxes += itBoxes
+    return `<tr>
+      <td>${i + 1}</td>
+      <td>${val(prodName)}</td>
+      <td>${val(it.variety)}</td>
+      <td>${val(it.caliber)}</td>
+      <td>${val(it.origin)}</td>
+      <td>${val(it.box_type || so.box_type)}</td>
+      <td class="num">${fmtNum(itBoxes, 0)}</td>
+      <td class="num">${fmtNum(itNet)}</td>
+      <td class="num">${fmtNum(itGross)}</td>
+      <td class="num">${sym}${fmtNum(it.price_per_unit)}/box</td>
+      <td class="num">${sym}${fmtNum(itValue)}</td>
+    </tr>`
+  }).join('')
+
+  return `
+<div class="section-header">Goods Specification</div>
+<div class="table-wrapper">
+<table>
+  <thead><tr>
+    <th style="width:4%">#</th>
+    <th>Product</th>
+    <th style="width:10%">Variety</th>
+    <th style="width:8%">Caliber</th>
+    <th style="width:8%">Origin</th>
+    <th style="width:9%">Box Type</th>
+    <th class="num" style="width:6%">Boxes</th>
+    <th class="num" style="width:8%">Net KG</th>
+    <th class="num" style="width:9%">Gross KG</th>
+    <th class="num" style="width:10%">Unit Price</th>
+    <th class="num" style="width:10%">Total Value</th>
+  </tr></thead>
+  <tbody>${rows}</tbody>
+  <tr class="tfoot-row">
+    <td colspan="6"><strong>TOTAL CONTRACT VALUE</strong></td>
+    <td class="num">${fmtNum(totalBoxes, 0)}</td>
+    <td class="num">${fmtNum(totalNet)}</td>
+    <td class="num">${fmtNum(totalGross)}</td>
+    <td class="num"></td>
+    <td class="num">${sym}${fmtNum(totalAmt)}</td>
+  </tr>
+</table>
+</div>`
+}
+
+function bankHTML () {
+  return `
+<div class="section-header">Banking Details</div>
+<div class="bank-grid">
+  <div class="bank-col">
+    <div class="bank-currency">USD Account</div>
+    <div class="bank-iban">${CO.usd}</div>
+    <div class="bank-detail">
+      <strong>${CO.bank}</strong><br>
+      Branch: ${CO.bankBranch}<br>
+      ${CO.bankAddress}<br>
+      BIC / SWIFT: ${CO.bic}
+    </div>
+  </div>
+  <div class="bank-col">
+    <div class="bank-currency">EUR Account</div>
+    <div class="bank-iban">${CO.eur}</div>
+    <div class="bank-detail">
+      <strong>${CO.bank}</strong><br>
+      Branch: ${CO.bankBranch}<br>
+      ${CO.bankAddress}<br>
+      BIC / SWIFT: ${CO.bic}
+    </div>
+  </div>
+</div>`
+}
+
+function sigHTML (showBuyer) {
+  showBuyer = showBuyer || false
+  const buyerCol = showBuyer ? `
+    <div class="sig-box">
+      <div class="sig-label">Buyer / Authorized Signature</div>
+      <div style="height:8mm"></div>
+      <div class="sig-name">_______________________</div>
+      <div class="sig-title">Name &amp; Title</div>
+    </div>` : ''
+  return `
+<div class="sig-area" style="grid-template-columns:${showBuyer ? '1fr 1fr' : '1fr 2fr'}">
+  <div class="sig-box">
+    <div class="sig-label">Seller / Authorized Signature</div>
+    <div style="height:8mm"></div>
+    <div class="sig-name">${CO.rep}</div>
+    <div class="sig-title">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
+  </div>
+  ${buyerCol}
+</div>`
+}
+
+function nongmoHTML () {
+  return `<div class="nongmo-box">
+    <strong>NON-GMO DECLARATION</strong>
+    We hereby declare that the goods described in this document are Non-Genetically Modified Organisms (Non-GMO).
+    The products have not been produced using genetic engineering techniques and comply with applicable Non-GMO standards.
+  </div>`
+}
+
+function tcGridHTML (clauses) {
+  return `<div class="tc-grid">${clauses.map(c => `
+    <div class="tc-item"><span class="tc-num">${c.num}. ${c.title}:</span> ${c.body}</div>
+  `).join('')}</div>`
+}
+
+const SA_CLAUSES = [
+  { num: 1, title: 'Governing Law', body: 'This agreement is governed by Turkish law. Any disputes shall be resolved in the courts of Antalya, Türkiye.' },
+  { num: 2, title: 'Quality & Inspection', body: 'Goods shall conform to export-grade standards. Buyer may inspect upon arrival. Claims must be filed within 5 days of receipt with photographic evidence.' },
+  { num: 3, title: 'Delivery & Risk', body: 'Risk of loss transfers to Buyer at the delivery point per agreed Incoterm. Seller is not liable for delays caused by force majeure events.' },
+  { num: 4, title: 'Payment', body: 'Payment shall be made per the terms stated above. Overdue amounts attract interest at 1.5% per month. Seller reserves title until full payment.' },
+  { num: 5, title: 'Force Majeure', body: 'Neither party shall be liable for delays caused by events beyond reasonable control, including natural disasters, pandemics, strikes, or government restrictions.' },
+  { num: 6, title: 'Documentation', body: 'Seller shall provide all agreed shipping documents within 5 business days of vessel departure. Originals dispatched via courier where required.' },
+  { num: 7, title: 'Phytosanitary Compliance', body: 'All goods comply with import regulations of the destination country. Seller warrants goods are free from pests and diseases at time of export.' },
+  { num: 8, title: 'Entire Agreement', body: 'This document constitutes the entire agreement between the parties and supersedes all prior negotiations. Amendments must be in writing and signed by both parties.' },
+]
+
+const PO_CLAUSES = [
+  { num: 1, title: 'Acceptance', body: 'This Purchase Order constitutes a binding offer. Supplier acceptance (written or by commencement of performance) forms a contract under these terms.' },
+  { num: 2, title: 'Quantity & Quality', body: 'Goods must match the specification above. Shortfalls exceeding 5% or quality deviations entitle Buyer to price adjustment or rejection.' },
+  { num: 3, title: 'Delivery', body: 'Goods must be shipped by the stated shipment date. Supplier must notify Buyer immediately of any anticipated delay.' },
+  { num: 4, title: 'Documentation', body: 'Supplier shall provide: commercial invoice, packing list, phytosanitary certificate, and certificate of origin within 3 business days of shipment.' },
+  { num: 5, title: 'Payment', body: 'Payment shall be made per the agreed terms following receipt and verification of compliant shipping documents and goods.' },
+  { num: 6, title: 'Compliance', body: 'Supplier warrants compliance with all applicable export regulations, phytosanitary standards, and labelling requirements for the destination country.' },
+  { num: 7, title: 'Force Majeure', body: 'Neither party shall be liable for delays caused by events beyond reasonable control, provided prompt written notice is given.' },
+  { num: 8, title: 'Governing Law', body: 'This PO is governed by Turkish law. Any disputes shall be resolved in the courts of Antalya, Türkiye unless otherwise agreed in writing.' },
+]
 
 // ─── Route: Commercial Invoice ────────────────────────────────────────────────
 
@@ -341,168 +548,46 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
         price_per_unit: so.price_per_unit,
         box_type:       so.box_type,
         box_weight_kg:  so.box_weight_kg,
+        sell_by:        so.sell_by,
       }]
     }
 
-    const totalNet   = orderItems.reduce((s, it) => s + Number(it.quantity_kg || 0), 0)
-    const totalBoxes = orderItems.reduce((s, it) => {
-      const bw = Number(it.box_weight_kg || 0)
-      return s + (bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0)
-    }, 0)
-    const totalGross = orderItems.reduce((s, it) => {
-      const bw = Number(it.box_weight_kg || 0)
-      const b  = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
-      return s + b * bw * 1.05
-    }, 0)
-    const totalValue = orderItems.reduce((s, it) => {
-      const bw    = Number(it.box_weight_kg || 0)
-      const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
-      const price = Number(it.price_per_unit || 0)
-      return s + ((it.sell_by || 'box') === 'kg' ? Number(it.quantity_kg || 0) * price : b * price)
-    }, 0)
+    const isIndia = (so.customer_country || '').toLowerCase().includes('india')
+    const customer = {
+      name:     so.customer_name,
+      address:  so.customer_address,
+      country:  so.customer_country,
+      gst_no:   so.customer_gst_no,
+      iec_no:   so.customer_iec_no,
+      pan_no:   so.customer_pan_no,
+      fssai_no: so.customer_fssai_no,
+    }
 
-    const itemRowsHTML = orderItems.map((it, idx) => {
-      const bw    = Number(it.box_weight_kg || 0)
-      const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
-      const net   = Number(it.quantity_kg || 0)
-      const gross = b * bw * 1.05
-      const price = Number(it.price_per_unit || 0)
-      const total = (it.sell_by || 'box') === 'kg' ? net * price : b * price
-      const unitLabel = (it.sell_by || 'box') === 'kg' ? '/kg' : '/box'
-      return `
-      <tr>
-        <td>${idx + 1}</td>
-        <td>${val(it.product_name)}</td>
-        <td>${[it.variety, it.caliber].filter(Boolean).join(' / ') || '—'}</td>
-        <td>${val(it.origin)}</td>
-        <td>${val(it.box_type)}</td>
-        <td class="r">${fmtNum(b, 0)}</td>
-        <td class="r">${fmtNum(net)}</td>
-        <td class="r">${fmtNum(gross)}</td>
-        <td class="r">${fmtNum(price)} <span style="font-size:5pt;color:#64748b;">${unitLabel}</span></td>
-        <td class="r">${fmtNum(total)}</td>
-      </tr>`
-    }).join('')
+    // India regulatory section
+    const indiaRegSection = isIndia && (so.customer_gst_no || so.customer_iec_no || so.customer_pan_no || so.customer_fssai_no) ? `
+<div class="section-header">Buyer Regulatory Details (India)</div>
+<div class="info-grid" style="margin-bottom:3mm">
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr;background:#eff6ff;">
+    <div class="info-cell"><div class="info-label" style="color:#1e40af;">GST No</div><div class="info-value" style="color:#1e3a8a;">${so.customer_gst_no || '—'}</div></div>
+    <div class="info-cell"><div class="info-label" style="color:#1e40af;">IEC No</div><div class="info-value" style="color:#1e3a8a;">${so.customer_iec_no || '—'}</div></div>
+    <div class="info-cell"><div class="info-label" style="color:#1e40af;">PAN No</div><div class="info-value" style="color:#1e3a8a;">${so.customer_pan_no || '—'}</div></div>
+    <div class="info-cell"><div class="info-label" style="color:#1e40af;">FSSAI No</div><div class="info-value" style="color:#1e3a8a;">${so.customer_fssai_no || '—'}</div></div>
+  </div>
+</div>` : ''
+
+    const qualitySection = so.quality_notes ? `
+<div class="section-header">Quality Notes</div>
+<div class="notes-box">${so.quality_notes}</div>` : ''
 
     const html = wrap(`
-  ${headerHTML(so.party_no, so.shipment_date || new Date(), 'Commercial Invoice')}
-
-  <!-- Seller / Buyer parties -->
-  <div class="parties">
-    <div class="pty l">
-      <div class="pty-hdr g">Seller / Exporter</div>
-      <div class="pty-name">${CO.name}</div>
-      <div class="pty-detail">
-        ${CO.address}<br>
-        Tax No: ${CO.tax}<br>
-        Tel: ${CO.tel} · ${CO.web}
-      </div>
-    </div>
-    <div class="pty">
-      <div class="pty-hdr b">Bill To / Consignee</div>
-      <div class="pty-name" style="color:#1d4ed8;">${val(so.customer_name)}</div>
-      <div class="pty-detail">
-        ${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}
-      </div>
-    </div>
-  </div>
-
-  <!-- India Regulatory Numbers -->
-  ${(so.customer_country || '').toLowerCase().includes('india') && (so.customer_gst_no || so.customer_iec_no || so.customer_pan_no || so.customer_fssai_no) ? `
-  <div class="sec s" style="background:#1e40af;">Buyer Regulatory Details (India)</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-left:1px solid #bfdbfe;border-top:1px solid #bfdbfe;">
-    <div style="border-right:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe;padding:4px 8px;background:#eff6ff;">
-      <div style="font-size:5pt;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">GST No</div>
-      <div style="font-size:7pt;font-weight:600;color:#1e3a8a;">${so.customer_gst_no || '—'}</div>
-    </div>
-    <div style="border-right:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe;padding:4px 8px;background:#eff6ff;">
-      <div style="font-size:5pt;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">IEC No</div>
-      <div style="font-size:7pt;font-weight:600;color:#1e3a8a;">${so.customer_iec_no || '—'}</div>
-    </div>
-    <div style="border-right:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe;padding:4px 8px;background:#eff6ff;">
-      <div style="font-size:5pt;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">PAN No</div>
-      <div style="font-size:7pt;font-weight:600;color:#1e3a8a;">${so.customer_pan_no || '—'}</div>
-    </div>
-    <div style="border-bottom:1px solid #bfdbfe;padding:4px 8px;background:#eff6ff;">
-      <div style="font-size:5pt;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">FSSAI No</div>
-      <div style="font-size:7pt;font-weight:600;color:#1e3a8a;">${so.customer_fssai_no || '—'}</div>
-    </div>
-  </div>` : ''}
-
-  <!-- Shipment details -->
-  <div class="sec g">Shipment Details</div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Invoice No</div><div class="val">${val(so.invoice_no || so.party_no)}</div></div>
-    <div class="c"><div class="lbl">SA Number</div><div class="val">${val(so.sa_number)}</div></div>
-    <div class="c"><div class="lbl">Lot / Party No</div><div class="val">${val(so.lot_no)}</div></div>
-    <div class="c"><div class="lbl">Shipment Date</div><div class="val">${fmtDate(so.shipment_date)}</div></div>
-  </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Delivery Date</div><div class="val">${fmtDate(so.delivery_date)}</div></div>
-    <div class="c"><div class="lbl">Payment Terms</div><div class="val">${val(so.payment_term)}</div></div>
-    <div class="c"><div class="lbl">Payment Method</div><div class="val">${val(so.payment_method)}</div></div>
-    <div class="c"><div class="lbl">Currency</div><div class="val">${val(so.currency)}</div></div>
-  </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Incoterm</div><div class="val">${val(so.incoterm)}</div></div>
-    <div class="c"><div class="lbl">Transport Mode</div><div class="val">${val(so.transport_mode)}</div></div>
-    <div class="c"><div class="lbl">Port of Loading</div><div class="val">${val(so.port_loading)}</div></div>
-    <div class="c"><div class="lbl">Port of Discharge</div><div class="val">${val(so.port_discharge)}</div></div>
-  </div>
-
-  <!-- Tracking -->
-  ${(so.container_number || so.vessel_name || so.seawaybill_number || so.tracking_number) ? `
-  <div class="sec s">Shipping References</div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Container No</div><div class="val">${val(so.container_number)}</div></div>
-    <div class="c"><div class="lbl">Vessel Name</div><div class="val">${val(so.vessel_name)}</div></div>
-    <div class="c"><div class="lbl">Sea Waybill No</div><div class="val">${val(so.seawaybill_number)}</div></div>
-    <div class="c"><div class="lbl">Tracking No</div><div class="val">${val(so.tracking_number)}</div></div>
-  </div>
-  <div class="g2">
-    <div class="c"><div class="lbl">ETD</div><div class="val">${fmtDate(so.etd)}</div></div>
-    <div class="c"><div class="lbl">ETA</div><div class="val">${fmtDate(so.eta)}</div></div>
-  </div>` : ''}
-
-  <!-- Goods table -->
-  <div class="sec g" style="margin-top:5px;">Description of Goods</div>
-  <table class="goods-table" style="margin-top:0;">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Product</th>
-        <th>Variety / Caliber</th>
-        <th>Origin</th>
-        <th>Box Type</th>
-        <th class="r">Boxes</th>
-        <th class="r">Net Wt (kg)</th>
-        <th class="r">Gross Wt (kg)</th>
-        <th class="r">Unit Price (${val(so.currency)})</th>
-        <th class="r">Total (${val(so.currency)})</th>
-      </tr>
-    </thead>
-    <tbody>${itemRowsHTML}</tbody>
-    <tfoot>
-      <tr>
-        <td colspan="5" style="font-weight:700;">TOTALS</td>
-        <td class="r">${fmtNum(totalBoxes, 0)}</td>
-        <td class="r">${fmtNum(totalNet)} kg</td>
-        <td class="r">${fmtNum(totalGross)} kg</td>
-        <td class="r"></td>
-        <td class="r">${val(so.currency)} ${fmtNum(totalValue)}</td>
-      </tr>
-    </tfoot>
-  </table>
-
-  ${so.quality_notes ? `
-  <div class="sec s" style="margin-top:5px;">Quality Notes</div>
-  <div style="padding:4px 8px; border:1px solid #e2e8f0; font-size:6pt; color:#374151; line-height:1.6;">${so.quality_notes}</div>
-  ` : ''}
-
-  ${bankBlockHTML(so.currency)}
-
-  ${issuerBlockHTML(null, true)}
-  ${footerHTML()}
+${headerHTML('COMMERCIAL INVOICE', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
+${partiesHTML(so, customer, isIndia)}
+${indiaRegSection}
+${shipmentInfoHTML(so)}
+${invoiceGoodsTableHTML(orderItems, so)}
+${qualitySection}
+${bankHTML()}
+${sigHTML(false)}
 `)
 
     const pdf = await htmlToPDF(html)
@@ -564,12 +649,6 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
     const totalBoxes  = orderItems.reduce((s, it) => {
       const bw = Number(it.box_weight_kg || 0)
       return s + (bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0)
-    }, 0)
-    const totalNet   = orderItems.reduce((s, it) => s + Number(it.quantity_kg || 0), 0)
-    const totalGross = orderItems.reduce((s, it) => {
-      const bw = Number(it.box_weight_kg || 0)
-      const b  = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
-      return s + b * bw * 1.05
     }, 0)
 
     const useItemRows = orderItems.length > 1
@@ -906,7 +985,6 @@ function showToast(msg) {
 
 function downloadPDF() {
   showToast('PDF hazırlanıyor…');
-  // Collect current editable values from DOM (in case user hasn't blurred)
   document.querySelectorAll('.ef').forEach(el => {
     const i = parseInt(el.dataset.row);
     const f = el.dataset.field;
@@ -969,7 +1047,7 @@ router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
     const so = rows[0]
 
-    const orderRows = customRows || []
+    const orderRows  = customRows || []
     const totalBoxes = orderRows.reduce((s, r) => s + (parseFloat(r.boxes) || 0), 0)
     const totalNet   = orderRows.reduce((s, r) => s + (parseFloat(r.net) || 0), 0)
     const totalGross = orderRows.reduce((s, r) => s + (parseFloat(r.gross) || 0), 0)
@@ -988,82 +1066,80 @@ router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
       <td class="r">${fmtNum(parseFloat(r.gross) || 0)} kg</td>
     </tr>`).join('')
 
-    const shippingRefs = (so.container_number || so.vessel_name || so.seawaybill_number) ? (
-      '<div class="g3">' +
-      '<div class="c"><div class="lbl">Container No</div><div class="val">' + val(so.container_number) + '</div></div>' +
-      '<div class="c"><div class="lbl">Vessel Name</div><div class="val">' + val(so.vessel_name) + '</div></div>' +
-      '<div class="c"><div class="lbl">Sea Waybill No</div><div class="val">' + val(so.seawaybill_number) + '</div></div>' +
-      '</div>'
-    ) : ''
+    const qualitySection = so.quality_notes ? `
+<div class="section-header">Quality Notes</div>
+<div class="notes-box">${so.quality_notes}</div>` : ''
 
-    const qualitySection = so.quality_notes ? (
-      '<div class="sec s" style="margin-top:5px;">Quality Notes</div>' +
-      '<div style="padding:4px 8px; border:1px solid #e2e8f0; font-size:6pt; color:#374151; line-height:1.6;">' + so.quality_notes + '</div>'
-    ) : ''
-
-    const htmlBody = [
-      headerHTML(so.party_no, so.shipment_date || new Date(), 'Packing List'),
-      '<div class="parties">',
-      '  <div class="pty l">',
-      '    <div class="pty-hdr g">Shipper / Exporter</div>',
-      '    <div class="pty-name">' + CO.name + '</div>',
-      '    <div class="pty-detail">' + CO.address + '<br>Tax No: ' + CO.tax + '<br>Tel: ' + CO.tel + ' · ' + CO.web + '</div>',
-      '  </div>',
-      '  <div class="pty">',
-      '    <div class="pty-hdr b">Consignee</div>',
-      '    <div class="pty-name" style="color:#1d4ed8;">' + val(so.customer_name) + '</div>',
-      '    <div class="pty-detail">' + val(so.customer_address) + (so.customer_country ? '<br>' + so.customer_country : '') + '</div>',
-      '  </div>',
-      '</div>',
-      '<div class="sec g">Shipment Details</div>',
-      '<div class="g4">',
-      '  <div class="c"><div class="lbl">Packing List No</div><div class="val">' + val(so.invoice_no || so.party_no) + '</div></div>',
-      '  <div class="c"><div class="lbl">Invoice No</div><div class="val">' + val(so.invoice_no || so.party_no) + '</div></div>',
-      '  <div class="c"><div class="lbl">SA Number</div><div class="val">' + val(so.sa_number) + '</div></div>',
-      '  <div class="c"><div class="lbl">Lot / Party No</div><div class="val">' + val(so.lot_no) + '</div></div>',
-      '</div>',
-      '<div class="g4">',
-      '  <div class="c"><div class="lbl">Shipment Date</div><div class="val">' + fmtDate(so.shipment_date) + '</div></div>',
-      '  <div class="c"><div class="lbl">Incoterm</div><div class="val">' + val(so.incoterm) + '</div></div>',
-      '  <div class="c"><div class="lbl">Transport Mode</div><div class="val">' + val(so.transport_mode) + '</div></div>',
-      '  <div class="c"><div class="lbl">ETD</div><div class="val">' + fmtDate(so.etd) + '</div></div>',
-      '</div>',
-      '<div class="g4">',
-      '  <div class="c"><div class="lbl">Port of Loading</div><div class="val">' + val(so.port_loading) + '</div></div>',
-      '  <div class="c"><div class="lbl">Port of Discharge</div><div class="val">' + val(so.port_discharge) + '</div></div>',
-      '  <div class="c"><div class="lbl">ETA</div><div class="val">' + fmtDate(so.eta) + '</div></div>',
-      '  <div class="c"><div class="lbl">Delivery Date</div><div class="val">' + fmtDate(so.delivery_date) + '</div></div>',
-      '</div>',
-      shippingRefs,
-      '<div class="pkg-strip mt6">',
-      '  <div class="pkg-item"><div class="lbl">Total Pallets</div><div class="val">' + pc + '</div></div>',
-      '  <div class="pkg-item"><div class="lbl">Total Boxes</div><div class="val">' + fmtNum(totalBoxes, 0) + '</div></div>',
-      '  <div class="pkg-item"><div class="lbl">Net Weight</div><div class="val">' + fmtNum(totalNet) + ' kg</div></div>',
-      '  <div class="pkg-item"><div class="lbl">Gross Weight</div><div class="val">' + fmtNum(totalGross) + ' kg</div></div>',
-      '  <div class="pkg-item"><div class="lbl">Box Type</div><div class="val">' + val(orderRows[0] ? orderRows[0].boxType : '') + '</div></div>',
-      '  <div class="pkg-item"><div class="lbl">Net / Box</div><div class="val">' + fmtNum(parseFloat(orderRows[0] ? orderRows[0].netBox : 0) || 0) + ' kg</div></div>',
-      '</div>',
-      '<div class="sec g" style="margin-top:5px;">Pallet / Item Breakdown</div>',
-      '<table class="pl-table">',
-      '  <thead><tr>',
-      '    <th>Pallet / Item</th><th>Product</th><th>Variety / Caliber</th><th>Origin</th><th>Box Type</th>',
-      '    <th class="r">Boxes</th><th class="r">Net / Box</th><th class="r">Net Wt (kg)</th><th class="r">Gross Wt (kg)</th>',
-      '  </tr></thead>',
-      '  <tbody>' + palletRowsHTML + '</tbody>',
-      '  <tfoot><tr>',
-      '    <td colspan="5">TOTALS — ' + pc + ' Pallet(s)</td>',
-      '    <td class="r">' + fmtNum(totalBoxes, 0) + ' boxes</td>',
-      '    <td class="r">—</td>',
-      '    <td class="r">' + fmtNum(totalNet) + ' kg</td>',
-      '    <td class="r">' + fmtNum(totalGross) + ' kg</td>',
-      '  </tr></tfoot>',
-      '</table>',
-      qualitySection,
-      issuerBlockHTML(null, true),
-      footerHTML(),
-    ].join('\n')
-
-    const html = wrap(htmlBody)
+    const html = wrap(`
+${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
+<div class="parties">
+  <div class="party-col">
+    <div class="party-label">Shipper / Exporter</div>
+    <div class="party-name">${CO.name}</div>
+    <div class="party-detail">${CO.address}<br>Tax No: ${CO.tax}<br>Tel: ${CO.tel} · ${CO.web}</div>
+  </div>
+  <div class="party-col">
+    <div class="party-label">Consignee</div>
+    <div class="party-name">${val(so.customer_name)}</div>
+    <div class="party-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
+  </div>
+</div>
+<div class="section-header">Shipment Details</div>
+<div class="info-grid" style="margin-bottom:3mm">
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Packing List No</div><div class="info-value">${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="info-cell"><div class="info-label">Invoice No</div><div class="info-value">${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="info-cell"><div class="info-label">SA Number</div><div class="info-value">${val(so.sa_number)}</div></div>
+    <div class="info-cell"><div class="info-label">Lot / Party No</div><div class="info-value">${val(so.lot_no)}</div></div>
+  </div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Shipment Date</div><div class="info-value">${fmtDate(so.shipment_date)}</div></div>
+    <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
+    <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
+    <div class="info-cell"><div class="info-label">ETD</div><div class="info-value">${fmtDate(so.etd)}</div></div>
+  </div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(so.port_loading)}</div></div>
+    <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(so.port_discharge)}</div></div>
+    <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
+    <div class="info-cell"><div class="info-label">Delivery Date</div><div class="info-value">${fmtDate(so.delivery_date)}</div></div>
+  </div>
+  ${(so.container_number || so.vessel_name || so.seawaybill_number) ? `
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
+    <div class="info-cell"><div class="info-label">Vessel Name</div><div class="info-value">${val(so.vessel_name)}</div></div>
+    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
+    <div class="info-cell"><div class="info-label">Pallets</div><div class="info-value">${pc}</div></div>
+  </div>` : ''}
+</div>
+<div class="pkg-strip">
+  <div class="pkg-item"><div class="pkg-lbl">Total Pallets</div><div class="pkg-val">${pc}</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Total Boxes</div><div class="pkg-val">${fmtNum(totalBoxes, 0)}</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Net Weight</div><div class="pkg-val">${fmtNum(totalNet)} kg</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Gross Weight</div><div class="pkg-val">${fmtNum(totalGross)} kg</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Box Type</div><div class="pkg-val">${val(orderRows[0] ? orderRows[0].boxType : '')}</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Net / Box</div><div class="pkg-val">${fmtNum(parseFloat(orderRows[0] ? orderRows[0].netBox : 0) || 0)} kg</div></div>
+</div>
+<div class="section-header">Pallet / Item Breakdown</div>
+<div class="table-wrapper">
+<table class="pl-table">
+  <thead><tr>
+    <th>Pallet / Item</th><th>Product</th><th>Variety / Caliber</th><th>Origin</th><th>Box Type</th>
+    <th class="r">Boxes</th><th class="r">Net / Box</th><th class="r">Net Wt (kg)</th><th class="r">Gross Wt (kg)</th>
+  </tr></thead>
+  <tbody>${palletRowsHTML}</tbody>
+  <tr class="tfoot-row">
+    <td colspan="5"><strong>TOTALS — ${pc} Pallet(s)</strong></td>
+    <td class="r">${fmtNum(totalBoxes, 0)} boxes</td>
+    <td class="r">—</td>
+    <td class="r">${fmtNum(totalNet)} kg</td>
+    <td class="r">${fmtNum(totalGross)} kg</td>
+  </tr>
+</table>
+</div>
+${qualitySection}
+${sigHTML(false)}
+`)
 
     const pdf = await htmlToPDF(html)
     res.set({
@@ -1077,7 +1153,7 @@ router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
   }
 })
 
-// ─── Route: Packing List ──────────────────────────────────────────────────────
+// ─── Route: Packing List (static PDF) ────────────────────────────────────────
 
 router.get('/packing-list/:id', requireAuth, async (req, res) => {
   try {
@@ -1121,42 +1197,40 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
       }]
     }
 
-    const palletCount    = so.pallets || 1
-    const totalBoxes     = orderItems.reduce((s, it) => {
+    const palletCount = so.pallets || 1
+    const totalBoxes  = orderItems.reduce((s, it) => {
       const bw = Number(it.box_weight_kg || 0)
       return s + (bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0)
     }, 0)
-    const totalNet  = orderItems.reduce((s, it) => s + Number(it.quantity_kg || 0), 0)
+    const totalNet   = orderItems.reduce((s, it) => s + Number(it.quantity_kg || 0), 0)
     const totalGross = orderItems.reduce((s, it) => {
       const bw = Number(it.box_weight_kg || 0)
       const b  = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
       return s + b * bw * 1.05
     }, 0)
 
-    // Build pallet rows: distribute boxes across pallets, then list each product line per pallet
+    // Build pallet rows
     const boxesPerPallet = Math.floor(totalBoxes / palletCount)
     const remainder      = totalBoxes % palletCount
     const palletRows = []
     for (let i = 0; i < palletCount; i++) {
       const palletBoxes = i < remainder ? boxesPerPallet + 1 : boxesPerPallet
-      // Attribute all items on this pallet (simplified: first item's product info)
       const firstIt = orderItems[0] || {}
       const bw = Number(firstIt.box_weight_kg || 0)
       palletRows.push({
-        pallet:      i + 1,
+        pallet:        i + 1,
         palletBoxes,
-        netKg:       palletBoxes * bw,
-        grossKg:     palletBoxes * bw * 1.05,
-        product_name: firstIt.product_name,
-        variety:      firstIt.variety,
-        caliber:      firstIt.caliber,
-        origin:       firstIt.origin,
-        box_type:     firstIt.box_type,
+        netKg:         palletBoxes * bw,
+        grossKg:       palletBoxes * bw * 1.05,
+        product_name:  firstIt.product_name,
+        variety:       firstIt.variety,
+        caliber:       firstIt.caliber,
+        origin:        firstIt.origin,
+        box_type:      firstIt.box_type,
         box_weight_kg: bw,
       })
     }
 
-    // For multi-item orders, show one row per item instead of per pallet
     const useItemRows = orderItems.length > 1
     const palletRowsHTML = useItemRows
       ? orderItems.map((it, idx) => {
@@ -1164,124 +1238,110 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
           const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
           const net   = Number(it.quantity_kg || 0)
           const gross = b * bw * 1.05
-          return `
-      <tr>
-        <td>Item ${idx + 1}</td>
-        <td>${val(it.product_name)}</td>
-        <td>${[it.variety, it.caliber].filter(Boolean).join(' / ') || '—'}</td>
-        <td>${val(it.origin)}</td>
-        <td>${val(it.box_type)}</td>
-        <td class="r">${fmtNum(b, 0)}</td>
-        <td class="r">${fmtNum(bw)} kg</td>
-        <td class="r">${fmtNum(net)} kg</td>
-        <td class="r">${fmtNum(gross)} kg</td>
-      </tr>`
+          return `<tr>
+            <td>Item ${idx + 1}</td>
+            <td>${val(it.product_name)}</td>
+            <td>${[it.variety, it.caliber].filter(Boolean).join(' / ') || '—'}</td>
+            <td>${val(it.origin)}</td>
+            <td>${val(it.box_type)}</td>
+            <td class="r">${fmtNum(b, 0)}</td>
+            <td class="r">${fmtNum(bw)} kg</td>
+            <td class="r">${fmtNum(net)} kg</td>
+            <td class="r">${fmtNum(gross)} kg</td>
+          </tr>`
         }).join('')
-      : palletRows.map(r => `
-      <tr>
-        <td>Pallet ${r.pallet}</td>
-        <td>${val(r.product_name)}</td>
-        <td>${[r.variety, r.caliber].filter(Boolean).join(' / ') || '—'}</td>
-        <td>${val(r.origin)}</td>
-        <td>${val(r.box_type)}</td>
-        <td class="r">${fmtNum(r.palletBoxes, 0)}</td>
-        <td class="r">${fmtNum(r.box_weight_kg)} kg</td>
-        <td class="r">${fmtNum(r.netKg)} kg</td>
-        <td class="r">${fmtNum(r.grossKg)} kg</td>
-      </tr>`).join('')
+      : palletRows.map(r => `<tr>
+          <td>Pallet ${r.pallet}</td>
+          <td>${val(r.product_name)}</td>
+          <td>${[r.variety, r.caliber].filter(Boolean).join(' / ') || '—'}</td>
+          <td>${val(r.origin)}</td>
+          <td>${val(r.box_type)}</td>
+          <td class="r">${fmtNum(r.palletBoxes, 0)}</td>
+          <td class="r">${fmtNum(r.box_weight_kg)} kg</td>
+          <td class="r">${fmtNum(r.netKg)} kg</td>
+          <td class="r">${fmtNum(r.grossKg)} kg</td>
+        </tr>`).join('')
+
+    const qualitySection = so.quality_notes ? `
+<div class="section-header">Quality Notes</div>
+<div class="notes-box">${so.quality_notes}</div>` : ''
 
     const html = wrap(`
-  ${headerHTML(so.party_no, so.shipment_date || new Date(), 'Packing List')}
-
-  <div class="parties">
-    <div class="pty l">
-      <div class="pty-hdr g">Shipper / Exporter</div>
-      <div class="pty-name">${CO.name}</div>
-      <div class="pty-detail">
-        ${CO.address}<br>
-        Tax No: ${CO.tax}<br>
-        Tel: ${CO.tel} · ${CO.web}
-      </div>
-    </div>
-    <div class="pty">
-      <div class="pty-hdr b">Consignee</div>
-      <div class="pty-name" style="color:#1d4ed8;">${val(so.customer_name)}</div>
-      <div class="pty-detail">
-        ${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}
-      </div>
-    </div>
+${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
+<div class="parties">
+  <div class="party-col">
+    <div class="party-label">Shipper / Exporter</div>
+    <div class="party-name">${CO.name}</div>
+    <div class="party-detail">${CO.address}<br>Tax No: ${CO.tax}<br>Tel: ${CO.tel} · ${CO.web}</div>
   </div>
-
-  <div class="sec g">Shipment Details</div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Packing List No</div><div class="val">${val(so.invoice_no || so.party_no)}</div></div>
-    <div class="c"><div class="lbl">Invoice No</div><div class="val">${val(so.invoice_no || so.party_no)}</div></div>
-    <div class="c"><div class="lbl">SA Number</div><div class="val">${val(so.sa_number)}</div></div>
-    <div class="c"><div class="lbl">Lot / Party No</div><div class="val">${val(so.lot_no)}</div></div>
+  <div class="party-col">
+    <div class="party-label">Consignee</div>
+    <div class="party-name">${val(so.customer_name)}</div>
+    <div class="party-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
   </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Shipment Date</div><div class="val">${fmtDate(so.shipment_date)}</div></div>
-    <div class="c"><div class="lbl">Incoterm</div><div class="val">${val(so.incoterm)}</div></div>
-    <div class="c"><div class="lbl">Transport Mode</div><div class="val">${val(so.transport_mode)}</div></div>
-    <div class="c"><div class="lbl">ETD</div><div class="val">${fmtDate(so.etd)}</div></div>
+</div>
+<div class="section-header">Shipment Details</div>
+<div class="info-grid" style="margin-bottom:3mm">
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Packing List No</div><div class="info-value">${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="info-cell"><div class="info-label">Invoice No</div><div class="info-value">${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="info-cell"><div class="info-label">SA Number</div><div class="info-value">${val(so.sa_number)}</div></div>
+    <div class="info-cell"><div class="info-label">Lot / Party No</div><div class="info-value">${val(so.lot_no)}</div></div>
   </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Port of Loading</div><div class="val">${val(so.port_loading)}</div></div>
-    <div class="c"><div class="lbl">Port of Discharge</div><div class="val">${val(so.port_discharge)}</div></div>
-    <div class="c"><div class="lbl">ETA</div><div class="val">${fmtDate(so.eta)}</div></div>
-    <div class="c"><div class="lbl">Delivery Date</div><div class="val">${fmtDate(so.delivery_date)}</div></div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Shipment Date</div><div class="info-value">${fmtDate(so.shipment_date)}</div></div>
+    <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
+    <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
+    <div class="info-cell"><div class="info-label">ETD</div><div class="info-value">${fmtDate(so.etd)}</div></div>
+  </div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(so.port_loading)}</div></div>
+    <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(so.port_discharge)}</div></div>
+    <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
+    <div class="info-cell"><div class="info-label">Delivery Date</div><div class="info-value">${fmtDate(so.delivery_date)}</div></div>
   </div>
   ${(so.container_number || so.vessel_name || so.seawaybill_number) ? `
-  <div class="g3">
-    <div class="c"><div class="lbl">Container No</div><div class="val">${val(so.container_number)}</div></div>
-    <div class="c"><div class="lbl">Vessel Name</div><div class="val">${val(so.vessel_name)}</div></div>
-    <div class="c"><div class="lbl">Sea Waybill No</div><div class="val">${val(so.seawaybill_number)}</div></div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
+    <div class="info-cell"><div class="info-label">Vessel Name</div><div class="info-value">${val(so.vessel_name)}</div></div>
+    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
+    <div class="info-cell"><div class="info-label">Pallets</div><div class="info-value">${palletCount}</div></div>
   </div>` : ''}
-
-  <!-- Package summary strip -->
-  <div class="pkg-strip mt6">
-    <div class="pkg-item"><div class="lbl">Total Pallets</div><div class="val">${palletCount}</div></div>
-    <div class="pkg-item"><div class="lbl">Total Boxes</div><div class="val">${fmtNum(totalBoxes, 0)}</div></div>
-    <div class="pkg-item"><div class="lbl">Net Weight</div><div class="val">${fmtNum(totalNet)} kg</div></div>
-    <div class="pkg-item"><div class="lbl">Gross Weight</div><div class="val">${fmtNum(totalGross)} kg</div></div>
-    <div class="pkg-item"><div class="lbl">Box Type</div><div class="val">${val(orderItems[0]?.box_type || so.box_type)}</div></div>
-    <div class="pkg-item"><div class="lbl">Net / Box</div><div class="val">${fmtNum(orderItems[0]?.box_weight_kg || so.box_weight_kg)} kg</div></div>
-  </div>
-
-  <div class="sec g" style="margin-top:5px;">${useItemRows ? 'Item Breakdown' : 'Pallet Breakdown'}</div>
-  <table class="pl-table">
-    <thead>
-      <tr>
-        <th>${useItemRows ? 'Item' : 'Pallet'}</th>
-        <th>Product</th>
-        <th>Variety / Caliber</th>
-        <th>Origin</th>
-        <th>Box Type</th>
-        <th class="r">Boxes</th>
-        <th class="r">Net / Box</th>
-        <th class="r">Net Wt (kg)</th>
-        <th class="r">Gross Wt (kg)</th>
-      </tr>
-    </thead>
-    <tbody>${palletRowsHTML}</tbody>
-    <tfoot>
-      <tr>
-        <td colspan="5">TOTALS — ${palletCount} Pallet(s)</td>
-        <td class="r">${fmtNum(totalBoxes, 0)} boxes</td>
-        <td class="r">—</td>
-        <td class="r">${fmtNum(totalNet)} kg</td>
-        <td class="r">${fmtNum(totalGross)} kg</td>
-      </tr>
-    </tfoot>
-  </table>
-
-  ${so.quality_notes ? `
-  <div class="sec s" style="margin-top:5px;">Quality Notes</div>
-  <div style="padding:4px 8px; border:1px solid #e2e8f0; font-size:6pt; color:#374151; line-height:1.6;">${so.quality_notes}</div>
-  ` : ''}
-
-  ${issuerBlockHTML(null, true)}
-  ${footerHTML()}
+</div>
+<div class="pkg-strip">
+  <div class="pkg-item"><div class="pkg-lbl">Total Pallets</div><div class="pkg-val">${palletCount}</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Total Boxes</div><div class="pkg-val">${fmtNum(totalBoxes, 0)}</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Net Weight</div><div class="pkg-val">${fmtNum(totalNet)} kg</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Gross Weight</div><div class="pkg-val">${fmtNum(totalGross)} kg</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Box Type</div><div class="pkg-val">${val(orderItems[0]?.box_type || so.box_type)}</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">Net / Box</div><div class="pkg-val">${fmtNum(orderItems[0]?.box_weight_kg || so.box_weight_kg)} kg</div></div>
+</div>
+<div class="section-header">${useItemRows ? 'Item Breakdown' : 'Pallet Breakdown'}</div>
+<div class="table-wrapper">
+<table class="pl-table">
+  <thead><tr>
+    <th>${useItemRows ? 'Item' : 'Pallet'}</th>
+    <th>Product</th>
+    <th>Variety / Caliber</th>
+    <th>Origin</th>
+    <th>Box Type</th>
+    <th class="r">Boxes</th>
+    <th class="r">Net / Box</th>
+    <th class="r">Net Wt (kg)</th>
+    <th class="r">Gross Wt (kg)</th>
+  </tr></thead>
+  <tbody>${palletRowsHTML}</tbody>
+  <tr class="tfoot-row">
+    <td colspan="5"><strong>TOTALS — ${palletCount} Pallet(s)</strong></td>
+    <td class="r">${fmtNum(totalBoxes, 0)} boxes</td>
+    <td class="r">—</td>
+    <td class="r">${fmtNum(totalNet)} kg</td>
+    <td class="r">${fmtNum(totalGross)} kg</td>
+  </tr>
+</table>
+</div>
+${qualitySection}
+${sigHTML(false)}
 `)
 
     const pdf = await htmlToPDF(html)
@@ -1341,218 +1401,72 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
       }]
     }
 
-    // Totals across all items
-    const totalNet   = orderItems.reduce((s, it) => s + Number(it.quantity_kg || 0), 0)
-    const totalValue = orderItems.reduce((s, it) => {
-      const bw = Number(it.box_weight_kg || so.box_weight_kg || 0)
-      const boxes = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
-      return s + boxes * Number(it.price_per_unit || 0)
-    }, 0)
-    const totalBoxes = orderItems.reduce((s, it) => {
-      const bw = Number(it.box_weight_kg || so.box_weight_kg || 0)
-      return s + (bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0)
-    }, 0)
-    const totalGross = orderItems.reduce((s, it) => {
-      const bw = Number(it.box_weight_kg || so.box_weight_kg || 0)
-      const boxes = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
-      return s + boxes * bw * 1.05
-    }, 0)
-
-    // Legacy compat vars (used elsewhere)
-    const boxes      = totalBoxes
+    const customer = {
+      name:    so.customer_name,
+      address: so.customer_address,
+      country: so.customer_country,
+    }
 
     // Required docs
     let requiredDocs = {}
     try { requiredDocs = so.required_docs ? (typeof so.required_docs === 'string' ? JSON.parse(so.required_docs) : so.required_docs) : {} } catch (_) {}
 
-    const docBadges = [
-      { label: 'Commercial Invoice',        color: '#0a5c3a', bg: '#f0fdf4', border: '#86efac' },
-      { label: 'Packing List',              color: '#0a5c3a', bg: '#f0fdf4', border: '#86efac' },
-      { label: 'Phytosanitary Certificate', color: '#0a5c3a', bg: '#f0fdf4', border: '#86efac' },
-      { label: 'Certificate of Origin',     color: '#0a5c3a', bg: '#f0fdf4', border: '#86efac' },
-    ]
     const isIndia = (so.dest_country || so.customer_country || '').toLowerCase().includes('india')
-    if (requiredDocs.health_certificate) docBadges.push({ label: 'Health Certificate',  color: '#166534', bg: '#dcfce7', border: '#4ade80' })
-    if (requiredDocs.non_gmo || isIndia) docBadges.push({ label: 'Non-GMO Certificate (India)', color: '#1e40af', bg: '#dbeafe', border: '#93c5fd' })
-    if (requiredDocs.fumigation)         docBadges.push({ label: 'Fumigation Certificate', color: '#166534', bg: '#dcfce7', border: '#4ade80' })
-    if (requiredDocs.halal)              docBadges.push({ label: 'Halal Certificate',    color: '#92400e', bg: '#fef3c7', border: '#fcd34d' })
+    const docBadges = [
+      'Commercial Invoice',
+      'Packing List',
+      'Phytosanitary Certificate',
+      'Certificate of Origin',
+    ]
+    if (requiredDocs.health_certificate) docBadges.push('Health Certificate')
+    if (requiredDocs.non_gmo || isIndia)  docBadges.push('Non-GMO Certificate')
+    if (requiredDocs.fumigation)          docBadges.push('Fumigation Certificate')
+    if (requiredDocs.halal)               docBadges.push('Halal Certificate')
 
-    const badgeHTML = docBadges.map(d =>
-      `<span style="display:inline-block;border:1px solid ${d.border};background:${d.bg};color:${d.color};font-size:5.5pt;font-weight:600;padding:1px 6px;border-radius:2px;margin:2px 2px 0 0;">${d.label}</span>`
-    ).join('')
+    const badgeHTML = docBadges.map(d => `<span class="doc-badge">${d}</span>`).join('')
+
+    const qualitySection = so.quality_notes ? `
+<div class="section-header">Quality &amp; Specifications</div>
+<div class="notes-box">${so.quality_notes}</div>` : ''
+
+    const notesSection = so.notes ? `
+<div class="section-header">Additional Notes</div>
+<div class="notes-box">${so.notes}</div>` : ''
 
     const html = wrap(`
-  <div class="hdr" style="min-height:56px;">
-    <div class="hdr-brand">
-      <div class="hdr-logo">ORVIA <span>TROPICAL</span></div>
-      <div class="hdr-co">
-        ${CO.name}<br>
-        ${CO.address}<br>
-        Tel: ${CO.tel} · ${CO.web}
-      </div>
-    </div>
-    <div class="hdr-right">
-      <div style="color:#6ee7b7;font-size:8.5pt;font-weight:800;letter-spacing:2px;text-transform:uppercase;">SALES AGREEMENT</div>
-      <div class="hdr-docno" style="font-size:13pt;">${val(so.sa_number || so.party_no)}</div>
-      <div class="hdr-date">${fmtDate(so.shipment_date || new Date())}</div>
-    </div>
+${headerHTML('SALES AGREEMENT', val(so.sa_number || so.party_no), fmtDate(so.shipment_date || new Date()))}
+${partiesHTML(so, customer, false)}
+<div class="section-header">Agreement Details</div>
+<div class="info-grid" style="margin-bottom:3mm">
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">SA Number</div><div class="info-value">${val(so.sa_number || so.party_no)}</div></div>
+    <div class="info-cell"><div class="info-label">Lot / Party No</div><div class="info-value">${val(so.lot_no)}</div></div>
+    <div class="info-cell"><div class="info-label">Shipment Date</div><div class="info-value">${fmtDate(so.shipment_date)}</div></div>
+    <div class="info-cell"><div class="info-label">Delivery Date</div><div class="info-value">${fmtDate(so.delivery_date)}</div></div>
   </div>
-
-  <!-- Parties -->
-  <div class="parties">
-    <div class="pty l">
-      <div class="pty-hdr g">Seller / Exporter</div>
-      <div class="pty-name">${CO.name}</div>
-      <div class="pty-detail">
-        ${CO.address}<br>
-        Tax No: ${CO.tax}<br>
-        Tel: ${CO.tel}<br>
-        ${CO.web}
-      </div>
-    </div>
-    <div class="pty">
-      <div class="pty-hdr b">Buyer / Importer</div>
-      <div class="pty-name" style="color:#1d4ed8;">${val(so.customer_name)}</div>
-      <div class="pty-detail">
-        ${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}
-      </div>
-    </div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
+    <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(so.port_loading)}</div></div>
+    <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(so.port_discharge)}</div></div>
+    <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
   </div>
-
-  <!-- Agreement details -->
-  <div class="sec g">Agreement Details</div>
-  <div class="g4">
-    <div class="c"><div class="lbl">SA Number</div><div class="val">${val(so.sa_number || so.party_no)}</div></div>
-    <div class="c"><div class="lbl">Lot / Party No</div><div class="val">${val(so.lot_no)}</div></div>
-    <div class="c"><div class="lbl">Shipment Date</div><div class="val">${fmtDate(so.shipment_date)}</div></div>
-    <div class="c"><div class="lbl">Delivery Date</div><div class="val">${fmtDate(so.delivery_date)}</div></div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Payment Method</div><div class="info-value">${val(so.payment_method)}</div></div>
+    <div class="info-cell"><div class="info-label">Payment Terms</div><div class="info-value">${val(so.payment_term)}</div></div>
+    <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(so.currency)}</div></div>
+    <div class="info-cell"><div class="info-label">Pallets</div><div class="info-value">${val(so.pallets)}</div></div>
   </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Currency</div><div class="val">${val(so.currency)}</div></div>
-  </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Incoterm</div><div class="val">${val(so.incoterm)}</div></div>
-    <div class="c"><div class="lbl">Port of Loading</div><div class="val">${val(so.port_loading)}</div></div>
-    <div class="c"><div class="lbl">Port of Discharge</div><div class="val">${val(so.port_discharge)}</div></div>
-    <div class="c"><div class="lbl">Transport Mode</div><div class="val">${val(so.transport_mode)}</div></div>
-  </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Payment Method</div><div class="val">${val(so.payment_method)}</div></div>
-    <div class="c"><div class="lbl">Payment Terms</div><div class="val">${val(so.payment_term)}</div></div>
-    <div class="c"><div class="lbl">Origin</div><div class="val">${val(so.origin)}</div></div>
-    <div class="c"><div class="lbl">Pallets</div><div class="val">${val(so.pallets)}</div></div>
-  </div>
-
-  <!-- Goods -->
-  <div class="sec g" style="margin-top:5px;">Goods Specification</div>
-  <table class="goods-table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Product</th>
-        <th>Variety</th>
-        <th>Caliber</th>
-        <th>Origin</th>
-        <th>Box Type</th>
-        <th class="r">Boxes</th>
-        <th class="r">Net Wt (kg)</th>
-        <th class="r">Gross Wt (kg)</th>
-        <th class="r">Unit Price</th>
-        <th class="r">Total Value</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${orderItems.map((it, idx) => {
-        const bw      = Number(it.box_weight_kg || so.box_weight_kg || 0)
-        const itBoxes = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
-        const itNet   = Number(it.quantity_kg || 0)
-        const itGross = itBoxes * bw * 1.05
-        const itValue = itBoxes * Number(it.price_per_unit || 0)
-        const prodName = it.product_name || so.product_name
-        return `<tr>
-          <td>${idx + 1}</td>
-          <td>${val(prodName)}</td>
-          <td>${val(it.variety)}</td>
-          <td>${val(it.caliber)}</td>
-          <td>${val(it.origin)}</td>
-          <td>${val(it.box_type || so.box_type)}</td>
-          <td class="r">${fmtNum(itBoxes, 0)}</td>
-          <td class="r">${fmtNum(itNet)} kg</td>
-          <td class="r">${fmtNum(itGross)} kg</td>
-          <td class="r">${val(so.currency)} ${fmtNum(it.price_per_unit)}/box</td>
-          <td class="r">${val(so.currency)} ${fmtNum(itValue)}</td>
-        </tr>`
-      }).join('')}
-    </tbody>
-    <tfoot>
-      <tr>
-        <td colspan="6">TOTAL CONTRACT VALUE</td>
-        <td class="r">${fmtNum(totalBoxes, 0)}</td>
-        <td class="r">${fmtNum(totalNet)} kg</td>
-        <td class="r">${fmtNum(totalGross)} kg</td>
-        <td class="r"></td>
-        <td class="r">${val(so.currency)} ${fmtNum(totalValue)}</td>
-      </tr>
-    </tfoot>
-  </table>
-
-  <!-- Required Documents -->
-  <div class="sec s" style="margin-top:5px;">Required Documents</div>
-  <div style="padding:5px 8px; border:1px solid #e2e8f0;">
-    ${badgeHTML}
-  </div>
-
-  ${so.quality_notes ? `
-  <div class="sec s" style="margin-top:5px;">Quality &amp; Specifications</div>
-  <div class="c wide-text" style="border:1px solid #e2e8f0;"><div class="val">${so.quality_notes}</div></div>
-  ` : ''}
-
-  ${so.notes ? `
-  <div class="sec s" style="margin-top:5px;">Additional Notes</div>
-  <div class="c wide-text" style="border:1px solid #e2e8f0;"><div class="val">${so.notes}</div></div>
-  ` : ''}
-
-  <!-- Standard Clauses -->
-  <div class="sec g" style="margin-top:5px;">Standard Terms &amp; Conditions</div>
-  <div class="clauses">
-    <div class="clause">
-      <div class="clause-t">1. Governing Law</div>
-      <div class="clause-b">This agreement is governed by Turkish law. Any disputes shall be resolved in the courts of Antalya, Türkiye.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">2. Quality &amp; Inspection</div>
-      <div class="clause-b">Goods shall conform to export-grade standards. Buyer may inspect upon arrival. Claims must be filed within 5 days of receipt with photographic evidence.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">3. Delivery &amp; Risk</div>
-      <div class="clause-b">Risk of loss transfers to Buyer at the delivery point per agreed Incoterm. Seller is not liable for delays caused by force majeure events.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">4. Payment</div>
-      <div class="clause-b">Payment shall be made per the terms stated above. Overdue amounts attract interest at 1.5% per month. Seller reserves title until full payment.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">5. Force Majeure</div>
-      <div class="clause-b">Neither party shall be liable for delays caused by events beyond reasonable control, including natural disasters, pandemics, strikes, or government restrictions.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">6. Documentation</div>
-      <div class="clause-b">Seller shall provide all agreed shipping documents within 5 business days of vessel departure. Originals dispatched via courier where required.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">7. Phytosanitary Compliance</div>
-      <div class="clause-b">All goods comply with import regulations of the destination country. Seller warrants goods are free from pests and diseases at time of export.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">8. Entire Agreement</div>
-      <div class="clause-b">This document constitutes the entire agreement between the parties and supersedes all prior negotiations. Amendments must be in writing and signed by both parties.</div>
-    </div>
-  </div>
-
-  ${bankBlockHTML(so.currency)}
-
-  ${issuerBlockHTML(so.customer_name)}
-  ${footerHTML()}
+</div>
+${saGoodsTableHTML(orderItems, so)}
+<div class="section-header">Required Documents</div>
+<div class="doc-badges-wrap">${badgeHTML}</div>
+${qualitySection}
+${notesSection}
+${isIndia ? nongmoHTML() : ''}
+<div class="section-header">Standard Terms &amp; Conditions</div>
+${tcGridHTML(SA_CLAUSES)}
+${bankHTML()}
+${sigHTML(true)}
 `)
 
     const pdf = await htmlToPDF(html)
@@ -1586,147 +1500,87 @@ router.get('/purchase-order/:id', requireAuth, async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
     const po = rows[0]
 
-    const boxes      = Math.round(po.quantity_kg / po.box_weight_kg)
+    const boxes      = po.box_weight_kg > 0 ? Math.round(po.quantity_kg / po.box_weight_kg) : 0
     const totalNet   = po.quantity_kg
     const totalGross = boxes * po.box_weight_kg * 1.05
     const totalValue = boxes * Number(po.price_per_unit)
+    const currency   = po.currency || 'USD'
+    const sym        = currency === 'EUR' ? '€' : '$'
+
+    const notesSection = po.notes ? `
+<div class="section-header">Notes &amp; Special Instructions</div>
+<div class="notes-box">${po.notes}</div>` : ''
 
     const html = wrap(`
-  ${headerHTML(po.party_no, po.shipment_date || new Date(), 'Purchase Order')}
-
-  <!-- Parties -->
-  <div class="parties">
-    <div class="pty l">
-      <div class="pty-hdr g">Buyer / Importer</div>
-      <div class="pty-name">${CO.name}</div>
-      <div class="pty-detail">
-        ${CO.address}<br>
-        Tax No: ${CO.tax}<br>
-        Tel: ${CO.tel}<br>
-        ${CO.web}
-      </div>
-    </div>
-    <div class="pty">
-      <div class="pty-hdr b">Supplier / Exporter</div>
-      <div class="pty-name" style="color:#1d4ed8;">${val(po.supplier_name)}</div>
-      <div class="pty-detail">
-        ${val(po.supplier_address)}${po.supplier_country ? '<br>' + po.supplier_country : ''}
-      </div>
-    </div>
+${headerHTML('PURCHASE ORDER', val(po.party_no), fmtDate(po.shipment_date || new Date()))}
+${partiesPOHTML(po)}
+<div class="section-header">Purchase Order Details</div>
+<div class="info-grid" style="margin-bottom:3mm">
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">PO Number</div><div class="info-value">${val(po.party_no)}</div></div>
+    <div class="info-cell"><div class="info-label">Shipment Date</div><div class="info-value">${fmtDate(po.shipment_date)}</div></div>
+    <div class="info-cell"><div class="info-label">Delivery Date</div><div class="info-value">${fmtDate(po.delivery_date)}</div></div>
+    <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(po.currency)}</div></div>
   </div>
-
-  <!-- PO details -->
-  <div class="sec g">Purchase Order Details</div>
-  <div class="g4">
-    <div class="c"><div class="lbl">PO Number</div><div class="val">${val(po.party_no)}</div></div>
-    <div class="c"><div class="lbl">Shipment Date</div><div class="val">${fmtDate(po.shipment_date)}</div></div>
-    <div class="c"><div class="lbl">Delivery Date</div><div class="val">${fmtDate(po.delivery_date)}</div></div>
-    <div class="c"><div class="lbl">Currency</div><div class="val">${val(po.currency)}</div></div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(po.incoterm)}</div></div>
+    <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(po.port_loading)}</div></div>
+    <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(po.port_discharge)}</div></div>
+    <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(po.transport_mode)}</div></div>
   </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Incoterm</div><div class="val">${val(po.incoterm)}</div></div>
-    <div class="c"><div class="lbl">Port of Loading</div><div class="val">${val(po.port_loading)}</div></div>
-    <div class="c"><div class="lbl">Port of Discharge</div><div class="val">${val(po.port_discharge)}</div></div>
-    <div class="c"><div class="lbl">Transport Mode</div><div class="val">${val(po.transport_mode)}</div></div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Payment Method</div><div class="info-value">${val(po.payment_method)}</div></div>
+    <div class="info-cell"><div class="info-label">Payment Terms</div><div class="info-value">${val(po.payment_term)}</div></div>
+    <div class="info-cell"><div class="info-label">Origin</div><div class="info-value">${val(po.origin)}</div></div>
+    <div class="info-cell"><div class="info-label">Pallets</div><div class="info-value">${val(po.pallets)}</div></div>
   </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Payment Method</div><div class="val">${val(po.payment_method)}</div></div>
-    <div class="c"><div class="lbl">Payment Terms</div><div class="val">${val(po.payment_term)}</div></div>
-    <div class="c"><div class="lbl">Origin</div><div class="val">${val(po.origin)}</div></div>
-    <div class="c"><div class="lbl">Pallets</div><div class="val">${val(po.pallets)}</div></div>
-  </div>
-
-  <!-- Goods table -->
-  <div class="sec g" style="margin-top:5px;">Goods Ordered</div>
-  <table class="goods-table">
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Product</th>
-        <th>Variety</th>
-        <th>Caliber</th>
-        <th>Origin</th>
-        <th>Box Type</th>
-        <th class="r">Boxes</th>
-        <th class="r">Net Wt (kg)</th>
-        <th class="r">Gross Wt (kg)</th>
-        <th class="r">Unit Price</th>
-        <th class="r">Total Value</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>1</td>
-        <td>${val(po.product_name)}</td>
-        <td>${val(po.variety)}</td>
-        <td>${val(po.caliber)}</td>
-        <td>${val(po.origin)}</td>
-        <td>${val(po.box_type)}</td>
-        <td class="r">${fmtNum(boxes, 0)}</td>
-        <td class="r">${fmtNum(totalNet)} kg</td>
-        <td class="r">${fmtNum(totalGross)} kg</td>
-        <td class="r">${val(po.currency)} ${fmtNum(po.price_per_unit)}</td>
-        <td class="r">${val(po.currency)} ${fmtNum(totalValue)}</td>
-      </tr>
-    </tbody>
-    <tfoot>
-      <tr>
-        <td colspan="6">TOTAL ORDER VALUE</td>
-        <td class="r">${fmtNum(boxes, 0)}</td>
-        <td class="r">${fmtNum(totalNet)} kg</td>
-        <td class="r">${fmtNum(totalGross)} kg</td>
-        <td class="r"></td>
-        <td class="r">${val(po.currency)} ${fmtNum(totalValue)}</td>
-      </tr>
-    </tfoot>
-  </table>
-
-  ${po.notes ? `
-  <div class="sec s" style="margin-top:5px;">Notes &amp; Special Instructions</div>
-  <div class="c wide-text" style="border:1px solid #e2e8f0;"><div class="val">${po.notes}</div></div>
-  ` : ''}
-
-  <!-- Standard PO clauses -->
-  <div class="sec g" style="margin-top:5px;">Purchase Terms &amp; Conditions</div>
-  <div class="clauses">
-    <div class="clause">
-      <div class="clause-t">1. Acceptance</div>
-      <div class="clause-b">This Purchase Order constitutes a binding offer. Supplier acceptance (written or by commencement of performance) forms a contract under these terms.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">2. Quantity &amp; Quality</div>
-      <div class="clause-b">Goods must match the specification above. Shortfalls exceeding 5% or quality deviations entitle Buyer to price adjustment or rejection.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">3. Delivery</div>
-      <div class="clause-b">Goods must be shipped by the stated shipment date. Supplier must notify Buyer immediately of any anticipated delay.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">4. Documentation</div>
-      <div class="clause-b">Supplier shall provide: commercial invoice, packing list, phytosanitary certificate, and certificate of origin within 3 business days of shipment.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">5. Payment</div>
-      <div class="clause-b">Payment shall be made per the agreed terms following receipt and verification of compliant shipping documents and goods.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">6. Compliance</div>
-      <div class="clause-b">Supplier warrants compliance with all applicable export regulations, phytosanitary standards, and labelling requirements for the destination country.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">7. Force Majeure</div>
-      <div class="clause-b">Neither party shall be liable for delays caused by events beyond reasonable control, provided prompt written notice is given.</div>
-    </div>
-    <div class="clause">
-      <div class="clause-t">8. Governing Law</div>
-      <div class="clause-b">This PO is governed by Turkish law. Any disputes shall be resolved in the courts of Antalya, Türkiye unless otherwise agreed in writing.</div>
-    </div>
-  </div>
-
-  ${bankBlockHTML(po.currency)}
-
-  ${issuerBlockHTML()}
-  ${footerHTML()}
+</div>
+<div class="section-header">Goods Ordered</div>
+<div class="table-wrapper">
+<table>
+  <thead><tr>
+    <th style="width:4%">#</th>
+    <th>Product</th>
+    <th style="width:10%">Variety</th>
+    <th style="width:8%">Caliber</th>
+    <th style="width:8%">Origin</th>
+    <th style="width:9%">Box Type</th>
+    <th class="num" style="width:6%">Boxes</th>
+    <th class="num" style="width:9%">Net KG</th>
+    <th class="num" style="width:9%">Gross KG</th>
+    <th class="num" style="width:10%">Unit Price</th>
+    <th class="num" style="width:10%">Total Value</th>
+  </tr></thead>
+  <tbody>
+    <tr>
+      <td>1</td>
+      <td>${val(po.product_name)}</td>
+      <td>${val(po.variety)}</td>
+      <td>${val(po.caliber)}</td>
+      <td>${val(po.origin)}</td>
+      <td>${val(po.box_type)}</td>
+      <td class="num">${fmtNum(boxes, 0)}</td>
+      <td class="num">${fmtNum(totalNet)}</td>
+      <td class="num">${fmtNum(totalGross)}</td>
+      <td class="num">${sym}${fmtNum(po.price_per_unit)}</td>
+      <td class="num">${sym}${fmtNum(totalValue)}</td>
+    </tr>
+  </tbody>
+  <tr class="tfoot-row">
+    <td colspan="6"><strong>TOTAL ORDER VALUE</strong></td>
+    <td class="num">${fmtNum(boxes, 0)}</td>
+    <td class="num">${fmtNum(totalNet)}</td>
+    <td class="num">${fmtNum(totalGross)}</td>
+    <td class="num"></td>
+    <td class="num">${sym}${fmtNum(totalValue)}</td>
+  </tr>
+</table>
+</div>
+${notesSection}
+<div class="section-header">Purchase Terms &amp; Conditions</div>
+${tcGridHTML(PO_CLAUSES)}
+${bankHTML()}
+${sigHTML(true)}
 `)
 
     const pdf = await htmlToPDF(html)
