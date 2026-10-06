@@ -16,18 +16,20 @@ const DOC_TR = { invoice:'Fatura', packing_list:'Paket Listesi', health_certific
 
 const SALES_TYPE_TR = { ihracat:'İhracat', yerli:'Yerli Satış', transit:'Transit' }
 
+const EMPTY_ITEM = { product_id:'', variety:'', caliber:'', origin:'', quantity_kg:'', price_per_unit:'', box_type:'', box_weight_kg:'' }
+
 const EMPTY_FORM = {
   sales_type:'ihracat',
   sa_number:'',
-  customer_id:'', product_id:'', variety:'', caliber:'', origin:'',
-  quantity_kg:'', price_per_unit:'', currency:'USD',
+  customer_id:'', currency:'USD',
   payment_method:'', payment_term:'', incoterm:'FOB',
   port_loading:'', port_discharge:'',
   dest_country:'', transit_entry:'', transit_exit:'',
   shipment_date:'', delivery_date:'', etd:'', eta:'',
-  transport_mode:'Sea', box_type:'', box_weight_kg:'', pallets:'',
+  transport_mode:'Sea', pallets:'',
   quality_notes:'', notes:'', status:'draft',
-  required_docs: { invoice:false, packing_list:false, health_certificate:false, phytosanitary:false, certificate_of_origin:false }
+  required_docs: { invoice:false, packing_list:false, health_certificate:false, phytosanitary:false, certificate_of_origin:false },
+  items: [{ ...EMPTY_ITEM }]
 }
 
 export default function SalesPage() {
@@ -81,15 +83,32 @@ export default function SalesPage() {
     setModalOpen(true)
   }
 
-  function openEdit(o) {
+  async function openEdit(o) {
     setEditing(o)
+    // Load items from server detail endpoint
+    let loadedItems = []
+    try {
+      const detail = await api.get(`/sales-orders/${o.id}`)
+      const d = detail.data ?? detail
+      loadedItems = (d.items || []).map(it => ({
+        product_id: it.product_id||'',
+        variety: it.variety||'',
+        caliber: it.caliber||'',
+        origin: it.origin||'',
+        quantity_kg: it.quantity_kg||'',
+        price_per_unit: it.price_per_unit||'',
+        box_type: it.box_type||'',
+        box_weight_kg: it.box_weight_kg||'',
+      }))
+    } catch (_) {}
+    if (loadedItems.length === 0) {
+      loadedItems = [{ product_id: o.product_id||'', variety: o.variety||'', caliber: o.caliber||'', origin: o.origin||'', quantity_kg: o.quantity_kg||'', price_per_unit: o.price_per_unit||'', box_type: o.box_type||'', box_weight_kg: o.box_weight_kg||'' }]
+    }
     setForm({
       sales_type: o.sales_type||'ihracat',
       sa_number: o.sa_number||'',
-      customer_id: o.customer_id||'', product_id: o.product_id||'',
-      variety: o.variety||'', caliber: o.caliber||'', origin: o.origin||'',
+      customer_id: o.customer_id||'',
       dest_country: o.dest_country||'', transit_entry: o.transit_entry||'', transit_exit: o.transit_exit||'',
-      quantity_kg: o.quantity_kg||'', price_per_unit: o.price_per_unit||'',
       currency: o.currency||'USD', payment_method: o.payment_method||'',
       payment_term: o.payment_term||'', incoterm: o.incoterm||'FOB',
       port_loading: o.port_loading||'', port_discharge: o.port_discharge||'',
@@ -97,11 +116,11 @@ export default function SalesPage() {
       delivery_date: o.delivery_date ? o.delivery_date.slice(0,10) : '',
       etd: o.etd ? o.etd.slice(0,10) : '',
       eta: o.eta ? o.eta.slice(0,10) : '',
-      transport_mode: o.transport_mode||'Sea', box_type: o.box_type||'',
-      box_weight_kg: o.box_weight_kg||'', pallets: o.pallets||'',
+      transport_mode: o.transport_mode||'Sea', pallets: o.pallets||'',
       quality_notes: o.quality_notes||'', notes: o.notes||'',
       status: o.status||'draft',
-      required_docs: { invoice:false, packing_list:false, health_certificate:false, phytosanitary:false, certificate_of_origin:false, ...(o.required_docs||{}) }
+      required_docs: { invoice:false, packing_list:false, health_certificate:false, phytosanitary:false, certificate_of_origin:false, ...(o.required_docs||{}) },
+      items: loadedItems
     })
     setModalOpen(true)
   }
@@ -109,9 +128,18 @@ export default function SalesPage() {
   function setField(k, v) { setForm(f => ({ ...f, [k]: v })) }
   function setDoc(k, v) { setForm(f => ({ ...f, required_docs: { ...f.required_docs, [k]: v } })) }
 
+  function setItemField(idx, k, v) {
+    setForm(f => {
+      const items = f.items.map((it, i) => i === idx ? { ...it, [k]: v } : it)
+      return { ...f, items }
+    })
+  }
+  function addItem() { setForm(f => ({ ...f, items: [...f.items, { ...EMPTY_ITEM }] })) }
+  function removeItem(idx) { setForm(f => ({ ...f, items: f.items.filter((_,i) => i !== idx) })) }
+
   async function handleSave() {
-    if (!form.customer_id || !form.product_id || !form.quantity_kg || !form.price_per_unit) {
-      showToast('Müşteri, ürün, miktar ve fiyat zorunludur', 'error'); return
+    if (!form.customer_id || form.items.length === 0 || !form.items[0].quantity_kg || !form.items[0].price_per_unit) {
+      showToast('Müşteri ve en az bir ürün satırı (miktar + fiyat) zorunludur', 'error'); return
     }
     setSaving(true)
     try {
@@ -298,37 +326,71 @@ export default function SalesPage() {
             </select>
           </div>
           <div>
-            <label className="label">Ürün *</label>
-            <select className="select" value={form.product_id} onChange={e=>setField('product_id',e.target.value)}>
-              <option value="">Seçin...</option>
-              {products.map(p=><option key={p.id} value={p.id}>{p.name}{p.variety?` (${p.variety})`:''}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">Çeşit</label>
-            <input className="input" value={form.variety} onChange={e=>setField('variety',e.target.value)} placeholder="Örn: Fuji"/>
-          </div>
-          <div>
-            <label className="label">Kalibr / Boy</label>
-            <input className="input" value={form.caliber} onChange={e=>setField('caliber',e.target.value)} placeholder="Örn: 100, 110-120, 135+"/>
-          </div>
-          <div>
-            <label className="label">Menşei</label>
-            <input className="input" value={form.origin} onChange={e=>setField('origin',e.target.value)} placeholder="Örn: Türkiye"/>
-          </div>
-          <div>
-            <label className="label">Miktar (kg) *</label>
-            <input className="input" type="number" value={form.quantity_kg} onChange={e=>setField('quantity_kg',e.target.value)}/>
-          </div>
-          <div>
-            <label className="label">Birim Fiyat *</label>
-            <input className="input" type="number" step="0.01" value={form.price_per_unit} onChange={e=>setField('price_per_unit',e.target.value)}/>
-          </div>
-          <div>
             <label className="label">Para Birimi</label>
             <select className="select" value={form.currency} onChange={e=>setField('currency',e.target.value)}>
               {CURRENCIES.map(c=><option key={c}>{c}</option>)}
             </select>
+          </div>
+
+          {/* ── Ürün Satırları (multi-line items) ── */}
+          <div className="sm:col-span-2 lg:col-span-3">
+            <div className="flex items-center justify-between mb-2">
+              <label className="label mb-0">Ürün Satırları *</label>
+              <button type="button" onClick={addItem} className="btn-secondary text-xs py-1 px-2 flex items-center gap-1"><Plus size={12}/>Satır Ekle</button>
+            </div>
+            <div className="border border-gray-200 rounded-lg overflow-x-auto">
+              <table className="w-full text-sm min-w-[700px]">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-32">Ürün</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Çeşit</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-28">Kalibr / Boy</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Menşei</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Kutu Tipi</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-20">Kutu (kg)</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Miktar (kg)*</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-28">Birim Fiyat/Kutu*</th>
+                    <th className="px-2 py-2 w-8"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {form.items.map((it, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-2 py-1.5">
+                        <select className="select text-xs py-1" value={it.product_id} onChange={e=>setItemField(idx,'product_id',e.target.value)}>
+                          <option value="">—</option>
+                          {products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-2 py-1.5"><input className="input text-xs py-1" value={it.variety} onChange={e=>setItemField(idx,'variety',e.target.value)} placeholder="Fuji"/></td>
+                      <td className="px-2 py-1.5"><input className="input text-xs py-1" value={it.caliber} onChange={e=>setItemField(idx,'caliber',e.target.value)} placeholder="100, 135+"/></td>
+                      <td className="px-2 py-1.5"><input className="input text-xs py-1" value={it.origin} onChange={e=>setItemField(idx,'origin',e.target.value)} placeholder="Türkiye"/></td>
+                      <td className="px-2 py-1.5"><input className="input text-xs py-1" value={it.box_type} onChange={e=>setItemField(idx,'box_type',e.target.value)} placeholder="10kg karton"/></td>
+                      <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" step="0.01" value={it.box_weight_kg} onChange={e=>setItemField(idx,'box_weight_kg',e.target.value)} placeholder="10"/></td>
+                      <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" value={it.quantity_kg} onChange={e=>setItemField(idx,'quantity_kg',e.target.value)} placeholder="5000"/></td>
+                      <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" step="0.01" value={it.price_per_unit} onChange={e=>setItemField(idx,'price_per_unit',e.target.value)} placeholder="8.50"/></td>
+                      <td className="px-2 py-1.5 text-center">
+                        {form.items.length > 1 && <button type="button" onClick={()=>removeItem(idx)} className="text-red-400 hover:text-red-600 p-0.5"><X size={14}/></button>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {form.items.length > 0 && (() => {
+              const totKg = form.items.reduce((s,it) => s + Number(it.quantity_kg||0), 0)
+              const totVal = form.items.reduce((s,it) => {
+                const bw = Number(it.box_weight_kg||0)
+                const boxes = bw > 0 ? Math.round(Number(it.quantity_kg||0)/bw) : 0
+                return s + boxes * Number(it.price_per_unit||0)
+              }, 0)
+              return totKg > 0 ? (
+                <div className="flex gap-4 mt-1.5 text-xs text-gray-500 px-1">
+                  <span>Toplam: <strong className="text-gray-800">{totKg.toLocaleString()} kg</strong></span>
+                  {totVal > 0 && <span>Tahmini Değer: <strong className="text-gray-800">{form.currency} {totVal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></span>}
+                </div>
+              ) : null
+            })()}
           </div>
           <div>
             <label className="label">Ödeme Yöntemi</label>
@@ -396,14 +458,6 @@ export default function SalesPage() {
             <select className="select" value={form.transport_mode} onChange={e=>setField('transport_mode',e.target.value)}>
               {TRANSPORT_MODES.map(m=><option key={m}>{m}</option>)}
             </select>
-          </div>
-          <div>
-            <label className="label">Kutu Tipi</label>
-            <input className="input" value={form.box_type} onChange={e=>setField('box_type',e.target.value)} placeholder="Örn: Karton 10kg"/>
-          </div>
-          <div>
-            <label className="label">Kutu Ağırlığı (kg)</label>
-            <input className="input" type="number" step="0.01" value={form.box_weight_kg} onChange={e=>setField('box_weight_kg',e.target.value)}/>
           </div>
           <div>
             <label className="label">Palet Sayısı</label>

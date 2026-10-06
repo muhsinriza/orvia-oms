@@ -47,9 +47,46 @@ router.get('/:id', async (req, res) => {
       WHERE ol.sales_order_id = $1
     `, [req.params.id])
 
-    res.json({ ...rows[0], links: links.rows })
+    let itemRows = []
+    try {
+      const itemsRes = await db.query(`
+        SELECT soi.*, p.name AS product_name
+        FROM sales_order_items soi
+        LEFT JOIN products p ON p.id = soi.product_id
+        WHERE soi.sales_order_id = $1
+        ORDER BY soi.sort_order
+      `, [req.params.id])
+      itemRows = itemsRes.rows
+    } catch (_) {}
+
+    res.json({ ...rows[0], links: links.rows, items: itemRows })
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
+
+// Helper: upsert items for a sales order
+async function upsertItems(client, salesOrderId, items) {
+  await client.query(`DELETE FROM sales_order_items WHERE sales_order_id = $1`, [salesOrderId])
+  if (!Array.isArray(items) || items.length === 0) return
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i]
+    await client.query(`
+      INSERT INTO sales_order_items
+        (sales_order_id, product_id, variety, caliber, origin, quantity_kg, price_per_unit, box_type, box_weight_kg, sort_order)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+    `, [
+      salesOrderId,
+      it.product_id || null,
+      it.variety || null,
+      it.caliber || null,
+      it.origin || null,
+      it.quantity_kg || null,
+      it.price_per_unit || null,
+      it.box_type || null,
+      it.box_weight_kg || null,
+      i,
+    ])
+  }
+}
 
 // POST /sales-orders
 router.post('/', async (req, res) => {
@@ -65,10 +102,14 @@ router.post('/', async (req, res) => {
     quality_notes, required_docs, notes, status,
     tracking_number, container_number, seawaybill_number, vessel_name,
     flight_number, driver_name, driver_phone,
+    items,
   } = req.body
+  const client = await db.connect()
   try {
+    await client.query('BEGIN')
+
     // Ensure columns exist (idempotent migration)
-    await db.query(`
+    await client.query(`
       ALTER TABLE sales_orders
         ADD COLUMN IF NOT EXISTS sales_type    TEXT DEFAULT 'ihracat',
         ADD COLUMN IF NOT EXISTS sa_number     TEXT,
@@ -77,11 +118,28 @@ router.post('/', async (req, res) => {
         ADD COLUMN IF NOT EXISTS transit_exit  TEXT
     `)
 
+    // Ensure items table exists
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sales_order_items (
+        id             SERIAL PRIMARY KEY,
+        sales_order_id INTEGER REFERENCES sales_orders(id) ON DELETE CASCADE,
+        product_id     INTEGER,
+        variety        TEXT,
+        caliber        TEXT,
+        origin         TEXT,
+        quantity_kg    NUMERIC,
+        price_per_unit NUMERIC,
+        box_type       TEXT,
+        box_weight_kg  NUMERIC,
+        sort_order     INTEGER DEFAULT 0
+      )
+    `)
+
     // Auto-generate SA number if not provided
     let finalSaNumber = sa_number || null
     if (!finalSaNumber) {
       const year = new Date().getFullYear()
-      const { rows: countRows } = await db.query(
+      const { rows: countRows } = await client.query(
         `SELECT COUNT(*) FROM sales_orders WHERE sa_number LIKE $1`,
         [`SA-${year}-%`]
       )
@@ -89,7 +147,18 @@ router.post('/', async (req, res) => {
       finalSaNumber = `SA-${year}-${seq}`
     }
 
-    const { rows } = await db.query(`
+    // Derive legacy single-line fields from items[0] if items provided
+    const firstItem = Array.isArray(items) && items.length > 0 ? items[0] : null
+    const effProductId    = (firstItem?.product_id) || product_id
+    const effVariety      = (firstItem?.variety)    || variety
+    const effCaliber      = (firstItem?.caliber)    || caliber
+    const effOrigin       = (firstItem?.origin)     || origin
+    const effQty          = (firstItem?.quantity_kg)    || quantity_kg
+    const effPrice        = (firstItem?.price_per_unit) || price_per_unit
+    const effBoxType      = (firstItem?.box_type)       || box_type
+    const effBoxWeight    = (firstItem?.box_weight_kg)  || box_weight_kg
+
+    const { rows } = await client.query(`
       INSERT INTO sales_orders
         (sales_type, sa_number,
          customer_id, product_id, variety, caliber, origin,
@@ -106,20 +175,28 @@ router.post('/', async (req, res) => {
       RETURNING *
     `, [
       sales_type || 'ihracat', finalSaNumber,
-      customer_id, product_id, variety, caliber || null, origin,
-      quantity_kg, price_per_unit, currency || 'USD',
+      customer_id, effProductId, effVariety, effCaliber || null, effOrigin,
+      effQty, effPrice, currency || 'USD',
       payment_method, payment_term, incoterm,
       port_loading, port_discharge, dest_country || null,
       transit_entry || null, transit_exit || null,
       shipment_date || null, delivery_date || null, etd || null, eta || null,
-      transport_mode, box_type, box_weight_kg || null, pallets || null,
+      transport_mode, effBoxType, effBoxWeight || null, pallets || null,
       quality_notes, JSON.stringify(required_docs || {}), notes,
       status || 'draft', req.session.userId,
       tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
       flight_number || null, driver_name || null, driver_phone || null,
     ])
+
+    await upsertItems(client, rows[0].id, items)
+    await client.query('COMMIT')
     res.status(201).json(rows[0])
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
+  } catch (e) {
+    await client.query('ROLLBACK')
+    console.error(e); res.status(500).json({ error: 'Sunucu hatası' })
+  } finally {
+    client.release()
+  }
 })
 
 // PUT /sales-orders/:id
@@ -136,9 +213,40 @@ router.put('/:id', async (req, res) => {
     quality_notes, required_docs, notes, status,
     tracking_number, container_number, seawaybill_number, vessel_name,
     flight_number, driver_name, driver_phone,
+    items,
   } = req.body
+  const client = await db.connect()
   try {
-    const { rows } = await db.query(`
+    await client.query('BEGIN')
+
+    // Ensure items table exists
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS sales_order_items (
+        id             SERIAL PRIMARY KEY,
+        sales_order_id INTEGER REFERENCES sales_orders(id) ON DELETE CASCADE,
+        product_id     INTEGER,
+        variety        TEXT,
+        caliber        TEXT,
+        origin         TEXT,
+        quantity_kg    NUMERIC,
+        price_per_unit NUMERIC,
+        box_type       TEXT,
+        box_weight_kg  NUMERIC,
+        sort_order     INTEGER DEFAULT 0
+      )
+    `)
+
+    const firstItem = Array.isArray(items) && items.length > 0 ? items[0] : null
+    const effProductId    = (firstItem?.product_id) || product_id
+    const effVariety      = (firstItem?.variety)    || variety
+    const effCaliber      = (firstItem?.caliber)    || caliber
+    const effOrigin       = (firstItem?.origin)     || origin
+    const effQty          = (firstItem?.quantity_kg)    || quantity_kg
+    const effPrice        = (firstItem?.price_per_unit) || price_per_unit
+    const effBoxType      = (firstItem?.box_type)       || box_type
+    const effBoxWeight    = (firstItem?.box_weight_kg)  || box_weight_kg
+
+    const { rows } = await client.query(`
       UPDATE sales_orders SET
         sales_type=$1, sa_number=$2,
         customer_id=$3, product_id=$4, variety=$5, caliber=$6, origin=$7,
@@ -155,21 +263,29 @@ router.put('/:id', async (req, res) => {
       RETURNING *
     `, [
       sales_type || 'ihracat', sa_number || null,
-      customer_id, product_id, variety, caliber || null, origin,
-      quantity_kg, price_per_unit, currency,
+      customer_id, effProductId, effVariety, effCaliber || null, effOrigin,
+      effQty, effPrice, currency,
       payment_method, payment_term, incoterm,
       port_loading, port_discharge, dest_country || null,
       transit_entry || null, transit_exit || null,
       shipment_date || null, delivery_date || null, etd || null, eta || null,
-      transport_mode, box_type, box_weight_kg || null, pallets || null,
+      transport_mode, effBoxType, effBoxWeight || null, pallets || null,
       quality_notes, JSON.stringify(required_docs || {}), notes, status,
       req.params.id,
       tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
       flight_number || null, driver_name || null, driver_phone || null,
     ])
-    if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
+    if (!rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Bulunamadı' }) }
+
+    await upsertItems(client, rows[0].id, items)
+    await client.query('COMMIT')
     res.json(rows[0])
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
+  } catch (e) {
+    await client.query('ROLLBACK')
+    console.error(e); res.status(500).json({ error: 'Sunucu hatası' })
+  } finally {
+    client.release()
+  }
 })
 
 // PATCH /sales-orders/:id/status

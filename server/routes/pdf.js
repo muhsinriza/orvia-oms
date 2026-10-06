@@ -560,10 +560,51 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
     const so = rows[0]
 
-    const boxes      = Math.round(so.quantity_kg / so.box_weight_kg)
-    const totalNet   = so.quantity_kg
-    const totalGross = boxes * so.box_weight_kg * 1.05
-    const totalValue = boxes * Number(so.price_per_unit)
+    // Load multi-line items (fall back to legacy single-row if none)
+    let orderItems = []
+    try {
+      const itemsRes = await db.query(`
+        SELECT soi.*, p.name AS product_name
+        FROM sales_order_items soi
+        LEFT JOIN products p ON p.id = soi.product_id
+        WHERE soi.sales_order_id = $1
+        ORDER BY soi.sort_order
+      `, [req.params.id])
+      orderItems = itemsRes.rows
+    } catch (_) {}
+
+    if (orderItems.length === 0) {
+      orderItems = [{
+        product_name:  so.product_name,
+        variety:       so.variety,
+        caliber:       so.caliber,
+        origin:        so.origin,
+        quantity_kg:   so.quantity_kg,
+        price_per_unit: so.price_per_unit,
+        box_type:      so.box_type,
+        box_weight_kg: so.box_weight_kg,
+      }]
+    }
+
+    // Totals across all items
+    const totalNet   = orderItems.reduce((s, it) => s + Number(it.quantity_kg || 0), 0)
+    const totalValue = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || so.box_weight_kg || 0)
+      const boxes = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+      return s + boxes * Number(it.price_per_unit || 0)
+    }, 0)
+    const totalBoxes = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || so.box_weight_kg || 0)
+      return s + (bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0)
+    }, 0)
+    const totalGross = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || so.box_weight_kg || 0)
+      const boxes = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+      return s + boxes * bw * 1.05
+    }, 0)
+
+    // Legacy compat vars (used elsewhere)
+    const boxes      = totalBoxes
 
     // Required docs
     let requiredDocs = {}
@@ -648,24 +689,32 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <td>1</td>
-        <td>${val(so.product_name)}</td>
-        <td>${val(so.variety)}</td>
-        <td>${val(so.caliber)}</td>
-        <td>${val(so.origin)}</td>
-        <td>${val(so.box_type)}</td>
-        <td class="r">${fmtNum(boxes, 0)}</td>
-        <td class="r">${fmtNum(totalNet)} kg</td>
-        <td class="r">${fmtNum(totalGross)} kg</td>
-        <td class="r">${val(so.currency)} ${fmtNum(so.price_per_unit)}</td>
-        <td class="r">${val(so.currency)} ${fmtNum(totalValue)}</td>
-      </tr>
+      ${orderItems.map((it, idx) => {
+        const bw      = Number(it.box_weight_kg || so.box_weight_kg || 0)
+        const itBoxes = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+        const itNet   = Number(it.quantity_kg || 0)
+        const itGross = itBoxes * bw * 1.05
+        const itValue = itBoxes * Number(it.price_per_unit || 0)
+        const prodName = it.product_name || so.product_name
+        return `<tr>
+          <td>${idx + 1}</td>
+          <td>${val(prodName)}</td>
+          <td>${val(it.variety)}</td>
+          <td>${val(it.caliber)}</td>
+          <td>${val(it.origin)}</td>
+          <td>${val(it.box_type || so.box_type)}</td>
+          <td class="r">${fmtNum(itBoxes, 0)}</td>
+          <td class="r">${fmtNum(itNet)} kg</td>
+          <td class="r">${fmtNum(itGross)} kg</td>
+          <td class="r">${val(so.currency)} ${fmtNum(it.price_per_unit)}/box</td>
+          <td class="r">${val(so.currency)} ${fmtNum(itValue)}</td>
+        </tr>`
+      }).join('')}
     </tbody>
     <tfoot>
       <tr>
         <td colspan="6">TOTAL CONTRACT VALUE</td>
-        <td class="r">${fmtNum(boxes, 0)}</td>
+        <td class="r">${fmtNum(totalBoxes, 0)}</td>
         <td class="r">${fmtNum(totalNet)} kg</td>
         <td class="r">${fmtNum(totalGross)} kg</td>
         <td class="r"></td>
