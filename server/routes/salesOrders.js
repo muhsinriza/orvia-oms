@@ -124,7 +124,7 @@ router.post('/', async (req, res) => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS sales_order_items (
         id             SERIAL PRIMARY KEY,
-        sales_order_id INTEGER REFERENCES sales_orders(id) ON DELETE CASCADE,
+        sales_order_id UUID REFERENCES sales_orders(id) ON DELETE CASCADE,
         product_id     INTEGER,
         variety        TEXT,
         caliber        TEXT,
@@ -232,7 +232,7 @@ router.put('/:id', async (req, res) => {
     await client.query(`
       CREATE TABLE IF NOT EXISTS sales_order_items (
         id             SERIAL PRIMARY KEY,
-        sales_order_id INTEGER REFERENCES sales_orders(id) ON DELETE CASCADE,
+        sales_order_id UUID REFERENCES sales_orders(id) ON DELETE CASCADE,
         product_id     INTEGER,
         variety        TEXT,
         caliber        TEXT,
