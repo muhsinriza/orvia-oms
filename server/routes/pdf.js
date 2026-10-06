@@ -26,11 +26,15 @@ async function htmlToPDF (html) {
   const browser = await launchBrowser()
   try {
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0', timeout: 30000 })
+    // Use domcontentloaded so we don't wait for Google Fonts (may time out in Docker)
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    // Give fonts a moment to load if available
+    await page.evaluate(() => document.fonts?.ready).catch(() => {})
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '0', right: '0', bottom: '0', left: '0' },
+      preferCSSPageSize: false,
+      margin: { top: '8mm', right: '8mm', bottom: '8mm', left: '8mm' },
     })
     return pdf
   } finally {
@@ -79,16 +83,16 @@ function val (v) { return v || '—' }
 
 const CSS = `
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #fff; color: #1a1a1a; font-family: 'Inter', sans-serif; font-size: 7pt; }
+body { background: #fff; color: #1a1a1a; font-size: 7pt; }
 .hdr { display: flex; background: #0a5c3a; }
-.hdr-brand { padding: 7px 13px; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1px; }
-.hdr-logo { color: #fff; font-size: 13pt; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
-.hdr-logo span { color: #6ee7b7; font-weight: 400; }
+.hdr-brand { padding: 10px 14px; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.hdr-logo { color: #fff; font-size: 18pt; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+.hdr-logo span { color: #6ee7b7; font-weight: 300; letter-spacing: 1px; }
 .hdr-co { color: #a7f3d0; font-size: 5pt; font-weight: 500; letter-spacing: 0.3px; line-height: 1.5; margin-top: 2px; word-break: break-word; overflow-wrap: break-word; }
-.hdr-right { background: #064e32; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; padding: 7px 13px; min-width: 155px; }
-.hdr-docno { color: #fff; font-size: 13pt; font-weight: 800; letter-spacing: 0.5px; }
-.hdr-date { color: #6ee7b7; font-size: 5.5pt; margin-top: 2px; }
-.hdr-type { color: #a7f3d0; font-size: 5pt; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+.hdr-right { background: #064e32; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; padding: 10px 14px; min-width: 175px; }
+.hdr-docno { color: #fff; font-size: 16pt; font-weight: 800; letter-spacing: 0.5px; }
+.hdr-date { color: #6ee7b7; font-size: 6pt; margin-top: 3px; }
+.hdr-type { color: #a7f3d0; font-size: 5.5pt; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; margin-top: 2px; }
 .sec { font-size: 5pt; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 8px; margin-top: 5px; color: #fff; }
 .sec.g { background: #0a5c3a; }
 .sec.s { background: #334155; }
@@ -194,6 +198,13 @@ function footerHTML () {
 
 function issuerBlockHTML () {
   return `
+  <div style="border:1px solid #bfdbfe;background:#eff6ff;padding:5px 10px;margin-top:6px;display:flex;align-items:flex-start;gap:8px;">
+    <div style="font-size:14pt;color:#1d4ed8;line-height:1;margin-top:1px;">✦</div>
+    <div style="font-size:6pt;color:#1e40af;line-height:1.6;">
+      <strong style="font-weight:700;color:#1d4ed8;">This document has been electronically issued</strong> by ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ. and is legally valid without a wet signature.
+      Issued on <strong>${now()}</strong> · Ref: ${CO.web}
+    </div>
+  </div>
   <div class="issuer-block" style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #e2e8f0;margin-top:6px;">
     <div style="padding:8px 10px;border-right:1px solid #e2e8f0;">
       <div class="issuer-title">Seller / Satıcı</div>
@@ -242,14 +253,14 @@ function wrap (body) {
 <html>
 <head>
 <meta charset="UTF-8">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-<style>${CSS}</style>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+body { font-family: 'Inter', -apple-system, 'Segoe UI', Arial, sans-serif; }
+${CSS}
+</style>
 </head>
 <body>
-<div style="padding:10px 10px 0;">
 ${body}
-</div>
 </body>
 </html>`
 }
