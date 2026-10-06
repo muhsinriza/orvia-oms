@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { api } from '../lib/api'
 import Modal from '../components/ui/Modal'
 import { useToast } from '../components/ui/Toast'
+import { CountryInput, CityInput } from '../components/ui/GeoAutocomplete'
 import { Search, Plus, Edit2, Trash2 } from 'lucide-react'
 
 const EMPTY = { name:'', country:'', city:'', address:'', contact_name:'', email:'', phone:'', tax_number:'', notes:'' }
@@ -151,11 +152,11 @@ export default function CustomersPage() {
           </div>
           <div>
             <label className="label">Ülke</label>
-            <input className="input" value={form.country} onChange={e=>setField('country',e.target.value)} placeholder="Örn: Almanya"/>
+            <CountryInput id="cust" value={form.country} onChange={e=>setField('country',e.target.value)} placeholder="Örn: Germany"/>
           </div>
           <div>
             <label className="label">Şehir</label>
-            <input className="input" value={form.city} onChange={e=>setField('city',e.target.value)}/>
+            <CityInput id="cust" value={form.city} country={form.country} onChange={e=>setField('city',e.target.value)}/>
           </div>
           <div className="sm:col-span-2">
             <label className="label">Adres</label>

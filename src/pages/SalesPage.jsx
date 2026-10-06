@@ -5,6 +5,7 @@ import { generateSalesInvoicePDF, generatePackingListPDF } from '../lib/pdf'
 import Modal from '../components/ui/Modal'
 import { useToast } from '../components/ui/Toast'
 import { Search, Plus, Edit2, FileText, Package, Link2, Trash2, X } from 'lucide-react'
+import { CountryInput } from '../components/ui/GeoAutocomplete'
 
 const STATUS_OPTS = ['draft','confirmed','in_transit','arrived','completed','delivered','cancelled']
 const STATUS_TR = { draft:'Taslak', confirmed:'Onaylandı', in_transit:'Transitte', arrived:'Geldi', completed:'Tamamlandı', delivered:'Teslim Edildi', cancelled:'İptal' }
@@ -419,7 +420,7 @@ export default function SalesPage() {
           {form.sales_type === 'ihracat' && (
             <div>
               <label className="label">Varış Ülkesi</label>
-              <input className="input" value={form.dest_country} onChange={e=>setField('dest_country',e.target.value)} placeholder="Örn: Polonya"/>
+              <CountryInput id="so-dest" value={form.dest_country} onChange={e=>setField('dest_country',e.target.value)} placeholder="Örn: Poland"/>
             </div>
           )}
 
