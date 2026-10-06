@@ -532,7 +532,7 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
       const itemsRes = await db.query(`
         SELECT soi.*, p.name AS product_name
         FROM sales_order_items soi
-        LEFT JOIN products p ON p.id = soi.product_id
+        LEFT JOIN products p ON p.id::text = soi.product_id::text
         WHERE soi.sales_order_id = $1
         ORDER BY soi.sort_order
       `, [req.params.id])
@@ -626,7 +626,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
       const itemsRes = await db.query(`
         SELECT soi.*, p.name AS product_name
         FROM sales_order_items soi
-        LEFT JOIN products p ON p.id = soi.product_id
+        LEFT JOIN products p ON p.id::text = soi.product_id::text
         WHERE soi.sales_order_id = $1
         ORDER BY soi.sort_order
       `, [req.params.id])
@@ -1178,7 +1178,7 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
       const itemsRes = await db.query(`
         SELECT soi.*, p.name AS product_name
         FROM sales_order_items soi
-        LEFT JOIN products p ON p.id = soi.product_id
+        LEFT JOIN products p ON p.id::text = soi.product_id::text
         WHERE soi.sales_order_id = $1
         ORDER BY soi.sort_order
       `, [req.params.id])
@@ -1381,7 +1381,7 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
       const itemsRes = await db.query(`
         SELECT soi.*, p.name AS product_name
         FROM sales_order_items soi
-        LEFT JOIN products p ON p.id = soi.product_id
+        LEFT JOIN products p ON p.id::text = soi.product_id::text
         WHERE soi.sales_order_id = $1
         ORDER BY soi.sort_order
       `, [req.params.id])

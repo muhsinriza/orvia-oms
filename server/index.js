@@ -91,6 +91,16 @@ async function runMigrations () {
       )
     `)
     await db.query(`ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS sell_by TEXT DEFAULT 'box'`)
+    // Fix: ALTER product_id from INTEGER to TEXT so UUID strings can be stored
+    const pidCheck = await db.query(`
+      SELECT data_type FROM information_schema.columns
+      WHERE table_name='sales_order_items' AND column_name='product_id'
+    `)
+    if (pidCheck.rows[0] && pidCheck.rows[0].data_type === 'integer') {
+      console.log('[migrate] Changing sales_order_items.product_id from INTEGER to TEXT')
+      await db.query(`ALTER TABLE sales_order_items ALTER COLUMN product_id TYPE TEXT USING product_id::TEXT`)
+      console.log('[migrate] sales_order_items.product_id changed to TEXT')
+    }
     // Fix: if sales_order_id column type is wrong (integer instead of uuid), recreate table
     // Check column type and fix if needed
     const colCheck = await db.query(`
@@ -121,8 +131,12 @@ async function runMigrations () {
     // products extra columns
     await db.query(`
       ALTER TABLE products
-        ADD COLUMN IF NOT EXISTS default_origin TEXT,
-        ADD COLUMN IF NOT EXISTS box_type       TEXT
+        ADD COLUMN IF NOT EXISTS default_origin  TEXT,
+        ADD COLUMN IF NOT EXISTS box_type        TEXT,
+        ADD COLUMN IF NOT EXISTS box_net_kg      NUMERIC,
+        ADD COLUMN IF NOT EXISTS box_gross_kg    NUMERIC,
+        ADD COLUMN IF NOT EXISTS units_per_box   INTEGER,
+        ADD COLUMN IF NOT EXISTS boxes_per_pallet INTEGER
     `)
     // customers India regulatory columns
     await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS gst_no   TEXT`)

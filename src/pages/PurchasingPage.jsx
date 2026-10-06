@@ -22,7 +22,7 @@ function emptyForm() {
     origin_country: '', customs_ref: '',
     quantity_kg: '', price_per_unit: '', currency: 'USD',
     payment_method: 'T/T Wire Transfer', payment_term: '',
-    incoterm: 'FOB', loading_port: '', destination: '',
+    incoterm: 'FOB', port_loading: '', port_discharge: '',
     shipment_date: '', arrival_date: '',
     etd: '', eta: '',
     transport_type: 'Karayolu TIR',
@@ -56,9 +56,9 @@ export default function PurchasingPage() {
         api.get('/suppliers'),
         api.get('/products'),
       ])
-      setOrders(ord.data || [])
-      setSuppliers(sup.data || [])
-      setProducts(prod.data || [])
+      setOrders(ord || [])
+      setSuppliers(sup || [])
+      setProducts(prod || [])
     } catch (e) {
       toast(e.message, 'error')
     } finally {
@@ -89,8 +89,8 @@ export default function PurchasingPage() {
       payment_method:  o.payment_method  || '',
       payment_term:    o.payment_term    || '',
       incoterm:        o.incoterm        || 'FOB',
-      loading_port:    o.loading_port    || '',
-      destination:     o.destination     || '',
+      port_loading:    o.port_loading    || '',
+      port_discharge:  o.port_discharge  || '',
       shipment_date:   o.shipment_date   ? o.shipment_date.slice(0,10) : '',
       arrival_date:    o.arrival_date    ? o.arrival_date.slice(0,10)  : '',
       etd:             o.etd             ? o.etd.slice(0,10)           : '',
@@ -153,8 +153,8 @@ export default function PurchasingPage() {
   const filtered = orders.filter(o => {
     const s = search.toLowerCase()
     const matchSearch = !s || o.party_no?.toLowerCase().includes(s)
-      || o.supplier?.company_name?.toLowerCase().includes(s)
-      || o.product?.name?.toLowerCase().includes(s)
+      || o.supplier_name?.toLowerCase().includes(s)
+      || o.product_name?.toLowerCase().includes(s)
     const matchStatus = filterStatus === 'all' || o.status === filterStatus
     return matchSearch && matchStatus
   })
@@ -202,10 +202,10 @@ export default function PurchasingPage() {
                     </span>
                     <span className={`ml-auto badge badge-${o.status} text-xs`}>{STATUS_TR[o.status] || o.status}</span>
                   </div>
-                  <div className="text-sm text-gray-700 truncate">{o.supplier?.company_name || '—'}</div>
-                  <div className="text-xs text-gray-400 truncate">{o.product?.name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</div>
+                  <div className="text-sm text-gray-700 truncate">{o.supplier_name || '—'}</div>
+                  <div className="text-xs text-gray-400 truncate">{o.product_name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</div>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-500">{Number(o.quantity_kg).toLocaleString('tr-TR')} kg · {Number(o.total_amount).toLocaleString('tr-TR', {maximumFractionDigits:0})} {o.currency}</span>
+                    <span className="text-xs text-gray-500">{Number(o.quantity_kg).toLocaleString('tr-TR')} kg · {Number(o.quantity_kg * o.price_per_unit).toLocaleString('tr-TR', {maximumFractionDigits:0})} {o.currency}</span>
                     <div className="flex gap-1">
                       <button className="btn-ghost px-2 py-1 text-xs" onClick={() => openEdit(o)}>Düzenle</button>
                       <button className="btn-ghost px-2 py-1" onClick={() => generatePurchaseOrderPDF({...o, supplier: suppliers.find(s=>s.id===o.supplier_id), product: products.find(p=>p.id===o.product_id)})}><FileText size={13}/></button>
@@ -240,11 +240,11 @@ export default function PurchasingPage() {
                           {PURCHASE_TYPE_TR[o.purchase_type] || o.purchase_type || 'İthalat'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">{o.supplier?.company_name || '—'}</td>
-                      <td className="px-4 py-3 text-gray-700">{o.product?.name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
+                      <td className="px-4 py-3 text-gray-700">{o.supplier_name || '—'}</td>
+                      <td className="px-4 py-3 text-gray-700">{o.product_name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
                       <td className="px-4 py-3 text-right text-gray-700">{Number(o.quantity_kg).toLocaleString('tr-TR')} kg</td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900">
-                        {Number(o.total_amount).toLocaleString('tr-TR', {minimumFractionDigits:2,maximumFractionDigits:2})} {o.currency}
+                        {Number(o.quantity_kg * o.price_per_unit).toLocaleString('tr-TR', {minimumFractionDigits:2,maximumFractionDigits:2})} {o.currency}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span className={`badge badge-${o.status}`}>{STATUS_TR[o.status] || o.status}</span>
@@ -290,7 +290,7 @@ export default function PurchasingPage() {
               <label className="label">Tedarikçi *</label>
               <select className="select" value={form.supplier_id} onChange={e => set('supplier_id', e.target.value)}>
                 <option value="">Seçin...</option>
-                {suppliers.map(s => <option key={s.id} value={s.id}>{s.company_name}</option>)}
+                {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div>
@@ -364,12 +364,12 @@ export default function PurchasingPage() {
           </div>
           <div>
             <label className="label">Yükleme Limanı / Yeri</label>
-            <input className="input" value={form.loading_port} onChange={e => set('loading_port', e.target.value)} placeholder="Örn: Port Said, Mısır" />
+            <input className="input" value={form.port_loading} onChange={e => set('port_loading', e.target.value)} placeholder="Örn: Port Said, Mısır" />
           </div>
 
           <div>
             <label className="label">Varış Yeri</label>
-            <input className="input" value={form.destination} onChange={e => set('destination', e.target.value)} placeholder="Örn: Warszawa, Polonya" />
+            <input className="input" value={form.port_discharge} onChange={e => set('port_discharge', e.target.value)} placeholder="Örn: Warszawa, Polonya" />
           </div>
           <div>
             <label className="label">Nakliye</label>
