@@ -29,7 +29,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }) {
             <X size={18} />
           </button>
         </div>
-        <div className="overflow-y-auto flex-1 px-6 py-4">
+        <div className="overflow-y-auto overflow-x-hidden flex-1 px-6 py-4">
           {children}
         </div>
       </div>

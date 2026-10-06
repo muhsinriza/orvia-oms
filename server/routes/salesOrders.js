@@ -57,7 +57,7 @@ router.get('/:id', async (req, res) => {
         ORDER BY soi.sort_order
       `, [req.params.id])
       itemRows = itemsRes.rows
-    } catch (_) {}
+    } catch (itemErr) { console.error('[salesOrders] items fetch error:', itemErr.message) }
 
     res.json({ ...rows[0], links: links.rows, items: itemRows })
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
@@ -108,37 +108,6 @@ router.post('/', async (req, res) => {
   const client = await db.connect()
   try {
     await client.query('BEGIN')
-
-    // Ensure columns exist (idempotent migration)
-    await client.query(`
-      ALTER TABLE sales_orders
-        ADD COLUMN IF NOT EXISTS sales_type    TEXT DEFAULT 'ihracat',
-        ADD COLUMN IF NOT EXISTS sa_number     TEXT,
-        ADD COLUMN IF NOT EXISTS invoice_no    TEXT,
-        ADD COLUMN IF NOT EXISTS lot_no        TEXT,
-        ADD COLUMN IF NOT EXISTS dest_country  TEXT,
-        ADD COLUMN IF NOT EXISTS transit_entry TEXT,
-        ADD COLUMN IF NOT EXISTS transit_exit  TEXT
-    `)
-
-    // Ensure items table exists
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS sales_order_items (
-        id             SERIAL PRIMARY KEY,
-        sales_order_id UUID REFERENCES sales_orders(id) ON DELETE CASCADE,
-        product_id     INTEGER,
-        variety        TEXT,
-        caliber        TEXT,
-        origin         TEXT,
-        quantity_kg    NUMERIC,
-        price_per_unit NUMERIC,
-        box_type       TEXT,
-        box_weight_kg  NUMERIC,
-        sell_by        TEXT DEFAULT 'box',
-        sort_order     INTEGER DEFAULT 0
-      )
-    `)
-    await client.query(`ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS sell_by TEXT DEFAULT 'box'`)
 
     // Auto-generate SA number if not provided
     let finalSaNumber = sa_number || null
@@ -223,32 +192,6 @@ router.put('/:id', async (req, res) => {
   const client = await db.connect()
   try {
     await client.query('BEGIN')
-
-    // Ensure columns exist (idempotent migration)
-    await client.query(`
-      ALTER TABLE sales_orders
-        ADD COLUMN IF NOT EXISTS invoice_no TEXT,
-        ADD COLUMN IF NOT EXISTS lot_no     TEXT
-    `)
-
-    // Ensure items table exists
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS sales_order_items (
-        id             SERIAL PRIMARY KEY,
-        sales_order_id UUID REFERENCES sales_orders(id) ON DELETE CASCADE,
-        product_id     INTEGER,
-        variety        TEXT,
-        caliber        TEXT,
-        origin         TEXT,
-        quantity_kg    NUMERIC,
-        price_per_unit NUMERIC,
-        box_type       TEXT,
-        box_weight_kg  NUMERIC,
-        sell_by        TEXT DEFAULT 'box',
-        sort_order     INTEGER DEFAULT 0
-      )
-    `)
-    await client.query(`ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS sell_by TEXT DEFAULT 'box'`)
 
     const firstItem = Array.isArray(items) && items.length > 0 ? items[0] : null
     const effProductId    = (firstItem?.product_id) || product_id

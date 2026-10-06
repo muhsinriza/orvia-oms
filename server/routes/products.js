@@ -25,11 +25,6 @@ router.post('/', requireRole('admin'), async (req, res) => {
           box_net_kg, box_gross_kg, units_per_box, boxes_per_pallet } = req.body
   if (!name) return res.status(400).json({ error: 'İsim zorunlu' })
   try {
-    await db.query(`
-      ALTER TABLE products
-        ADD COLUMN IF NOT EXISTS default_origin TEXT,
-        ADD COLUMN IF NOT EXISTS box_type       TEXT
-    `)
     const { rows } = await db.query(
       `INSERT INTO products (name,variety,category,unit,is_active,notes,
          default_origin,box_type,box_net_kg,box_gross_kg,units_per_box,boxes_per_pallet)
@@ -48,11 +43,6 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
           box_net_kg, box_gross_kg, units_per_box, boxes_per_pallet } = req.body
   if (!name) return res.status(400).json({ error: 'İsim zorunlu' })
   try {
-    await db.query(`
-      ALTER TABLE products
-        ADD COLUMN IF NOT EXISTS default_origin TEXT,
-        ADD COLUMN IF NOT EXISTS box_type       TEXT
-    `)
     const { rows } = await db.query(
       `UPDATE products SET name=$1,variety=$2,category=$3,unit=$4,is_active=$5,notes=$6,
          default_origin=$7,box_type=$8,

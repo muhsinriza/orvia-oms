@@ -204,7 +204,7 @@ function EventTimeline({ orderId, orderType }) {
     try {
       const res = await api.get(`/shipment-events/${orderType}/${orderId}`)
       setEvents(res.data ?? res)
-    } catch (e) { console.error(e) }
+    } catch (e) { showToast(e.message || 'Sevkiyat olayları yüklenemedi', 'error') }
     finally { setLoading(false) }
   }, [orderId, orderType])
 

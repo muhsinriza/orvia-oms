@@ -2,16 +2,6 @@ const router = require('express').Router()
 const db = require('../db')
 const { requireAuth } = require('../middleware/auth')
 
-// Auto-migrate: add India regulatory columns if they don't exist yet
-;(async () => {
-  try {
-    await db.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS gst_no   TEXT')
-    await db.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS iec_no   TEXT')
-    await db.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS pan_no   TEXT')
-    await db.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS fssai_no TEXT')
-  } catch (e) { console.error('[migrate] customers India fields:', e.message) }
-})()
-
 router.use(requireAuth)
 
 router.get('/', async (req, res) => {

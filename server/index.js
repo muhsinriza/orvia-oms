@@ -36,7 +36,18 @@ app.use(session({
     tableName: 'session',
     createTableIfMissing: true,
   }),
-  secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
+  secret: (() => {
+    const s = process.env.SESSION_SECRET
+    if (!s) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[FATAL] SESSION_SECRET env var is not set. Refusing to start in production.')
+        process.exit(1)
+      }
+      console.warn('[WARN] SESSION_SECRET not set — using insecure dev default. DO NOT use in production.')
+      return 'dev-secret-only-for-local'
+    }
+    return s
+  })(),
   resave: false,
   saveUninitialized: false,
   name: 'sid',
@@ -47,6 +58,61 @@ app.use(session({
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   },
 }))
+
+// ─── Startup migrations (idempotent) ─────────────────────────────────────────
+async function runMigrations () {
+  try {
+    // sales_orders extra columns
+    await db.query(`
+      ALTER TABLE sales_orders
+        ADD COLUMN IF NOT EXISTS sales_type    TEXT DEFAULT 'ihracat',
+        ADD COLUMN IF NOT EXISTS sa_number     TEXT,
+        ADD COLUMN IF NOT EXISTS invoice_no    TEXT,
+        ADD COLUMN IF NOT EXISTS lot_no        TEXT,
+        ADD COLUMN IF NOT EXISTS dest_country  TEXT,
+        ADD COLUMN IF NOT EXISTS transit_entry TEXT,
+        ADD COLUMN IF NOT EXISTS transit_exit  TEXT
+    `)
+    // sales_order_items table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS sales_order_items (
+        id             SERIAL PRIMARY KEY,
+        sales_order_id UUID REFERENCES sales_orders(id) ON DELETE CASCADE,
+        product_id     INTEGER,
+        variety        TEXT,
+        caliber        TEXT,
+        origin         TEXT,
+        quantity_kg    NUMERIC,
+        price_per_unit NUMERIC,
+        box_type       TEXT,
+        box_weight_kg  NUMERIC,
+        sell_by        TEXT DEFAULT 'box',
+        sort_order     INTEGER DEFAULT 0
+      )
+    `)
+    await db.query(`ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS sell_by TEXT DEFAULT 'box'`)
+    // products extra columns
+    await db.query(`
+      ALTER TABLE products
+        ADD COLUMN IF NOT EXISTS default_origin TEXT,
+        ADD COLUMN IF NOT EXISTS box_type       TEXT
+    `)
+    // customers India regulatory columns
+    await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS gst_no   TEXT`)
+    await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS iec_no   TEXT`)
+    await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS pan_no   TEXT`)
+    await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS fssai_no TEXT`)
+    // sa_number unique constraint (prevents race condition duplicates)
+    await db.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS sales_orders_sa_number_unique
+      ON sales_orders (sa_number) WHERE sa_number IS NOT NULL
+    `)
+    console.log('[migrate] All migrations applied successfully')
+  } catch (e) {
+    console.error('[migrate] Migration error:', e.message)
+  }
+}
+runMigrations()
 
 // Routes
 app.use('/api/auth',            require('./routes/auth'))
