@@ -12,9 +12,9 @@ router.get('/:orderType/:orderId', async (req, res) => {
   }
   try {
     const { rows } = await db.query(`
-      SELECT se.*, u.name AS created_by_name
+      SELECT se.*, p.full_name AS created_by_name
       FROM shipment_events se
-      LEFT JOIN users u ON u.id = se.created_by
+      LEFT JOIN profiles p ON p.id = se.created_by
       WHERE se.order_type = $1 AND se.order_id = $2
       ORDER BY se.event_date DESC, se.created_at DESC
     `, [orderType, orderId])

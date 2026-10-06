@@ -91,6 +91,33 @@ async function runMigrations () {
       )
     `)
     await db.query(`ALTER TABLE sales_order_items ADD COLUMN IF NOT EXISTS sell_by TEXT DEFAULT 'box'`)
+    // Fix: if sales_order_id column type is wrong (integer instead of uuid), recreate table
+    // Check column type and fix if needed
+    const colCheck = await db.query(`
+      SELECT data_type FROM information_schema.columns
+      WHERE table_name='sales_order_items' AND column_name='sales_order_id'
+    `)
+    if (colCheck.rows[0] && colCheck.rows[0].data_type !== 'uuid') {
+      console.log('[migrate] Fixing sales_order_items.sales_order_id type (was', colCheck.rows[0].data_type, '→ uuid)')
+      await db.query(`DROP TABLE IF EXISTS sales_order_items CASCADE`)
+      await db.query(`
+        CREATE TABLE sales_order_items (
+          id             SERIAL PRIMARY KEY,
+          sales_order_id UUID REFERENCES sales_orders(id) ON DELETE CASCADE,
+          product_id     INTEGER,
+          variety        TEXT,
+          caliber        TEXT,
+          origin         TEXT,
+          quantity_kg    NUMERIC,
+          price_per_unit NUMERIC,
+          box_type       TEXT,
+          box_weight_kg  NUMERIC,
+          sell_by        TEXT DEFAULT 'box',
+          sort_order     INTEGER DEFAULT 0
+        )
+      `)
+      console.log('[migrate] sales_order_items recreated with correct UUID type')
+    }
     // products extra columns
     await db.query(`
       ALTER TABLE products
@@ -102,6 +129,22 @@ async function runMigrations () {
     await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS iec_no   TEXT`)
     await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS pan_no   TEXT`)
     await db.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS fssai_no TEXT`)
+    // shipment_events table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS shipment_events (
+        id         SERIAL PRIMARY KEY,
+        order_type TEXT NOT NULL CHECK (order_type IN ('purchase','sales')),
+        order_id   UUID NOT NULL,
+        event_date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        event_type TEXT DEFAULT 'note',
+        title      TEXT,
+        description TEXT,
+        location   TEXT,
+        created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
+    await db.query(`CREATE INDEX IF NOT EXISTS shipment_events_order_idx ON shipment_events(order_type, order_id)`)
     // sa_number unique constraint (prevents race condition duplicates)
     await db.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS sales_orders_sa_number_unique
