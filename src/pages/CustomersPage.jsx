@@ -5,7 +5,7 @@ import { useToast } from '../components/ui/Toast'
 import { CountryInput, CityInput } from '../components/ui/GeoAutocomplete'
 import { Search, Plus, Edit2, Trash2 } from 'lucide-react'
 
-const EMPTY = { name:'', country:'', city:'', address:'', contact_name:'', email:'', phone:'', tax_number:'', notes:'' }
+const EMPTY = { name:'', country:'', city:'', address:'', contact_name:'', email:'', phone:'', tax_number:'', notes:'', gst_no:'', iec_no:'', pan_no:'', fssai_no:'' }
 
 export default function CustomersPage() {
   const { showToast } = useToast()
@@ -182,6 +182,33 @@ export default function CustomersPage() {
             <label className="label">Notlar</label>
             <textarea className="input" rows={2} value={form.notes} onChange={e=>setField('notes',e.target.value)}/>
           </div>
+          {(form.country || '').toLowerCase().includes('india') && (
+            <>
+              <div className="sm:col-span-2">
+                <div className="flex items-center gap-2 mb-3 mt-1">
+                  <div className="h-px flex-1 bg-blue-200"/>
+                  <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider px-2">🇮🇳 India Regulatory Numbers</span>
+                  <div className="h-px flex-1 bg-blue-200"/>
+                </div>
+              </div>
+              <div>
+                <label className="label">GST No</label>
+                <input className="input" value={form.gst_no} onChange={e=>setField('gst_no',e.target.value)} placeholder="e.g. 07AAACD4703E2Z6"/>
+              </div>
+              <div>
+                <label className="label">IEC No</label>
+                <input className="input" value={form.iec_no} onChange={e=>setField('iec_no',e.target.value)} placeholder="e.g. 0599052660"/>
+              </div>
+              <div>
+                <label className="label">PAN No</label>
+                <input className="input" value={form.pan_no} onChange={e=>setField('pan_no',e.target.value)} placeholder="e.g. AAACD4703E"/>
+              </div>
+              <div>
+                <label className="label">FSSAI No</label>
+                <input className="input" value={form.fssai_no} onChange={e=>setField('fssai_no',e.target.value)} placeholder="e.g. 10013011001533"/>
+              </div>
+            </>
+          )}
         </div>
         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
           <button className="btn-secondary" onClick={()=>setModalOpen(false)}>İptal</button>

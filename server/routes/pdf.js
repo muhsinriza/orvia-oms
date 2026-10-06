@@ -283,12 +283,15 @@ function wrap (body) {
 <meta charset="UTF-8">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-body { font-family: 'Inter', -apple-system, 'Segoe UI', Arial, sans-serif; }
+body { font-family: 'Inter', -apple-system, 'Segoe UI', Arial, sans-serif; min-height: 277mm; display: flex; flex-direction: column; }
+.page-content { flex: 1; display: flex; flex-direction: column; }
 ${CSS}
 </style>
 </head>
 <body>
+<div class="page-content">
 ${body}
+</div>
 </body>
 </html>`
 }
@@ -299,10 +302,14 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
   try {
     const { rows } = await db.query(`
       SELECT so.*,
-             c.name    AS customer_name,
-             c.address AS customer_address,
-             c.country AS customer_country,
-             p.name    AS product_name
+             c.name     AS customer_name,
+             c.address  AS customer_address,
+             c.country  AS customer_country,
+             c.gst_no   AS customer_gst_no,
+             c.iec_no   AS customer_iec_no,
+             c.pan_no   AS customer_pan_no,
+             c.fssai_no AS customer_fssai_no,
+             p.name     AS product_name
       FROM sales_orders so
       LEFT JOIN customers c ON c.id = so.customer_id
       LEFT JOIN products  p ON p.id = so.product_id
@@ -399,6 +406,28 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
       </div>
     </div>
   </div>
+
+  <!-- India Regulatory Numbers -->
+  ${(so.customer_country || '').toLowerCase().includes('india') && (so.customer_gst_no || so.customer_iec_no || so.customer_pan_no || so.customer_fssai_no) ? `
+  <div class="sec s" style="background:#1e40af;">Buyer Regulatory Details (India)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;border-left:1px solid #bfdbfe;border-top:1px solid #bfdbfe;">
+    <div style="border-right:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe;padding:4px 8px;background:#eff6ff;">
+      <div style="font-size:5pt;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">GST No</div>
+      <div style="font-size:7pt;font-weight:600;color:#1e3a8a;">${so.customer_gst_no || '—'}</div>
+    </div>
+    <div style="border-right:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe;padding:4px 8px;background:#eff6ff;">
+      <div style="font-size:5pt;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">IEC No</div>
+      <div style="font-size:7pt;font-weight:600;color:#1e3a8a;">${so.customer_iec_no || '—'}</div>
+    </div>
+    <div style="border-right:1px solid #bfdbfe;border-bottom:1px solid #bfdbfe;padding:4px 8px;background:#eff6ff;">
+      <div style="font-size:5pt;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">PAN No</div>
+      <div style="font-size:7pt;font-weight:600;color:#1e3a8a;">${so.customer_pan_no || '—'}</div>
+    </div>
+    <div style="border-bottom:1px solid #bfdbfe;padding:4px 8px;background:#eff6ff;">
+      <div style="font-size:5pt;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px;">FSSAI No</div>
+      <div style="font-size:7pt;font-weight:600;color:#1e3a8a;">${so.customer_fssai_no || '—'}</div>
+    </div>
+  </div>` : ''}
 
   <!-- Shipment details -->
   <div class="sec g">Shipment Details</div>
@@ -1342,8 +1371,9 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
       { label: 'Phytosanitary Certificate', color: '#0a5c3a', bg: '#f0fdf4', border: '#86efac' },
       { label: 'Certificate of Origin',     color: '#0a5c3a', bg: '#f0fdf4', border: '#86efac' },
     ]
+    const isIndia = (so.dest_country || so.customer_country || '').toLowerCase().includes('india')
     if (requiredDocs.health_certificate) docBadges.push({ label: 'Health Certificate',  color: '#166534', bg: '#dcfce7', border: '#4ade80' })
-    if (requiredDocs.non_gmo)            docBadges.push({ label: 'Non-GMO Certificate (India)', color: '#1e40af', bg: '#dbeafe', border: '#93c5fd' })
+    if (requiredDocs.non_gmo || isIndia) docBadges.push({ label: 'Non-GMO Certificate (India)', color: '#1e40af', bg: '#dbeafe', border: '#93c5fd' })
     if (requiredDocs.fumigation)         docBadges.push({ label: 'Fumigation Certificate', color: '#166534', bg: '#dcfce7', border: '#4ade80' })
     if (requiredDocs.halal)              docBadges.push({ label: 'Halal Certificate',    color: '#92400e', bg: '#fef3c7', border: '#fcd34d' })
 

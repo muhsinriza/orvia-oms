@@ -49,6 +49,10 @@ CREATE TABLE IF NOT EXISTS customers (
   phone         TEXT,
   tax_number    TEXT,
   notes         TEXT,
+  gst_no        TEXT,
+  iec_no        TEXT,
+  pan_no        TEXT,
+  fssai_no      TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
