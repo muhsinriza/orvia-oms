@@ -529,7 +529,7 @@ export default function SalesPage() {
               <button className="btn-secondary flex items-center gap-1.5 text-xs" onClick={()=>generateSalesInvoicePDF(editing)} title="Commercial Invoice PDF">
                 <FileText size={13}/> Invoice
               </button>
-              <button className="btn-secondary flex items-center gap-1.5 text-xs" onClick={()=>generatePackingListPDF(editing)} title="Packing List PDF">
+              <button className="btn-secondary flex items-center gap-1.5 text-xs" onClick={()=>window.open(`/api/pdf/packing-list/${editing.id}/edit`, '_blank')} title="Packing List Düzenle & PDF">
                 <Package size={13}/> Packing List
               </button>
             </div>

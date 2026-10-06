@@ -196,7 +196,7 @@ function footerHTML () {
   </div>`
 }
 
-function issuerBlockHTML () {
+function issuerBlockHTML (customerName) {
   return `
   <div style="border:1px solid #bfdbfe;background:#eff6ff;padding:5px 10px;margin-top:6px;display:flex;align-items:flex-start;gap:8px;">
     <div style="font-size:14pt;color:#1d4ed8;line-height:1;margin-top:1px;">✦</div>
@@ -217,7 +217,8 @@ function issuerBlockHTML () {
     </div>
     <div style="padding:8px 10px;">
       <div class="issuer-title">Buyer / Alıcı — Authorized Signature</div>
-      <div style="margin-top:18px;border-bottom:1px solid #1a1a1a;width:80%;"></div>
+      ${customerName ? `<div style="font-size:7.5pt;font-weight:700;color:#1d4ed8;margin-top:6px;margin-bottom:8px;">${customerName}</div>` : '<div style="margin-top:18px;"></div>'}
+      <div style="border-bottom:1px solid #1a1a1a;width:80%;"></div>
       <div style="font-size:5.5pt;color:#64748b;margin-top:3px;">Name &amp; Title / İsim &amp; Unvan</div>
       <div style="margin-top:14px;border-bottom:1px solid #1a1a1a;width:60%;"></div>
       <div style="font-size:5.5pt;color:#64748b;margin-top:3px;">Date / Tarih</div>
@@ -436,7 +437,7 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
 
   ${bankBlockHTML(so.currency)}
 
-  ${issuerBlockHTML()}
+  ${issuerBlockHTML(so.customer_name)}
   ${footerHTML()}
 `)
 
@@ -448,6 +449,565 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
     res.send(pdf)
   } catch (e) {
     console.error('[PDF] invoice error:', e)
+    res.status(500).json({ error: 'PDF oluşturulamadı' })
+  }
+})
+
+// ─── Route: Packing List Editor (interactive HTML page) ──────────────────────
+
+router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT so.*,
+             c.name    AS customer_name,
+             c.address AS customer_address,
+             c.country AS customer_country,
+             p.name    AS product_name
+      FROM sales_orders so
+      LEFT JOIN customers c ON c.id = so.customer_id
+      LEFT JOIN products  p ON p.id = so.product_id
+      WHERE so.id = $1
+    `, [req.params.id])
+
+    if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
+    const so = rows[0]
+
+    let orderItems = []
+    try {
+      const itemsRes = await db.query(`
+        SELECT soi.*, p.name AS product_name
+        FROM sales_order_items soi
+        LEFT JOIN products p ON p.id = soi.product_id
+        WHERE soi.sales_order_id = $1
+        ORDER BY soi.sort_order
+      `, [req.params.id])
+      orderItems = itemsRes.rows
+    } catch (_) {}
+    if (orderItems.length === 0) {
+      orderItems = [{
+        product_name:   so.product_name,
+        variety:        so.variety,
+        caliber:        so.caliber,
+        origin:         so.origin,
+        quantity_kg:    so.quantity_kg,
+        price_per_unit: so.price_per_unit,
+        box_type:       so.box_type,
+        box_weight_kg:  so.box_weight_kg,
+      }]
+    }
+
+    const palletCount = so.pallets || 1
+    const totalBoxes  = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || 0)
+      return s + (bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0)
+    }, 0)
+    const totalNet   = orderItems.reduce((s, it) => s + Number(it.quantity_kg || 0), 0)
+    const totalGross = orderItems.reduce((s, it) => {
+      const bw = Number(it.box_weight_kg || 0)
+      const b  = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+      return s + b * bw * 1.05
+    }, 0)
+
+    const useItemRows = orderItems.length > 1
+    let rowsInitJS = ''
+    if (useItemRows) {
+      rowsInitJS = orderItems.map((it, idx) => {
+        const bw    = Number(it.box_weight_kg || 0)
+        const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+        const net   = Number(it.quantity_kg || 0)
+        const gross = b * bw * 1.05
+        return JSON.stringify({ label: `Item ${idx + 1}`, product: it.product_name || '—', variety: [it.variety, it.caliber].filter(Boolean).join(' / ') || '—', origin: it.origin || '—', boxType: it.box_type || '—', boxes: b, netBox: bw, net, gross })
+      }).join(',\n')
+    } else {
+      const boxesPerPallet = Math.floor(totalBoxes / palletCount)
+      const rem = totalBoxes % palletCount
+      const bw = Number(orderItems[0]?.box_weight_kg || 0)
+      rowsInitJS = Array.from({ length: palletCount }, (_, i) => {
+        const pb = i < rem ? boxesPerPallet + 1 : boxesPerPallet
+        return JSON.stringify({ label: `Pallet ${i+1}`, product: orderItems[0]?.product_name || '—', variety: [orderItems[0]?.variety, orderItems[0]?.caliber].filter(Boolean).join(' / ') || '—', origin: orderItems[0]?.origin || '—', boxType: orderItems[0]?.box_type || '—', boxes: pb, netBox: bw, net: pb * bw, gross: pb * bw * 1.05 })
+      }).join(',\n')
+    }
+
+    const editorHTML = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Packing List — ${so.party_no || so.sa_number || 'Edit'}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', -apple-system, 'Segoe UI', Arial, sans-serif; background: #f1f5f9; min-height: 100vh; }
+  .toolbar { background: #0a5c3a; color: #fff; padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .toolbar-left { display: flex; align-items: center; gap: 12px; }
+  .toolbar h1 { font-size: 14pt; font-weight: 800; letter-spacing: -0.5px; }
+  .toolbar h1 span { color: #6ee7b7; font-weight: 300; letter-spacing: 1px; }
+  .toolbar-subtitle { font-size: 7pt; color: #a7f3d0; margin-top: 1px; }
+  .toolbar-right { display: flex; gap: 8px; }
+  .btn { padding: 6px 14px; border-radius: 4px; font-size: 8.5pt; font-weight: 600; cursor: pointer; border: none; }
+  .btn-outline { background: transparent; border: 1px solid #6ee7b7; color: #6ee7b7; }
+  .btn-outline:hover { background: rgba(110,231,183,0.1); }
+  .btn-primary { background: #fff; color: #0a5c3a; }
+  .btn-primary:hover { background: #f0fdf4; }
+  .btn-danger { background: transparent; border: 1px solid #fca5a5; color: #fca5a5; }
+  .btn-danger:hover { background: rgba(252,165,165,0.1); }
+
+  .page { max-width: 820px; margin: 20px auto; padding: 0 16px 40px; }
+
+  /* Header card */
+  .doc-hdr { background: #0a5c3a; border-radius: 6px 6px 0 0; display: flex; min-height: 56px; }
+  .hdr-brand { padding: 10px 14px; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+  .hdr-logo { color: #fff; font-size: 18pt; font-weight: 800; letter-spacing: -0.5px; }
+  .hdr-logo span { color: #6ee7b7; font-weight: 300; letter-spacing: 1px; }
+  .hdr-co { color: #a7f3d0; font-size: 5pt; line-height: 1.5; margin-top: 2px; }
+  .hdr-right { background: #064e32; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; padding: 10px 14px; border-radius: 0 6px 0 0; min-width: 175px; }
+  .hdr-docno { color: #fff; font-size: 16pt; font-weight: 800; }
+  .hdr-date { color: #6ee7b7; font-size: 6pt; margin-top: 3px; }
+  .hdr-type { color: #a7f3d0; font-size: 5.5pt; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; margin-top: 2px; }
+
+  .card { background: #fff; border: 1px solid #e2e8f0; border-top: none; padding: 12px 14px; }
+  .card:last-child { border-radius: 0 0 6px 6px; }
+  .card + .card { border-top: none; }
+
+  .sec-hdr { font-size: 5pt; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 8px; color: #fff; background: #0a5c3a; margin: 10px -14px 8px; }
+  .sec-hdr.slate { background: #334155; }
+
+  .buyer-grid { display: flex; gap: 24px; }
+  .buyer-col { flex: 1; }
+  .buyer-col.narrow { flex: 0 0 200px; }
+  .lbl { font-size: 5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #1d4ed8; margin-bottom: 3px; }
+  .val-static { font-size: 8.5pt; font-weight: 700; color: #1a1a1a; }
+  .val-detail { font-size: 6pt; color: #475569; line-height: 1.65; margin-top: 2px; }
+
+  /* Editable field */
+  .ef { border: 1px dashed #cbd5e1; border-radius: 3px; padding: 2px 5px; background: #f8fafc; cursor: text; min-width: 40px; display: inline-block; font-size: 7pt; color: #1a1a1a; transition: background 0.15s; }
+  .ef:focus { outline: none; background: #eff6ff; border-color: #3b82f6; }
+  .ef:hover { background: #f0f9ff; }
+  .ef-note { font-size: 5pt; color: #94a3b8; margin-top: 2px; }
+
+  /* Meta grid */
+  .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; border: 1px solid #e2e8f0; }
+  .meta-cell { padding: 5px 8px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+  .meta-cell:nth-child(4n) { border-right: none; }
+  .meta-cell .ml { font-size: 5pt; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+  .meta-cell .mv { font-size: 7pt; font-weight: 500; color: #1a1a1a; }
+
+  /* Summary strip */
+  .pkg-strip { background: #f0fdf4; border: 1px solid #bbf7d0; display: flex; margin-top: 10px; }
+  .pkg-item { flex: 1; padding: 6px 10px; border-right: 1px solid #bbf7d0; }
+  .pkg-item:last-child { border-right: none; }
+  .pkg-item .pl { font-size: 5pt; font-weight: 600; color: #064e32; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+  .pkg-item .pv { font-size: 8pt; font-weight: 700; color: #0a5c3a; }
+
+  /* Rows table */
+  .rows-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 7pt; }
+  .rows-table th { background: #f0fdf4; border: 1px solid #e2e8f0; padding: 4px 7px; font-size: 5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #064e32; text-align: left; white-space: nowrap; }
+  .rows-table th.r { text-align: right; }
+  .rows-table td { border: 1px solid #e2e8f0; padding: 3px 6px; vertical-align: middle; }
+  .rows-table td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .rows-table tr:nth-child(even) td { background: #f8fafc; }
+  .rows-table tfoot td { background: #0a5c3a; color: #fff; font-weight: 700; font-size: 7pt; border: 1px solid #064e32; padding: 4px 7px; }
+  .rows-table tfoot td.r { text-align: right; }
+  .del-row { cursor: pointer; color: #ef4444; font-weight: 700; font-size: 9pt; padding: 0 4px; background: none; border: none; }
+  .del-row:hover { color: #b91c1c; }
+  .add-row-btn { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding: 5px 10px; border: 1px dashed #86efac; background: #f0fdf4; color: #0a5c3a; font-size: 7pt; font-weight: 600; cursor: pointer; border-radius: 3px; }
+  .add-row-btn:hover { background: #dcfce7; }
+
+  /* Footer */
+  .doc-footer { background: #064e32; color: #a7f3d0; font-size: 5pt; padding: 4px 12px; display: flex; justify-content: space-between; border-radius: 0 0 6px 6px; margin-top: 0; }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #0a5c3a; color: #fff; padding: 8px 16px; border-radius: 4px; font-size: 8pt; font-weight: 600; display: none; z-index: 999; }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <div class="toolbar-left">
+    <div>
+      <div class="toolbar h1" style="font-size:14pt;font-weight:800;color:#fff;">ORVIA <span style="color:#6ee7b7;font-weight:300;">TROPICAL</span></div>
+      <div class="toolbar-subtitle">Packing List Editor — ${so.party_no || so.sa_number || ''}</div>
+    </div>
+  </div>
+  <div class="toolbar-right">
+    <button class="btn btn-danger" onclick="window.close()">✕ Kapat</button>
+    <button class="btn btn-outline" onclick="recalc()">↺ Hesapla</button>
+    <button class="btn btn-primary" onclick="downloadPDF()">⬇ PDF İndir</button>
+  </div>
+</div>
+
+<div class="page">
+  <!-- Doc header -->
+  <div class="doc-hdr">
+    <div class="hdr-brand">
+      <div class="hdr-logo">ORVIA <span>TROPICAL</span></div>
+      <div class="hdr-co">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.<br>
+        Fener Mah. 1964 Sk. Hacı M Gebizli Sit. D Blok No:6/A No:3, Muratpaşa / Antalya / Türkiye<br>
+        Tel: +90 530 552 83 06 · Tax No: 6481831271 · Antalya Kurumlar V.D.
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="hdr-docno">${val(so.party_no)}</div>
+      <div class="hdr-date">${fmtDate(so.shipment_date || new Date())}</div>
+      <div class="hdr-type">Packing List</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <!-- Parties -->
+    <div class="buyer-grid">
+      <div class="buyer-col">
+        <div class="lbl">Consignee</div>
+        <div class="val-static">${val(so.customer_name)}</div>
+        <div class="val-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
+      </div>
+      <div class="buyer-col narrow">
+        <div class="lbl">Shipper / Exporter</div>
+        <div class="val-static" style="font-size:7pt;">ORVIA TROPICAL</div>
+        <div class="val-detail">Fener Mah. 1964 Sk. Hacı M Gebizli Sit. D Blok No:6/A No:3, Muratpaşa / Antalya / Türkiye</div>
+      </div>
+    </div>
+
+    <div class="sec-hdr">Shipment Details</div>
+    <div class="meta-grid">
+      <div class="meta-cell"><div class="ml">Packing List No</div><div class="mv">${val(so.invoice_no || so.party_no)}</div></div>
+      <div class="meta-cell"><div class="ml">Invoice No</div><div class="mv">${val(so.invoice_no || so.party_no)}</div></div>
+      <div class="meta-cell"><div class="ml">SA Number</div><div class="mv">${val(so.sa_number)}</div></div>
+      <div class="meta-cell"><div class="ml">Lot / Party No</div><div class="mv">${val(so.lot_no)}</div></div>
+      <div class="meta-cell"><div class="ml">Shipment Date</div><div class="mv">${fmtDate(so.shipment_date)}</div></div>
+      <div class="meta-cell"><div class="ml">Incoterm</div><div class="mv">${val(so.incoterm)}</div></div>
+      <div class="meta-cell"><div class="ml">Transport Mode</div><div class="mv">${val(so.transport_mode)}</div></div>
+      <div class="meta-cell"><div class="ml">ETD</div><div class="mv">${fmtDate(so.etd)}</div></div>
+      <div class="meta-cell"><div class="ml">Port of Loading</div><div class="mv">${val(so.port_loading)}</div></div>
+      <div class="meta-cell"><div class="ml">Port of Discharge</div><div class="mv">${val(so.port_discharge)}</div></div>
+      <div class="meta-cell"><div class="ml">ETA</div><div class="mv">${fmtDate(so.eta)}</div></div>
+      <div class="meta-cell"><div class="ml">Delivery Date</div><div class="mv">${fmtDate(so.delivery_date)}</div></div>
+      ${so.container_number ? `<div class="meta-cell"><div class="ml">Container No</div><div class="mv">${so.container_number}</div></div>` : ''}
+      ${so.vessel_name ? `<div class="meta-cell"><div class="ml">Vessel Name</div><div class="mv">${so.vessel_name}</div></div>` : ''}
+      ${so.seawaybill_number ? `<div class="meta-cell"><div class="ml">Sea Waybill No</div><div class="mv">${so.seawaybill_number}</div></div>` : ''}
+    </div>
+
+    <!-- Summary strip (auto-calculated) -->
+    <div class="pkg-strip" id="summary-strip">
+      <div class="pkg-item"><div class="pl">Total Pallets</div><div class="pv" id="sum-pallets">—</div></div>
+      <div class="pkg-item"><div class="pl">Total Boxes</div><div class="pv" id="sum-boxes">—</div></div>
+      <div class="pkg-item"><div class="pl">Net Weight</div><div class="pv" id="sum-net">—</div></div>
+      <div class="pkg-item"><div class="pl">Gross Weight</div><div class="pv" id="sum-gross">—</div></div>
+      <div class="pkg-item"><div class="pl">Box Type</div><div class="pv" id="sum-boxtype">${val(orderItems[0]?.box_type || so.box_type)}</div></div>
+      <div class="pkg-item"><div class="pl">Net / Box</div><div class="pv" id="sum-netbox">${orderItems[0]?.box_weight_kg || so.box_weight_kg || '—'} kg</div></div>
+    </div>
+
+    <div class="sec-hdr" id="rows-hdr">Pallet Breakdown</div>
+    <table class="rows-table" id="rows-table">
+      <thead>
+        <tr id="rows-thead">
+          <th id="th-label">Pallet</th>
+          <th>Product</th>
+          <th>Variety / Caliber</th>
+          <th>Origin</th>
+          <th>Box Type</th>
+          <th class="r">Boxes</th>
+          <th class="r">Net/Box (kg)</th>
+          <th class="r">Net Wt (kg)</th>
+          <th class="r">Gross Wt (kg)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="rows-body"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" id="tfoot-label">TOTALS</td>
+          <td class="r" id="tfoot-boxes">—</td>
+          <td class="r">—</td>
+          <td class="r" id="tfoot-net">—</td>
+          <td class="r" id="tfoot-gross">—</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="add-row-btn" onclick="addRow()">＋ Satır Ekle</button>
+
+    ${so.quality_notes ? `
+    <div class="sec-hdr slate">Quality Notes</div>
+    <div style="padding:4px 8px;border:1px solid #e2e8f0;font-size:6pt;color:#374151;line-height:1.6;">${so.quality_notes}</div>
+    ` : ''}
+  </div>
+
+  <div class="doc-footer">
+    <span>ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</span>
+    <span>www.orviatropical.com · orviaoms.com</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const USE_ITEM_ROWS = ${useItemRows};
+let rows = [
+${rowsInitJS}
+];
+
+const palletCountInit = ${palletCount};
+document.getElementById('rows-hdr').textContent = USE_ITEM_ROWS ? 'Item Breakdown' : 'Pallet Breakdown';
+document.getElementById('th-label').textContent = USE_ITEM_ROWS ? 'Item' : 'Pallet';
+
+function fmtN(n, d=2) {
+  if (n == null || isNaN(n)) return '—';
+  return Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+function ef(value, rowIdx, field, type='text') {
+  const v = value !== null && value !== undefined && value !== '—' ? value : '';
+  return '<span class="ef" contenteditable="true" data-row="'+rowIdx+'" data-field="'+field+'" onblur="onEdit(this)" onkeydown="if(event.key===\\'Enter\\'){event.preventDefault();this.blur()}">' + (v || '') + '</span>';
+}
+
+function render() {
+  const tbody = document.getElementById('rows-body');
+  tbody.innerHTML = rows.map((r, i) => \`
+    <tr>
+      <td>\${r.label || (USE_ITEM_ROWS ? 'Item '+(i+1) : 'Pallet '+(i+1))}</td>
+      <td>\${ef(r.product, i, 'product')}</td>
+      <td>\${ef(r.variety, i, 'variety')}</td>
+      <td>\${ef(r.origin, i, 'origin')}</td>
+      <td>\${ef(r.boxType, i, 'boxType')}</td>
+      <td class="r">\${ef(r.boxes, i, 'boxes', 'number')}</td>
+      <td class="r">\${ef(r.netBox, i, 'netBox', 'number')}</td>
+      <td class="r">\${fmtN(r.net)}</td>
+      <td class="r">\${fmtN(r.gross)}</td>
+      <td><button class="del-row" onclick="delRow(\${i})" title="Satırı Sil">×</button></td>
+    </tr>
+  \`).join('');
+  recalc();
+}
+
+function onEdit(el) {
+  const i = parseInt(el.dataset.row);
+  const f = el.dataset.field;
+  const raw = el.textContent.trim();
+  rows[i][f] = raw;
+  if (f === 'boxes' || f === 'netBox') {
+    const b  = parseFloat(rows[i].boxes) || 0;
+    const bw = parseFloat(rows[i].netBox) || 0;
+    rows[i].net   = b * bw;
+    rows[i].gross = b * bw * 1.05;
+    render();
+  } else {
+    recalc();
+  }
+}
+
+function recalc() {
+  const totBoxes = rows.reduce((s,r)=>s+(parseFloat(r.boxes)||0),0);
+  const totNet   = rows.reduce((s,r)=>s+(parseFloat(r.net)||0),0);
+  const totGross = rows.reduce((s,r)=>s+(parseFloat(r.gross)||0),0);
+  const pCount   = USE_ITEM_ROWS ? palletCountInit : rows.length;
+  document.getElementById('sum-pallets').textContent = pCount;
+  document.getElementById('sum-boxes').textContent   = fmtN(totBoxes,0);
+  document.getElementById('sum-net').textContent     = fmtN(totNet)+' kg';
+  document.getElementById('sum-gross').textContent   = fmtN(totGross)+' kg';
+  document.getElementById('tfoot-label').textContent = 'TOTALS — '+pCount+' Pallet(s)';
+  document.getElementById('tfoot-boxes').textContent = fmtN(totBoxes,0)+' boxes';
+  document.getElementById('tfoot-net').textContent   = fmtN(totNet)+' kg';
+  document.getElementById('tfoot-gross').textContent = fmtN(totGross)+' kg';
+}
+
+function delRow(i) {
+  if (rows.length <= 1) { showToast('En az 1 satır olmalı'); return; }
+  rows.splice(i,1);
+  rows.forEach((r,idx)=>{ r.label = USE_ITEM_ROWS ? 'Item '+(idx+1) : 'Pallet '+(idx+1); });
+  render();
+}
+
+function addRow() {
+  const last = rows[rows.length-1] || {};
+  rows.push({ label: USE_ITEM_ROWS ? 'Item '+(rows.length+1) : 'Pallet '+(rows.length+1), product: last.product||'', variety: last.variety||'', origin: last.origin||'', boxType: last.boxType||'', boxes: 0, netBox: last.netBox||0, net: 0, gross: 0 });
+  render();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.display = 'block';
+  setTimeout(()=>{ t.style.display='none'; }, 2500);
+}
+
+function downloadPDF() {
+  showToast('PDF hazırlanıyor…');
+  // Collect current editable values from DOM (in case user hasn't blurred)
+  document.querySelectorAll('.ef').forEach(el => {
+    const i = parseInt(el.dataset.row);
+    const f = el.dataset.field;
+    rows[i][f] = el.textContent.trim();
+    if (f === 'boxes' || f === 'netBox') {
+      const b  = parseFloat(rows[i].boxes) || 0;
+      const bw = parseFloat(rows[i].netBox) || 0;
+      rows[i].net   = b * bw;
+      rows[i].gross = b * bw * 1.05;
+    }
+  });
+  fetch('/api/pdf/packing-list-custom/${req.params.id}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ rows, palletCount: USE_ITEM_ROWS ? palletCountInit : rows.length }),
+  }).then(r => {
+    if (!r.ok) return r.json().then(e => { throw new Error(e.error || 'PDF hatası'); });
+    return r.blob();
+  }).then(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'PackingList_${so.party_no || so.sa_number || 'PL'}.pdf'; a.click();
+    URL.revokeObjectURL(url);
+    showToast('PDF indirildi ✓');
+  }).catch(e => showToast('Hata: ' + e.message));
+}
+
+render();
+</script>
+</body>
+</html>`
+
+    res.set('Content-Type', 'text/html; charset=utf-8')
+    res.send(editorHTML)
+  } catch (e) {
+    console.error('[PDF] packing-list-edit error:', e)
+    res.status(500).json({ error: 'Sayfa yüklenemedi' })
+  }
+})
+
+// ─── Route: Packing List Custom PDF (from editor POST) ───────────────────────
+
+router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
+  try {
+    const { rows: customRows, palletCount } = req.body
+
+    const { rows } = await db.query(`
+      SELECT so.*,
+             c.name    AS customer_name,
+             c.address AS customer_address,
+             c.country AS customer_country,
+             p.name    AS product_name
+      FROM sales_orders so
+      LEFT JOIN customers c ON c.id = so.customer_id
+      LEFT JOIN products  p ON p.id = so.product_id
+      WHERE so.id = $1
+    `, [req.params.id])
+
+    if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
+    const so = rows[0]
+
+    const orderRows = customRows || []
+    const totalBoxes = orderRows.reduce((s, r) => s + (parseFloat(r.boxes) || 0), 0)
+    const totalNet   = orderRows.reduce((s, r) => s + (parseFloat(r.net) || 0), 0)
+    const totalGross = orderRows.reduce((s, r) => s + (parseFloat(r.gross) || 0), 0)
+    const pc = palletCount || orderRows.length || 1
+
+    const palletRowsHTML = orderRows.map(r => `
+    <tr>
+      <td>${r.label || '—'}</td>
+      <td>${r.product || '—'}</td>
+      <td>${r.variety || '—'}</td>
+      <td>${r.origin || '—'}</td>
+      <td>${r.boxType || '—'}</td>
+      <td class="r">${fmtNum(parseFloat(r.boxes) || 0, 0)}</td>
+      <td class="r">${fmtNum(parseFloat(r.netBox) || 0)} kg</td>
+      <td class="r">${fmtNum(parseFloat(r.net) || 0)} kg</td>
+      <td class="r">${fmtNum(parseFloat(r.gross) || 0)} kg</td>
+    </tr>`).join('')
+
+    const html = wrap(\`
+  \${headerHTML(so.party_no, so.shipment_date || new Date(), 'Packing List')}
+
+  <div class="buyer-block">
+    <div class="buyer-col">
+      <div class="buyer-label">Consignee</div>
+      <div class="buyer-name">\${val(so.customer_name)}</div>
+      <div class="buyer-detail">\${val(so.customer_address)}\${so.customer_country ? '<br>' + so.customer_country : ''}</div>
+    </div>
+    <div class="buyer-col narrow">
+      <div class="buyer-label">Shipper / Exporter</div>
+      <div class="buyer-name" style="font-size:7pt;">\${CO.short}</div>
+      <div class="buyer-detail">\${CO.address}</div>
+    </div>
+  </div>
+
+  <div class="sec g">Shipment Details</div>
+  <div class="g4">
+    <div class="c"><div class="lbl">Packing List No</div><div class="val">\${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="c"><div class="lbl">Invoice No</div><div class="val">\${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="c"><div class="lbl">SA Number</div><div class="val">\${val(so.sa_number)}</div></div>
+    <div class="c"><div class="lbl">Lot / Party No</div><div class="val">\${val(so.lot_no)}</div></div>
+  </div>
+  <div class="g4">
+    <div class="c"><div class="lbl">Shipment Date</div><div class="val">\${fmtDate(so.shipment_date)}</div></div>
+    <div class="c"><div class="lbl">Incoterm</div><div class="val">\${val(so.incoterm)}</div></div>
+    <div class="c"><div class="lbl">Transport Mode</div><div class="val">\${val(so.transport_mode)}</div></div>
+    <div class="c"><div class="lbl">ETD</div><div class="val">\${fmtDate(so.etd)}</div></div>
+  </div>
+  <div class="g4">
+    <div class="c"><div class="lbl">Port of Loading</div><div class="val">\${val(so.port_loading)}</div></div>
+    <div class="c"><div class="lbl">Port of Discharge</div><div class="val">\${val(so.port_discharge)}</div></div>
+    <div class="c"><div class="lbl">ETA</div><div class="val">\${fmtDate(so.eta)}</div></div>
+    <div class="c"><div class="lbl">Delivery Date</div><div class="val">\${fmtDate(so.delivery_date)}</div></div>
+  </div>
+  \${(so.container_number || so.vessel_name || so.seawaybill_number) ? \`
+  <div class="g3">
+    <div class="c"><div class="lbl">Container No</div><div class="val">\${val(so.container_number)}</div></div>
+    <div class="c"><div class="lbl">Vessel Name</div><div class="val">\${val(so.vessel_name)}</div></div>
+    <div class="c"><div class="lbl">Sea Waybill No</div><div class="val">\${val(so.seawaybill_number)}</div></div>
+  </div>\` : ''}
+
+  <div class="pkg-strip mt6">
+    <div class="pkg-item"><div class="lbl">Total Pallets</div><div class="val">\${pc}</div></div>
+    <div class="pkg-item"><div class="lbl">Total Boxes</div><div class="val">\${fmtNum(totalBoxes, 0)}</div></div>
+    <div class="pkg-item"><div class="lbl">Net Weight</div><div class="val">\${fmtNum(totalNet)} kg</div></div>
+    <div class="pkg-item"><div class="lbl">Gross Weight</div><div class="val">\${fmtNum(totalGross)} kg</div></div>
+    <div class="pkg-item"><div class="lbl">Box Type</div><div class="val">\${val(orderRows[0]?.boxType)}</div></div>
+    <div class="pkg-item"><div class="lbl">Net / Box</div><div class="val">\${fmtNum(parseFloat(orderRows[0]?.netBox) || 0)} kg</div></div>
+  </div>
+
+  <div class="sec g" style="margin-top:5px;">Pallet / Item Breakdown</div>
+  <table class="pl-table">
+    <thead>
+      <tr>
+        <th>Pallet / Item</th>
+        <th>Product</th>
+        <th>Variety / Caliber</th>
+        <th>Origin</th>
+        <th>Box Type</th>
+        <th class="r">Boxes</th>
+        <th class="r">Net / Box</th>
+        <th class="r">Net Wt (kg)</th>
+        <th class="r">Gross Wt (kg)</th>
+      </tr>
+    </thead>
+    <tbody>\${palletRowsHTML}</tbody>
+    <tfoot>
+      <tr>
+        <td colspan="5">TOTALS — \${pc} Pallet(s)</td>
+        <td class="r">\${fmtNum(totalBoxes, 0)} boxes</td>
+        <td class="r">—</td>
+        <td class="r">\${fmtNum(totalNet)} kg</td>
+        <td class="r">\${fmtNum(totalGross)} kg</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  \${so.quality_notes ? \`
+  <div class="sec s" style="margin-top:5px;">Quality Notes</div>
+  <div style="padding:4px 8px; border:1px solid #e2e8f0; font-size:6pt; color:#374151; line-height:1.6;">\${so.quality_notes}</div>
+  \` : ''}
+
+  \${issuerBlockHTML(so.customer_name)}
+  \${footerHTML()}
+\`)
+
+    const pdf = await htmlToPDF(html)
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': \`inline; filename="PackingList_\${so.party_no}.pdf"\`,
+    })
+    res.send(pdf)
+  } catch (e) {
+    console.error('[PDF] packing-list-custom error:', e)
     res.status(500).json({ error: 'PDF oluşturulamadı' })
   }
 })
@@ -649,7 +1209,7 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
   <div style="padding:4px 8px; border:1px solid #e2e8f0; font-size:6pt; color:#374151; line-height:1.6;">${so.quality_notes}</div>
   ` : ''}
 
-  ${issuerBlockHTML()}
+  ${issuerBlockHTML(so.customer_name)}
   ${footerHTML()}
 `)
 
@@ -905,7 +1465,7 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
 
   ${bankBlockHTML(so.currency)}
 
-  ${issuerBlockHTML()}
+  ${issuerBlockHTML(so.customer_name)}
   ${footerHTML()}
 `)
 
