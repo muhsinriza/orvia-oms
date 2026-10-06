@@ -22,6 +22,8 @@ const EMPTY_ITEM = { product_id:'', variety:'', caliber:'', origin:'', quantity_
 const EMPTY_FORM = {
   sales_type:'ihracat',
   sa_number:'',
+  invoice_no:'',
+  lot_no:'',
   customer_id:'', currency:'USD',
   payment_method:'', payment_term:'', incoterm:'FOB',
   port_loading:'', port_discharge:'',
@@ -108,6 +110,8 @@ export default function SalesPage() {
     setForm({
       sales_type: o.sales_type||'ihracat',
       sa_number: o.sa_number||'',
+      invoice_no: o.invoice_no||'',
+      lot_no: o.lot_no||'',
       customer_id: o.customer_id||'',
       dest_country: o.dest_country||'', transit_entry: o.transit_entry||'', transit_exit: o.transit_exit||'',
       currency: o.currency||'USD', payment_method: o.payment_method||'',
@@ -135,6 +139,25 @@ export default function SalesPage() {
       return { ...f, items }
     })
   }
+
+  function handleItemProductChange(idx, productId) {
+    const prod = products.find(p => String(p.id) === String(productId))
+    setForm(f => {
+      const items = f.items.map((it, i) => {
+        if (i !== idx) return it
+        return {
+          ...it,
+          product_id:    productId,
+          variety:       prod?.variety       || it.variety,
+          origin:        prod?.default_origin || it.origin,
+          box_type:      prod?.box_type       || it.box_type,
+          box_weight_kg: prod?.box_net_kg     || it.box_weight_kg,
+        }
+      })
+      return { ...f, items }
+    })
+  }
+
   function addItem() { setForm(f => ({ ...f, items: [...f.items, { ...EMPTY_ITEM }] })) }
   function removeItem(idx) { setForm(f => ({ ...f, items: f.items.filter((_,i) => i !== idx) })) }
 
@@ -318,6 +341,14 @@ export default function SalesPage() {
             <label className="label">SA Numarası <span className="text-gray-400 font-normal text-xs">(boş bırakılırsa otomatik)</span></label>
             <input className="input" value={form.sa_number} onChange={e=>setField('sa_number',e.target.value)} placeholder="Otomatik — örn: SA-2026-001"/>
           </div>
+          <div>
+            <label className="label">Fatura Numarası <span className="text-gray-400 font-normal text-xs">(ihracat faturası)</span></label>
+            <input className="input" value={form.invoice_no} onChange={e=>setField('invoice_no',e.target.value)} placeholder="Örn: INV-2026-001"/>
+          </div>
+          <div>
+            <label className="label">Parti Numarası <span className="text-gray-400 font-normal text-xs">(lot/parti)</span></label>
+            <input className="input" value={form.lot_no} onChange={e=>setField('lot_no',e.target.value)} placeholder="Örn: LOT-2026-001"/>
+          </div>
 
           <div>
             <label className="label">Müşteri *</label>
@@ -358,7 +389,7 @@ export default function SalesPage() {
                   {form.items.map((it, idx) => (
                     <tr key={idx} className="hover:bg-gray-50">
                       <td className="px-2 py-1.5">
-                        <select className="select text-xs py-1" value={it.product_id} onChange={e=>setItemField(idx,'product_id',e.target.value)}>
+                        <select className="select text-xs py-1" value={it.product_id} onChange={e=>handleItemProductChange(idx,e.target.value)}>
                           <option value="">—</option>
                           {products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>

@@ -10,6 +10,7 @@ const UNIT_TR = { kg:'kg', kutu:'Kutu', adet:'Adet', palet:'Palet' }
 
 const EMPTY = {
   name:'', variety:'', category:'', unit:'kg',
+  default_origin:'', box_type:'',
   box_net_kg:'', box_gross_kg:'', units_per_box:'', boxes_per_pallet:'',
   is_active:true, notes:''
 }
@@ -198,6 +199,14 @@ export default function ProductsPage() {
               <div>
                 <label className="label">Kategori</label>
                 <input className="input" value={form.category} onChange={e=>setField('category',e.target.value)} placeholder="Örn: Meyve"/>
+              </div>
+              <div>
+                <label className="label">Varsayılan Menşei</label>
+                <input className="input" value={form.default_origin} onChange={e=>setField('default_origin',e.target.value)} placeholder="Örn: Türkiye"/>
+              </div>
+              <div>
+                <label className="label">Kutu Tipi</label>
+                <input className="input" value={form.box_type} onChange={e=>setField('box_type',e.target.value)} placeholder="Örn: Karton 10kg"/>
               </div>
               <div>
                 <label className="label">Birim</label>

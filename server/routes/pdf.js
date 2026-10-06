@@ -299,22 +299,22 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
   <!-- Shipment details -->
   <div class="sec g">Shipment Details</div>
   <div class="g4">
-    <div class="c"><div class="lbl">Invoice No</div><div class="val">${val(so.party_no)}</div></div>
+    <div class="c"><div class="lbl">Invoice No</div><div class="val">${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="c"><div class="lbl">SA Number</div><div class="val">${val(so.sa_number)}</div></div>
+    <div class="c"><div class="lbl">Lot / Party No</div><div class="val">${val(so.lot_no)}</div></div>
     <div class="c"><div class="lbl">Shipment Date</div><div class="val">${fmtDate(so.shipment_date)}</div></div>
+  </div>
+  <div class="g4">
     <div class="c"><div class="lbl">Delivery Date</div><div class="val">${fmtDate(so.delivery_date)}</div></div>
     <div class="c"><div class="lbl">Payment Terms</div><div class="val">${val(so.payment_term)}</div></div>
+    <div class="c"><div class="lbl">Payment Method</div><div class="val">${val(so.payment_method)}</div></div>
+    <div class="c"><div class="lbl">Currency</div><div class="val">${val(so.currency)}</div></div>
   </div>
   <div class="g4">
     <div class="c"><div class="lbl">Incoterm</div><div class="val">${val(so.incoterm)}</div></div>
     <div class="c"><div class="lbl">Transport Mode</div><div class="val">${val(so.transport_mode)}</div></div>
     <div class="c"><div class="lbl">Port of Loading</div><div class="val">${val(so.port_loading)}</div></div>
     <div class="c"><div class="lbl">Port of Discharge</div><div class="val">${val(so.port_discharge)}</div></div>
-  </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Origin</div><div class="val">${val(so.origin)}</div></div>
-    <div class="c"><div class="lbl">Currency</div><div class="val">${val(so.currency)}</div></div>
-    <div class="c"><div class="lbl">Payment Method</div><div class="val">${val(so.payment_method)}</div></div>
-    <div class="c"><div class="lbl">SA Number</div><div class="val">${val(so.sa_number)}</div></div>
   </div>
 
   <!-- Tracking -->
@@ -465,16 +465,22 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
 
   <div class="sec g">Shipment Details</div>
   <div class="g4">
-    <div class="c"><div class="lbl">Packing List No</div><div class="val">${val(so.party_no)}</div></div>
+    <div class="c"><div class="lbl">Packing List No</div><div class="val">${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="c"><div class="lbl">Invoice No</div><div class="val">${val(so.invoice_no || so.party_no)}</div></div>
+    <div class="c"><div class="lbl">SA Number</div><div class="val">${val(so.sa_number)}</div></div>
+    <div class="c"><div class="lbl">Lot / Party No</div><div class="val">${val(so.lot_no)}</div></div>
+  </div>
+  <div class="g4">
     <div class="c"><div class="lbl">Shipment Date</div><div class="val">${fmtDate(so.shipment_date)}</div></div>
     <div class="c"><div class="lbl">Incoterm</div><div class="val">${val(so.incoterm)}</div></div>
     <div class="c"><div class="lbl">Transport Mode</div><div class="val">${val(so.transport_mode)}</div></div>
+    <div class="c"><div class="lbl">ETD</div><div class="val">${fmtDate(so.etd)}</div></div>
   </div>
   <div class="g4">
     <div class="c"><div class="lbl">Port of Loading</div><div class="val">${val(so.port_loading)}</div></div>
     <div class="c"><div class="lbl">Port of Discharge</div><div class="val">${val(so.port_discharge)}</div></div>
-    <div class="c"><div class="lbl">ETD</div><div class="val">${fmtDate(so.etd)}</div></div>
     <div class="c"><div class="lbl">ETA</div><div class="val">${fmtDate(so.eta)}</div></div>
+    <div class="c"><div class="lbl">Delivery Date</div><div class="val">${fmtDate(so.delivery_date)}</div></div>
   </div>
   ${(so.container_number || so.vessel_name || so.seawaybill_number) ? `
   <div class="g3">
@@ -653,8 +659,11 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
   <div class="sec g">Agreement Details</div>
   <div class="g4">
     <div class="c"><div class="lbl">SA Number</div><div class="val">${val(so.sa_number || so.party_no)}</div></div>
+    <div class="c"><div class="lbl">Lot / Party No</div><div class="val">${val(so.lot_no)}</div></div>
     <div class="c"><div class="lbl">Shipment Date</div><div class="val">${fmtDate(so.shipment_date)}</div></div>
     <div class="c"><div class="lbl">Delivery Date</div><div class="val">${fmtDate(so.delivery_date)}</div></div>
+  </div>
+  <div class="g4">
     <div class="c"><div class="lbl">Currency</div><div class="val">${val(so.currency)}</div></div>
   </div>
   <div class="g4">

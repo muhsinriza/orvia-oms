@@ -91,7 +91,7 @@ async function upsertItems(client, salesOrderId, items) {
 // POST /sales-orders
 router.post('/', async (req, res) => {
   const {
-    sales_type, sa_number,
+    sales_type, sa_number, invoice_no, lot_no,
     customer_id, product_id, variety, caliber, origin,
     quantity_kg, price_per_unit, currency,
     payment_method, payment_term, incoterm,
@@ -113,6 +113,8 @@ router.post('/', async (req, res) => {
       ALTER TABLE sales_orders
         ADD COLUMN IF NOT EXISTS sales_type    TEXT DEFAULT 'ihracat',
         ADD COLUMN IF NOT EXISTS sa_number     TEXT,
+        ADD COLUMN IF NOT EXISTS invoice_no    TEXT,
+        ADD COLUMN IF NOT EXISTS lot_no        TEXT,
         ADD COLUMN IF NOT EXISTS dest_country  TEXT,
         ADD COLUMN IF NOT EXISTS transit_entry TEXT,
         ADD COLUMN IF NOT EXISTS transit_exit  TEXT
@@ -160,7 +162,7 @@ router.post('/', async (req, res) => {
 
     const { rows } = await client.query(`
       INSERT INTO sales_orders
-        (sales_type, sa_number,
+        (sales_type, sa_number, invoice_no, lot_no,
          customer_id, product_id, variety, caliber, origin,
          quantity_kg, price_per_unit, currency,
          payment_method, payment_term, incoterm,
@@ -171,10 +173,10 @@ router.post('/', async (req, res) => {
          quality_notes, required_docs, notes, status, created_by,
          tracking_number, container_number, seawaybill_number, vessel_name,
          flight_number, driver_name, driver_phone)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40)
       RETURNING *
     `, [
-      sales_type || 'ihracat', finalSaNumber,
+      sales_type || 'ihracat', finalSaNumber, invoice_no || null, lot_no || null,
       customer_id, effProductId, effVariety, effCaliber || null, effOrigin,
       effQty, effPrice, currency || 'USD',
       payment_method, payment_term, incoterm,
@@ -202,7 +204,7 @@ router.post('/', async (req, res) => {
 // PUT /sales-orders/:id
 router.put('/:id', async (req, res) => {
   const {
-    sales_type, sa_number,
+    sales_type, sa_number, invoice_no, lot_no,
     customer_id, product_id, variety, caliber, origin,
     quantity_kg, price_per_unit, currency,
     payment_method, payment_term, incoterm,
@@ -218,6 +220,13 @@ router.put('/:id', async (req, res) => {
   const client = await db.connect()
   try {
     await client.query('BEGIN')
+
+    // Ensure columns exist (idempotent migration)
+    await client.query(`
+      ALTER TABLE sales_orders
+        ADD COLUMN IF NOT EXISTS invoice_no TEXT,
+        ADD COLUMN IF NOT EXISTS lot_no     TEXT
+    `)
 
     // Ensure items table exists
     await client.query(`
@@ -248,21 +257,21 @@ router.put('/:id', async (req, res) => {
 
     const { rows } = await client.query(`
       UPDATE sales_orders SET
-        sales_type=$1, sa_number=$2,
-        customer_id=$3, product_id=$4, variety=$5, caliber=$6, origin=$7,
-        quantity_kg=$8, price_per_unit=$9, currency=$10,
-        payment_method=$11, payment_term=$12, incoterm=$13,
-        port_loading=$14, port_discharge=$15, dest_country=$16,
-        transit_entry=$17, transit_exit=$18,
-        shipment_date=$19, delivery_date=$20, etd=$21, eta=$22,
-        transport_mode=$23, box_type=$24, box_weight_kg=$25, pallets=$26,
-        quality_notes=$27, required_docs=$28, notes=$29, status=$30,
-        tracking_number=$32, container_number=$33, seawaybill_number=$34, vessel_name=$35,
-        flight_number=$36, driver_name=$37, driver_phone=$38
-      WHERE id=$31
+        sales_type=$1, sa_number=$2, invoice_no=$3, lot_no=$4,
+        customer_id=$5, product_id=$6, variety=$7, caliber=$8, origin=$9,
+        quantity_kg=$10, price_per_unit=$11, currency=$12,
+        payment_method=$13, payment_term=$14, incoterm=$15,
+        port_loading=$16, port_discharge=$17, dest_country=$18,
+        transit_entry=$19, transit_exit=$20,
+        shipment_date=$21, delivery_date=$22, etd=$23, eta=$24,
+        transport_mode=$25, box_type=$26, box_weight_kg=$27, pallets=$28,
+        quality_notes=$29, required_docs=$30, notes=$31, status=$32,
+        tracking_number=$34, container_number=$35, seawaybill_number=$36, vessel_name=$37,
+        flight_number=$38, driver_name=$39, driver_phone=$40
+      WHERE id=$33
       RETURNING *
     `, [
-      sales_type || 'ihracat', sa_number || null,
+      sales_type || 'ihracat', sa_number || null, invoice_no || null, lot_no || null,
       customer_id, effProductId, effVariety, effCaliber || null, effOrigin,
       effQty, effPrice, currency,
       payment_method, payment_term, incoterm,
