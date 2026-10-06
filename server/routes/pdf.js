@@ -178,7 +178,7 @@ function headerHTML (docno, docdate, doctype) {
       <div class="hdr-co">
         ${CO.name}<br>
         ${CO.address}<br>
-        Tel: ${CO.tel} · Tax No: ${CO.tax} · ${CO.web}
+        Tel: ${CO.tel} · ${CO.web}
       </div>
     </div>
     <div class="hdr-right">
@@ -198,34 +198,43 @@ function footerHTML () {
   </div>`
 }
 
-function issuerBlockHTML (customerName) {
-  return `
-  <div style="border:1px solid #bfdbfe;background:#eff6ff;padding:5px 10px;margin-top:6px;display:flex;align-items:flex-start;gap:8px;">
-    <div style="font-size:14pt;color:#1d4ed8;line-height:1;margin-top:1px;">✦</div>
-    <div style="font-size:6pt;color:#1e40af;line-height:1.6;">
-      <strong style="font-weight:700;color:#1d4ed8;">This document has been electronically issued</strong> by ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ. and is legally valid without a wet signature.
-      Issued on <strong>${now()}</strong> · Ref: ${CO.web}
-    </div>
-  </div>
-  <div class="issuer-block" style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #e2e8f0;margin-top:6px;">
-    <div style="padding:8px 10px;border-right:1px solid #e2e8f0;">
-      <div class="issuer-title">Seller / Satıcı</div>
-      <div class="issuer-name" style="margin-top:3px;">${CO.rep}</div>
-      <div class="issuer-detail">${CO.title}<br>${CO.name}</div>
-      <div class="issuer-stamp" style="margin-top:6px;">
-        <div class="stamp-text">ORVIA TROPICAL</div>
-        <div class="stamp-sub">Electronically Issued · ${now()}</div>
-      </div>
-    </div>
-    <div style="padding:8px 10px;">
-      <div class="issuer-title">Buyer / Alıcı — Authorized Signature</div>
-      ${customerName ? `<div style="font-size:7.5pt;font-weight:700;color:#1d4ed8;margin-top:6px;margin-bottom:8px;">${customerName}</div>` : '<div style="margin-top:18px;"></div>'}
-      <div style="border-bottom:1px solid #1a1a1a;width:80%;"></div>
-      <div style="font-size:5.5pt;color:#64748b;margin-top:3px;">Name &amp; Title / İsim &amp; Unvan</div>
-      <div style="margin-top:14px;border-bottom:1px solid #1a1a1a;width:60%;"></div>
-      <div style="font-size:5.5pt;color:#64748b;margin-top:3px;">Date / Tarih</div>
-    </div>
-  </div>`
+function issuerBlockHTML (customerName, sellerOnly) {
+  const sellerCell = [
+    '<div style="padding:8px 10px;' + (sellerOnly ? '' : 'border-right:1px solid #e2e8f0;') + 'flex:1;">',
+    '  <div class="issuer-title">Seller / Satıcı</div>',
+    '  <div class="issuer-name" style="margin-top:3px;">' + CO.rep + '</div>',
+    '  <div class="issuer-detail">' + CO.title + '<br>' + CO.name + '</div>',
+    '  <div class="issuer-stamp" style="margin-top:6px;">',
+    '    <div class="stamp-text">ORVIA TROPICAL</div>',
+    '    <div class="stamp-sub">Electronically Issued · ' + now() + '</div>',
+    '  </div>',
+    '</div>',
+  ].join('')
+
+  const buyerCell = sellerOnly ? '' : [
+    '<div style="padding:8px 10px;flex:1;">',
+    '  <div class="issuer-title">Buyer / Alıcı — Authorized Signature</div>',
+    customerName ? '  <div style="font-size:7.5pt;font-weight:700;color:#1d4ed8;margin-top:6px;margin-bottom:8px;">' + customerName + '</div>' : '  <div style="margin-top:18px;"></div>',
+    '  <div style="border-bottom:1px solid #1a1a1a;width:80%;"></div>',
+    '  <div style="font-size:5.5pt;color:#64748b;margin-top:3px;">Name &amp; Title / İsim &amp; Unvan</div>',
+    '  <div style="margin-top:14px;border-bottom:1px solid #1a1a1a;width:60%;"></div>',
+    '  <div style="font-size:5.5pt;color:#64748b;margin-top:3px;">Date / Tarih</div>',
+    '</div>',
+  ].join('')
+
+  return [
+    '<div style="border:1px solid #bfdbfe;background:#eff6ff;padding:5px 10px;margin-top:6px;display:flex;align-items:flex-start;gap:8px;">',
+    '  <div style="font-size:14pt;color:#1d4ed8;line-height:1;margin-top:1px;">✦</div>',
+    '  <div style="font-size:6pt;color:#1e40af;line-height:1.6;">',
+    '    <strong style="font-weight:700;color:#1d4ed8;">This document has been electronically issued</strong> by ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ. and is legally valid without a wet signature.',
+    '    Issued on <strong>' + now() + '</strong> · Ref: ' + CO.web,
+    '  </div>',
+    '</div>',
+    '<div class="issuer-block" style="display:flex;border:1px solid #e2e8f0;margin-top:6px;">',
+    sellerCell,
+    buyerCell,
+    '</div>',
+  ].join('\n')
 }
 
 function bankBlockHTML (currency) {
@@ -371,17 +380,23 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
     const html = wrap(`
   ${headerHTML(so.party_no, so.shipment_date || new Date(), 'Commercial Invoice')}
 
-  <!-- Buyer / Seller -->
-  <div class="buyer-block">
-    <div class="buyer-col">
-      <div class="buyer-label">Bill To / Consignee</div>
-      <div class="buyer-name">${val(so.customer_name)}</div>
-      <div class="buyer-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
+  <!-- Seller / Buyer parties -->
+  <div class="parties">
+    <div class="pty l">
+      <div class="pty-hdr g">Seller / Exporter</div>
+      <div class="pty-name">${CO.name}</div>
+      <div class="pty-detail">
+        ${CO.address}<br>
+        Tax No: ${CO.tax}<br>
+        Tel: ${CO.tel} · ${CO.web}
+      </div>
     </div>
-    <div class="buyer-col narrow">
-      <div class="buyer-label">Seller / Exporter</div>
-      <div class="buyer-name" style="font-size:7pt;">${CO.short}</div>
-      <div class="buyer-detail">${CO.address}<br>Tax: ${CO.tax}</div>
+    <div class="pty">
+      <div class="pty-hdr b">Bill To / Consignee</div>
+      <div class="pty-name" style="color:#1d4ed8;">${val(so.customer_name)}</div>
+      <div class="pty-detail">
+        ${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}
+      </div>
     </div>
   </div>
 
@@ -457,7 +472,7 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
 
   ${bankBlockHTML(so.currency)}
 
-  ${issuerBlockHTML(so.customer_name)}
+  ${issuerBlockHTML(null, true)}
   ${footerHTML()}
 `)
 
@@ -662,7 +677,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
       <div class="hdr-logo">ORVIA <span>TROPICAL</span></div>
       <div class="hdr-co">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.<br>
         Fener Mah. 1964 Sk. Hacı M Gebizli Sit. D Blok No:6/A No:3, Muratpaşa / Antalya / Türkiye<br>
-        Tel: +90 530 552 83 06 · Tax No: 6481831271 · Antalya Kurumlar V.D.
+        Tel: +90 530 552 83 06 · www.orviatropical.com · orviaoms.com
       </div>
     </div>
     <div class="hdr-right">
@@ -674,16 +689,16 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
 
   <div class="card">
     <!-- Parties -->
-    <div class="buyer-grid">
-      <div class="buyer-col">
-        <div class="lbl">Consignee</div>
-        <div class="val-static">${val(so.customer_name)}</div>
-        <div class="val-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #e2e8f0;margin-bottom:8px;">
+      <div style="padding:8px 10px;border-right:1px solid #e2e8f0;">
+        <div style="font-size:5pt;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 6px;margin:-8px -10px 6px;color:#fff;background:#0a5c3a;">Shipper / Exporter</div>
+        <div style="font-size:7.5pt;font-weight:700;color:#0a5c3a;margin:5px 0 2px;">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</div>
+        <div style="font-size:6pt;color:#475569;line-height:1.65;">Fener Mah. 1964 Sk. Hacı M Gebizli Sit. D Blok No:6/A No:3, Muratpaşa / Antalya / Türkiye<br>Tax No: 6481831271 · Antalya Kurumlar V.D.<br>Tel: +90 530 552 83 06 · www.orviatropical.com · orviaoms.com</div>
       </div>
-      <div class="buyer-col narrow">
-        <div class="lbl">Shipper / Exporter</div>
-        <div class="val-static" style="font-size:7pt;">ORVIA TROPICAL</div>
-        <div class="val-detail">Fener Mah. 1964 Sk. Hacı M Gebizli Sit. D Blok No:6/A No:3, Muratpaşa / Antalya / Türkiye</div>
+      <div style="padding:8px 10px;">
+        <div style="font-size:5pt;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 6px;margin:-8px -10px 6px;color:#fff;background:#1d4ed8;">Consignee</div>
+        <div style="font-size:7.5pt;font-weight:700;color:#1d4ed8;margin:5px 0 2px;">${val(so.customer_name)}</div>
+        <div style="font-size:6pt;color:#475569;line-height:1.65;">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
       </div>
     </div>
 
@@ -777,7 +792,7 @@ function fmtN(n, d=2) {
 
 function ef(value, rowIdx, field, type='text') {
   const v = value !== null && value !== undefined && value !== '—' ? value : '';
-  return '<span class="ef" contenteditable="true" data-row="'+rowIdx+'" data-field="'+field+'" onblur="onEdit(this)" onkeydown="if(event.key===\\'Enter\\'){event.preventDefault();this.blur()}">' + (v || '') + '</span>';
+  return '<span class="ef" contenteditable="true" data-row="'+rowIdx+'" data-field="'+field+'" onblur="onEdit(this)" onkeydown="handleEfKey(event,this)">' + (v || '') + '</span>';
 }
 
 function render() {
@@ -841,6 +856,17 @@ function addRow() {
   const last = rows[rows.length-1] || {};
   rows.push({ label: USE_ITEM_ROWS ? 'Item '+(rows.length+1) : 'Pallet '+(rows.length+1), product: last.product||'', variety: last.variety||'', origin: last.origin||'', boxType: last.boxType||'', boxes: 0, netBox: last.netBox||0, net: 0, gross: 0 });
   render();
+}
+
+function handleEfKey(e, el) {
+  if (e.key === 'Enter') { e.preventDefault(); el.blur(); return; }
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const all = Array.from(document.querySelectorAll('.ef'));
+    const idx = all.indexOf(el);
+    const next = e.shiftKey ? all[idx - 1] : all[idx + 1];
+    if (next) { el.blur(); next.focus(); const r = document.createRange(); r.selectNodeContents(next); r.collapse(false); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+  }
 }
 
 function showToast(msg) {
@@ -948,16 +974,16 @@ router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
 
     const htmlBody = [
       headerHTML(so.party_no, so.shipment_date || new Date(), 'Packing List'),
-      '<div class="buyer-block">',
-      '  <div class="buyer-col">',
-      '    <div class="buyer-label">Consignee</div>',
-      '    <div class="buyer-name">' + val(so.customer_name) + '</div>',
-      '    <div class="buyer-detail">' + val(so.customer_address) + (so.customer_country ? '<br>' + so.customer_country : '') + '</div>',
+      '<div class="parties">',
+      '  <div class="pty l">',
+      '    <div class="pty-hdr g">Shipper / Exporter</div>',
+      '    <div class="pty-name">' + CO.name + '</div>',
+      '    <div class="pty-detail">' + CO.address + '<br>Tax No: ' + CO.tax + '<br>Tel: ' + CO.tel + ' · ' + CO.web + '</div>',
       '  </div>',
-      '  <div class="buyer-col narrow">',
-      '    <div class="buyer-label">Shipper / Exporter</div>',
-      '    <div class="buyer-name" style="font-size:7pt;">' + CO.short + '</div>',
-      '    <div class="buyer-detail">' + CO.address + '</div>',
+      '  <div class="pty">',
+      '    <div class="pty-hdr b">Consignee</div>',
+      '    <div class="pty-name" style="color:#1d4ed8;">' + val(so.customer_name) + '</div>',
+      '    <div class="pty-detail">' + val(so.customer_address) + (so.customer_country ? '<br>' + so.customer_country : '') + '</div>',
       '  </div>',
       '</div>',
       '<div class="sec g">Shipment Details</div>',
@@ -1004,7 +1030,7 @@ router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
       '  </tr></tfoot>',
       '</table>',
       qualitySection,
-      issuerBlockHTML(so.customer_name),
+      issuerBlockHTML(null, true),
       footerHTML(),
     ].join('\n')
 
@@ -1138,16 +1164,22 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
     const html = wrap(`
   ${headerHTML(so.party_no, so.shipment_date || new Date(), 'Packing List')}
 
-  <div class="buyer-block">
-    <div class="buyer-col">
-      <div class="buyer-label">Consignee</div>
-      <div class="buyer-name">${val(so.customer_name)}</div>
-      <div class="buyer-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
+  <div class="parties">
+    <div class="pty l">
+      <div class="pty-hdr g">Shipper / Exporter</div>
+      <div class="pty-name">${CO.name}</div>
+      <div class="pty-detail">
+        ${CO.address}<br>
+        Tax No: ${CO.tax}<br>
+        Tel: ${CO.tel} · ${CO.web}
+      </div>
     </div>
-    <div class="buyer-col narrow">
-      <div class="buyer-label">Shipper / Exporter</div>
-      <div class="buyer-name" style="font-size:7pt;">${CO.short}</div>
-      <div class="buyer-detail">${CO.address}</div>
+    <div class="pty">
+      <div class="pty-hdr b">Consignee</div>
+      <div class="pty-name" style="color:#1d4ed8;">${val(so.customer_name)}</div>
+      <div class="pty-detail">
+        ${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}
+      </div>
     </div>
   </div>
 
@@ -1219,7 +1251,7 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
   <div style="padding:4px 8px; border:1px solid #e2e8f0; font-size:6pt; color:#374151; line-height:1.6;">${so.quality_notes}</div>
   ` : ''}
 
-  ${issuerBlockHTML(so.customer_name)}
+  ${issuerBlockHTML(null, true)}
   ${footerHTML()}
 `)
 
@@ -1326,7 +1358,7 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
       <div class="hdr-co">
         ${CO.name}<br>
         ${CO.address}<br>
-        Tel: ${CO.tel} · Tax No: ${CO.tax} · ${CO.web}
+        Tel: ${CO.tel} · ${CO.web}
       </div>
     </div>
     <div class="hdr-right">
