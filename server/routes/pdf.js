@@ -913,97 +913,87 @@ router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
       <td class="r">${fmtNum(parseFloat(r.gross) || 0)} kg</td>
     </tr>`).join('')
 
-    const html = wrap(\`
-  \${headerHTML(so.party_no, so.shipment_date || new Date(), 'Packing List')}
+    const shippingRefs = (so.container_number || so.vessel_name || so.seawaybill_number) ? (
+      '<div class="g3">' +
+      '<div class="c"><div class="lbl">Container No</div><div class="val">' + val(so.container_number) + '</div></div>' +
+      '<div class="c"><div class="lbl">Vessel Name</div><div class="val">' + val(so.vessel_name) + '</div></div>' +
+      '<div class="c"><div class="lbl">Sea Waybill No</div><div class="val">' + val(so.seawaybill_number) + '</div></div>' +
+      '</div>'
+    ) : ''
 
-  <div class="buyer-block">
-    <div class="buyer-col">
-      <div class="buyer-label">Consignee</div>
-      <div class="buyer-name">\${val(so.customer_name)}</div>
-      <div class="buyer-detail">\${val(so.customer_address)}\${so.customer_country ? '<br>' + so.customer_country : ''}</div>
-    </div>
-    <div class="buyer-col narrow">
-      <div class="buyer-label">Shipper / Exporter</div>
-      <div class="buyer-name" style="font-size:7pt;">\${CO.short}</div>
-      <div class="buyer-detail">\${CO.address}</div>
-    </div>
-  </div>
+    const qualitySection = so.quality_notes ? (
+      '<div class="sec s" style="margin-top:5px;">Quality Notes</div>' +
+      '<div style="padding:4px 8px; border:1px solid #e2e8f0; font-size:6pt; color:#374151; line-height:1.6;">' + so.quality_notes + '</div>'
+    ) : ''
 
-  <div class="sec g">Shipment Details</div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Packing List No</div><div class="val">\${val(so.invoice_no || so.party_no)}</div></div>
-    <div class="c"><div class="lbl">Invoice No</div><div class="val">\${val(so.invoice_no || so.party_no)}</div></div>
-    <div class="c"><div class="lbl">SA Number</div><div class="val">\${val(so.sa_number)}</div></div>
-    <div class="c"><div class="lbl">Lot / Party No</div><div class="val">\${val(so.lot_no)}</div></div>
-  </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Shipment Date</div><div class="val">\${fmtDate(so.shipment_date)}</div></div>
-    <div class="c"><div class="lbl">Incoterm</div><div class="val">\${val(so.incoterm)}</div></div>
-    <div class="c"><div class="lbl">Transport Mode</div><div class="val">\${val(so.transport_mode)}</div></div>
-    <div class="c"><div class="lbl">ETD</div><div class="val">\${fmtDate(so.etd)}</div></div>
-  </div>
-  <div class="g4">
-    <div class="c"><div class="lbl">Port of Loading</div><div class="val">\${val(so.port_loading)}</div></div>
-    <div class="c"><div class="lbl">Port of Discharge</div><div class="val">\${val(so.port_discharge)}</div></div>
-    <div class="c"><div class="lbl">ETA</div><div class="val">\${fmtDate(so.eta)}</div></div>
-    <div class="c"><div class="lbl">Delivery Date</div><div class="val">\${fmtDate(so.delivery_date)}</div></div>
-  </div>
-  \${(so.container_number || so.vessel_name || so.seawaybill_number) ? \`
-  <div class="g3">
-    <div class="c"><div class="lbl">Container No</div><div class="val">\${val(so.container_number)}</div></div>
-    <div class="c"><div class="lbl">Vessel Name</div><div class="val">\${val(so.vessel_name)}</div></div>
-    <div class="c"><div class="lbl">Sea Waybill No</div><div class="val">\${val(so.seawaybill_number)}</div></div>
-  </div>\` : ''}
+    const htmlBody = [
+      headerHTML(so.party_no, so.shipment_date || new Date(), 'Packing List'),
+      '<div class="buyer-block">',
+      '  <div class="buyer-col">',
+      '    <div class="buyer-label">Consignee</div>',
+      '    <div class="buyer-name">' + val(so.customer_name) + '</div>',
+      '    <div class="buyer-detail">' + val(so.customer_address) + (so.customer_country ? '<br>' + so.customer_country : '') + '</div>',
+      '  </div>',
+      '  <div class="buyer-col narrow">',
+      '    <div class="buyer-label">Shipper / Exporter</div>',
+      '    <div class="buyer-name" style="font-size:7pt;">' + CO.short + '</div>',
+      '    <div class="buyer-detail">' + CO.address + '</div>',
+      '  </div>',
+      '</div>',
+      '<div class="sec g">Shipment Details</div>',
+      '<div class="g4">',
+      '  <div class="c"><div class="lbl">Packing List No</div><div class="val">' + val(so.invoice_no || so.party_no) + '</div></div>',
+      '  <div class="c"><div class="lbl">Invoice No</div><div class="val">' + val(so.invoice_no || so.party_no) + '</div></div>',
+      '  <div class="c"><div class="lbl">SA Number</div><div class="val">' + val(so.sa_number) + '</div></div>',
+      '  <div class="c"><div class="lbl">Lot / Party No</div><div class="val">' + val(so.lot_no) + '</div></div>',
+      '</div>',
+      '<div class="g4">',
+      '  <div class="c"><div class="lbl">Shipment Date</div><div class="val">' + fmtDate(so.shipment_date) + '</div></div>',
+      '  <div class="c"><div class="lbl">Incoterm</div><div class="val">' + val(so.incoterm) + '</div></div>',
+      '  <div class="c"><div class="lbl">Transport Mode</div><div class="val">' + val(so.transport_mode) + '</div></div>',
+      '  <div class="c"><div class="lbl">ETD</div><div class="val">' + fmtDate(so.etd) + '</div></div>',
+      '</div>',
+      '<div class="g4">',
+      '  <div class="c"><div class="lbl">Port of Loading</div><div class="val">' + val(so.port_loading) + '</div></div>',
+      '  <div class="c"><div class="lbl">Port of Discharge</div><div class="val">' + val(so.port_discharge) + '</div></div>',
+      '  <div class="c"><div class="lbl">ETA</div><div class="val">' + fmtDate(so.eta) + '</div></div>',
+      '  <div class="c"><div class="lbl">Delivery Date</div><div class="val">' + fmtDate(so.delivery_date) + '</div></div>',
+      '</div>',
+      shippingRefs,
+      '<div class="pkg-strip mt6">',
+      '  <div class="pkg-item"><div class="lbl">Total Pallets</div><div class="val">' + pc + '</div></div>',
+      '  <div class="pkg-item"><div class="lbl">Total Boxes</div><div class="val">' + fmtNum(totalBoxes, 0) + '</div></div>',
+      '  <div class="pkg-item"><div class="lbl">Net Weight</div><div class="val">' + fmtNum(totalNet) + ' kg</div></div>',
+      '  <div class="pkg-item"><div class="lbl">Gross Weight</div><div class="val">' + fmtNum(totalGross) + ' kg</div></div>',
+      '  <div class="pkg-item"><div class="lbl">Box Type</div><div class="val">' + val(orderRows[0] ? orderRows[0].boxType : '') + '</div></div>',
+      '  <div class="pkg-item"><div class="lbl">Net / Box</div><div class="val">' + fmtNum(parseFloat(orderRows[0] ? orderRows[0].netBox : 0) || 0) + ' kg</div></div>',
+      '</div>',
+      '<div class="sec g" style="margin-top:5px;">Pallet / Item Breakdown</div>',
+      '<table class="pl-table">',
+      '  <thead><tr>',
+      '    <th>Pallet / Item</th><th>Product</th><th>Variety / Caliber</th><th>Origin</th><th>Box Type</th>',
+      '    <th class="r">Boxes</th><th class="r">Net / Box</th><th class="r">Net Wt (kg)</th><th class="r">Gross Wt (kg)</th>',
+      '  </tr></thead>',
+      '  <tbody>' + palletRowsHTML + '</tbody>',
+      '  <tfoot><tr>',
+      '    <td colspan="5">TOTALS — ' + pc + ' Pallet(s)</td>',
+      '    <td class="r">' + fmtNum(totalBoxes, 0) + ' boxes</td>',
+      '    <td class="r">—</td>',
+      '    <td class="r">' + fmtNum(totalNet) + ' kg</td>',
+      '    <td class="r">' + fmtNum(totalGross) + ' kg</td>',
+      '  </tr></tfoot>',
+      '</table>',
+      qualitySection,
+      issuerBlockHTML(so.customer_name),
+      footerHTML(),
+    ].join('\n')
 
-  <div class="pkg-strip mt6">
-    <div class="pkg-item"><div class="lbl">Total Pallets</div><div class="val">\${pc}</div></div>
-    <div class="pkg-item"><div class="lbl">Total Boxes</div><div class="val">\${fmtNum(totalBoxes, 0)}</div></div>
-    <div class="pkg-item"><div class="lbl">Net Weight</div><div class="val">\${fmtNum(totalNet)} kg</div></div>
-    <div class="pkg-item"><div class="lbl">Gross Weight</div><div class="val">\${fmtNum(totalGross)} kg</div></div>
-    <div class="pkg-item"><div class="lbl">Box Type</div><div class="val">\${val(orderRows[0]?.boxType)}</div></div>
-    <div class="pkg-item"><div class="lbl">Net / Box</div><div class="val">\${fmtNum(parseFloat(orderRows[0]?.netBox) || 0)} kg</div></div>
-  </div>
-
-  <div class="sec g" style="margin-top:5px;">Pallet / Item Breakdown</div>
-  <table class="pl-table">
-    <thead>
-      <tr>
-        <th>Pallet / Item</th>
-        <th>Product</th>
-        <th>Variety / Caliber</th>
-        <th>Origin</th>
-        <th>Box Type</th>
-        <th class="r">Boxes</th>
-        <th class="r">Net / Box</th>
-        <th class="r">Net Wt (kg)</th>
-        <th class="r">Gross Wt (kg)</th>
-      </tr>
-    </thead>
-    <tbody>\${palletRowsHTML}</tbody>
-    <tfoot>
-      <tr>
-        <td colspan="5">TOTALS — \${pc} Pallet(s)</td>
-        <td class="r">\${fmtNum(totalBoxes, 0)} boxes</td>
-        <td class="r">—</td>
-        <td class="r">\${fmtNum(totalNet)} kg</td>
-        <td class="r">\${fmtNum(totalGross)} kg</td>
-      </tr>
-    </tfoot>
-  </table>
-
-  \${so.quality_notes ? \`
-  <div class="sec s" style="margin-top:5px;">Quality Notes</div>
-  <div style="padding:4px 8px; border:1px solid #e2e8f0; font-size:6pt; color:#374151; line-height:1.6;">\${so.quality_notes}</div>
-  \` : ''}
-
-  \${issuerBlockHTML(so.customer_name)}
-  \${footerHTML()}
-\`)
+    const html = wrap(htmlBody)
 
     const pdf = await htmlToPDF(html)
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': \`inline; filename="PackingList_\${so.party_no}.pdf"\`,
+      'Content-Disposition': 'inline; filename="PackingList_' + so.party_no + '.pdf"',
     })
     res.send(pdf)
   } catch (e) {
