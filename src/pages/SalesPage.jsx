@@ -342,15 +342,6 @@ export default function SalesPage() {
             <input className="input" value={form.sa_number} onChange={e=>setField('sa_number',e.target.value)} placeholder="Otomatik — örn: SA-2026-001"/>
           </div>
           <div>
-            <label className="label">Fatura Numarası <span className="text-gray-400 font-normal text-xs">(ihracat faturası)</span></label>
-            <input className="input" value={form.invoice_no} onChange={e=>setField('invoice_no',e.target.value)} placeholder="Örn: INV-2026-001"/>
-          </div>
-          <div>
-            <label className="label">Parti Numarası <span className="text-gray-400 font-normal text-xs">(lot/parti)</span></label>
-            <input className="input" value={form.lot_no} onChange={e=>setField('lot_no',e.target.value)} placeholder="Örn: LOT-2026-001"/>
-          </div>
-
-          <div>
             <label className="label">Müşteri *</label>
             <select className="select" value={form.customer_id} onChange={e=>setField('customer_id',e.target.value)}>
               <option value="">Seçin...</option>
@@ -391,7 +382,7 @@ export default function SalesPage() {
                       <td className="px-2 py-1.5">
                         <select className="select text-xs py-1" value={it.product_id} onChange={e=>handleItemProductChange(idx,e.target.value)}>
                           <option value="">—</option>
-                          {products.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+                          {products.map(p=><option key={p.id} value={p.id}>{p.name}{p.variety ? ` — ${p.variety}` : ''}{p.category ? ` (${p.category})` : ''}</option>)}
                         </select>
                       </td>
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" value={it.variety} onChange={e=>setItemField(idx,'variety',e.target.value)} placeholder="Fuji"/></td>
@@ -500,6 +491,14 @@ export default function SalesPage() {
             <select className="select" value={form.status} onChange={e=>setField('status',e.target.value)}>
               {STATUS_OPTS.map(s=><option key={s} value={s}>{STATUS_TR[s]}</option>)}
             </select>
+          </div>
+          <div>
+            <label className="label">Fatura No <span className="text-gray-400 font-normal text-xs">(ihracat sonrası)</span></label>
+            <input className="input" value={form.invoice_no} onChange={e=>setField('invoice_no',e.target.value)} placeholder="Örn: INV-2026-001"/>
+          </div>
+          <div>
+            <label className="label">Parti / Lot No <span className="text-gray-400 font-normal text-xs">(ihracat sonrası)</span></label>
+            <input className="input" value={form.lot_no} onChange={e=>setField('lot_no',e.target.value)} placeholder="Örn: LOT-2026-001"/>
           </div>
           <div className="sm:col-span-2 lg:col-span-3">
             <label className="label">Gerekli Belgeler</label>
