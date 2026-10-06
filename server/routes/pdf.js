@@ -53,10 +53,12 @@ const CO = {
   web:     'www.orviatropical.com · orviaoms.com',
   rep:     'M. Rıza Ağdağ',
   title:   'Director / General Manager',
-  bank:    'Türkiye Garanti Bankası A.Ş.',
-  bic:     'TGBATRISXXX',
-  usd:     'TR72 0006 2001 1280 0009 0700 75',
-  eur:     'TR02 0006 2001 1280 0009 0700 74',
+  bank:        'Türkiye Garanti Bankası A.Ş.',
+  bankBranch:  '1128 / FENER MAHALLESİ / ANTALYA',
+  bankAddress: 'Çağlayan Mah. Barınaklar Bulvarı No:32, Muratpaşa / Antalya / Türkiye',
+  bic:         'TGBATRISXXX',
+  usd:         'TR72 0006 2001 1280 0009 0700 75',
+  eur:         'TR02 0006 2001 1280 0009 0700 74',
 }
 
 function fmtDate (d) {
@@ -229,21 +231,37 @@ function issuerBlockHTML (customerName) {
 function bankBlockHTML (currency) {
   const iban = (currency || '').toUpperCase() === 'EUR' ? CO.eur : CO.usd
   const ccy  = (currency || '').toUpperCase() === 'EUR' ? 'EUR' : 'USD'
+  const lbl  = 'font-size:5pt;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;'
+  const val2 = 'font-size:6.5pt;font-weight:600;color:#1a1a1a;'
   return `
   <div class="bank-block mt6">
-    <div class="bank-hdr">Bank / Payment Details</div>
-    <div style="padding:5px 10px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px;">
+    <div class="bank-hdr">Bank / Payment Details — Beneficiary: ${CO.name}</div>
+    <div style="padding:5px 10px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;border-bottom:1px solid #e2e8f0;">
       <div>
-        <div style="font-size:5pt;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">Bank</div>
-        <div style="font-size:6.5pt;font-weight:600;">${CO.bank}</div>
+        <div style="${lbl}">Bank Name</div>
+        <div style="${val2}">${CO.bank}</div>
       </div>
       <div>
-        <div style="font-size:5pt;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">SWIFT / BIC</div>
-        <div style="font-size:6.5pt;font-weight:600;">${CO.bic}</div>
+        <div style="${lbl}">Branch Code &amp; Name</div>
+        <div style="${val2}">${CO.bankBranch}</div>
       </div>
       <div>
-        <div style="font-size:5pt;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;">${ccy} IBAN</div>
-        <div style="font-size:6.5pt;font-weight:600;">${iban}</div>
+        <div style="${lbl}">Bank Address</div>
+        <div style="${val2}">${CO.bankAddress}</div>
+      </div>
+      <div>
+        <div style="${lbl}">SWIFT / BIC</div>
+        <div style="${val2}">${CO.bic}</div>
+      </div>
+    </div>
+    <div style="padding:5px 10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div>
+        <div style="${lbl}">USD IBAN</div>
+        <div style="${val2}">${CO.usd}</div>
+      </div>
+      <div>
+        <div style="${lbl}">EUR IBAN</div>
+        <div style="${val2}">${CO.eur}</div>
       </div>
     </div>
   </div>`
