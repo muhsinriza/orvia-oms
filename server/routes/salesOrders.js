@@ -75,7 +75,7 @@ async function upsertItems(client, salesOrderId, items) {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
     `, [
       salesOrderId,
-      it.product_id || null,
+      it.product_id ? parseInt(it.product_id) : null,
       it.variety || null,
       it.caliber || null,
       it.origin || null,
