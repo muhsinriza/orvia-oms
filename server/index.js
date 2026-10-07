@@ -172,6 +172,31 @@ async function runMigrations () {
       CREATE UNIQUE INDEX IF NOT EXISTS sales_orders_sa_number_unique
       ON sales_orders (sa_number) WHERE sa_number IS NOT NULL
     `)
+    // purchase_orders extra columns (added after initial schema)
+    await db.query(`
+      ALTER TABLE purchase_orders
+        ADD COLUMN IF NOT EXISTS purchase_type   TEXT DEFAULT 'ithalat',
+        ADD COLUMN IF NOT EXISTS caliber         TEXT,
+        ADD COLUMN IF NOT EXISTS origin_country  TEXT,
+        ADD COLUMN IF NOT EXISTS customs_ref     TEXT,
+        ADD COLUMN IF NOT EXISTS arrival_date    DATE,
+        ADD COLUMN IF NOT EXISTS etd             DATE,
+        ADD COLUMN IF NOT EXISTS eta             DATE,
+        ADD COLUMN IF NOT EXISTS transport_type  TEXT,
+        ADD COLUMN IF NOT EXISTS net_weight_box  NUMERIC,
+        ADD COLUMN IF NOT EXISTS total_pallets   INTEGER,
+        ADD COLUMN IF NOT EXISTS pallet_type     TEXT,
+        ADD COLUMN IF NOT EXISTS grade           TEXT,
+        ADD COLUMN IF NOT EXISTS size_range      TEXT,
+        ADD COLUMN IF NOT EXISTS special_notes   TEXT,
+        ADD COLUMN IF NOT EXISTS tracking_number      TEXT,
+        ADD COLUMN IF NOT EXISTS container_number     TEXT,
+        ADD COLUMN IF NOT EXISTS seawaybill_number    TEXT,
+        ADD COLUMN IF NOT EXISTS vessel_name          TEXT,
+        ADD COLUMN IF NOT EXISTS flight_number        TEXT,
+        ADD COLUMN IF NOT EXISTS driver_name          TEXT,
+        ADD COLUMN IF NOT EXISTS driver_phone         TEXT
+    `)
     console.log('[migrate] All migrations applied successfully')
   } catch (e) {
     console.error('[migrate] Migration error:', e.message)

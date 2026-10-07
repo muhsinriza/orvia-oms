@@ -54,80 +54,113 @@ router.get('/:id', async (req, res) => {
 // POST /purchase-orders
 router.post('/', async (req, res) => {
   const {
+    purchase_type,
     supplier_id, product_id, variety, caliber, origin,
+    origin_country, customs_ref,
     quantity_kg, price_per_unit, currency,
     payment_method, payment_term, incoterm,
-    port_loading, port_discharge, shipment_date, delivery_date,
-    transport_mode, box_type, box_weight_kg, pallets,
-    quality_notes, required_docs, notes, status,
+    port_loading, port_discharge,
+    shipment_date, arrival_date, etd, eta,
+    transport_type,
+    box_type, net_weight_box, boxes_per_pallet, total_pallets, pallet_type,
+    grade, size_range, quality_notes, required_documents, special_notes,
+    notes, status,
     tracking_number, container_number, seawaybill_number, vessel_name,
-    flight_number, driver_name, driver_phone, etd, eta,
+    flight_number, driver_name, driver_phone,
   } = req.body
   try {
     const { rows } = await db.query(`
       INSERT INTO purchase_orders
-        (supplier_id, product_id, variety, caliber, origin,
+        (purchase_type, supplier_id, product_id, variety, caliber, origin,
+         origin_country, customs_ref,
          quantity_kg, price_per_unit, currency,
          payment_method, payment_term, incoterm,
-         port_loading, port_discharge, shipment_date, delivery_date,
-         transport_mode, box_type, box_weight_kg, pallets,
-         quality_notes, required_docs, notes, status, created_by,
+         port_loading, port_discharge,
+         shipment_date, arrival_date, etd, eta,
+         transport_type,
+         box_type, net_weight_box, boxes_per_pallet, total_pallets, pallet_type,
+         grade, size_range, quality_notes, required_docs, special_notes,
+         notes, status, created_by,
          tracking_number, container_number, seawaybill_number, vessel_name,
-         flight_number, driver_name, driver_phone, etd, eta)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33)
+         flight_number, driver_name, driver_phone)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41)
       RETURNING *
-    `, [supplier_id, product_id, variety, caliber || null, origin,
-        quantity_kg, price_per_unit, currency || 'USD',
-        payment_method, payment_term, incoterm,
-        port_loading, port_discharge, shipment_date || null, delivery_date || null,
-        transport_mode, box_type, box_weight_kg || null, pallets || null,
-        quality_notes, JSON.stringify(required_docs || {}), notes,
-        status || 'draft', req.session.userId,
-        tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
-        flight_number || null, driver_name || null, driver_phone || null,
-        etd || null, eta || null])
+    `, [
+      purchase_type || 'ithalat',
+      supplier_id, product_id, variety, caliber || null, origin,
+      origin_country || null, customs_ref || null,
+      quantity_kg, price_per_unit, currency || 'USD',
+      payment_method, payment_term, incoterm,
+      port_loading, port_discharge,
+      shipment_date || null, arrival_date || null, etd || null, eta || null,
+      transport_type || null,
+      box_type, net_weight_box || null, boxes_per_pallet || null, total_pallets || null, pallet_type || null,
+      grade || null, size_range || null, quality_notes,
+      JSON.stringify(required_documents || required_docs || {}),
+      special_notes || null,
+      notes, status || 'draft', req.session.userId,
+      tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
+      flight_number || null, driver_name || null, driver_phone || null,
+    ])
     res.status(201).json(rows[0])
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası', detail: e.message }) }
 })
 
 // PUT /purchase-orders/:id
 router.put('/:id', async (req, res) => {
   const {
+    purchase_type,
     supplier_id, product_id, variety, caliber, origin,
+    origin_country, customs_ref,
     quantity_kg, price_per_unit, currency,
     payment_method, payment_term, incoterm,
-    port_loading, port_discharge, shipment_date, delivery_date,
-    transport_mode, box_type, box_weight_kg, pallets,
-    quality_notes, required_docs, notes, status,
+    port_loading, port_discharge,
+    shipment_date, arrival_date, etd, eta,
+    transport_type,
+    box_type, net_weight_box, boxes_per_pallet, total_pallets, pallet_type,
+    grade, size_range, quality_notes, required_documents, special_notes,
+    notes, status,
     tracking_number, container_number, seawaybill_number, vessel_name,
-    flight_number, driver_name, driver_phone, etd, eta,
+    flight_number, driver_name, driver_phone,
   } = req.body
   try {
     const { rows } = await db.query(`
       UPDATE purchase_orders SET
-        supplier_id=$1, product_id=$2, variety=$3, caliber=$4, origin=$5,
-        quantity_kg=$6, price_per_unit=$7, currency=$8,
-        payment_method=$9, payment_term=$10, incoterm=$11,
-        port_loading=$12, port_discharge=$13, shipment_date=$14, delivery_date=$15,
-        transport_mode=$16, box_type=$17, box_weight_kg=$18, pallets=$19,
-        quality_notes=$20, required_docs=$21, notes=$22, status=$23,
-        tracking_number=$25, container_number=$26, seawaybill_number=$27, vessel_name=$28,
-        flight_number=$29, driver_name=$30, driver_phone=$31, etd=$32, eta=$33
-      WHERE id=$24
+        purchase_type=$1, supplier_id=$2, product_id=$3, variety=$4, caliber=$5, origin=$6,
+        origin_country=$7, customs_ref=$8,
+        quantity_kg=$9, price_per_unit=$10, currency=$11,
+        payment_method=$12, payment_term=$13, incoterm=$14,
+        port_loading=$15, port_discharge=$16,
+        shipment_date=$17, arrival_date=$18, etd=$19, eta=$20,
+        transport_type=$21,
+        box_type=$22, net_weight_box=$23, boxes_per_pallet=$24, total_pallets=$25, pallet_type=$26,
+        grade=$27, size_range=$28, quality_notes=$29, required_docs=$30, special_notes=$31,
+        notes=$32, status=$33,
+        tracking_number=$35, container_number=$36, seawaybill_number=$37, vessel_name=$38,
+        flight_number=$39, driver_name=$40, driver_phone=$41
+      WHERE id=$34
       RETURNING *
-    `, [supplier_id, product_id, variety, caliber || null, origin,
-        quantity_kg, price_per_unit, currency,
-        payment_method, payment_term, incoterm,
-        port_loading, port_discharge, shipment_date || null, delivery_date || null,
-        transport_mode, box_type, box_weight_kg || null, pallets || null,
-        quality_notes, JSON.stringify(required_docs || {}), notes, status,
-        req.params.id,
-        tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
-        flight_number || null, driver_name || null, driver_phone || null,
-        etd || null, eta || null])
+    `, [
+      purchase_type || 'ithalat',
+      supplier_id, product_id, variety, caliber || null, origin,
+      origin_country || null, customs_ref || null,
+      quantity_kg, price_per_unit, currency,
+      payment_method, payment_term, incoterm,
+      port_loading, port_discharge,
+      shipment_date || null, arrival_date || null, etd || null, eta || null,
+      transport_type || null,
+      box_type, net_weight_box || null, boxes_per_pallet || null, total_pallets || null, pallet_type || null,
+      grade || null, size_range || null, quality_notes,
+      JSON.stringify(required_documents || required_docs || {}),
+      special_notes || null,
+      notes, status,
+      req.params.id,
+      tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
+      flight_number || null, driver_name || null, driver_phone || null,
+    ])
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
     res.json(rows[0])
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası', detail: e.message }) }
 })
 
 // PATCH /purchase-orders/:id/status
