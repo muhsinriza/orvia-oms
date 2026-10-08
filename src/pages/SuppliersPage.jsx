@@ -8,7 +8,7 @@ import { Search, Plus, Edit2, Trash2 } from 'lucide-react'
 const EMPTY = { name:'', country:'', city:'', address:'', contact_name:'', email:'', phone:'', tax_number:'', notes:'' }
 
 export default function SuppliersPage() {
-  const { showToast } = useToast()
+  const showToast = useToast()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')

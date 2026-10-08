@@ -203,7 +203,7 @@ export default function PurchasingPage() {
                     <span className={`ml-auto badge badge-${o.status} text-xs`}>{STATUS_TR[o.status] || o.status}</span>
                   </div>
                   <div className="text-sm text-gray-700 truncate">{o.supplier_name || '—'}</div>
-                  <div className="text-xs text-gray-400 truncate">{o.product_name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</div>
+                  <div className="text-xs text-gray-400 truncate">{o.product_name || o.variety || '—'}{o.variety && o.product_name ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</div>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs text-gray-500">{Number(o.quantity_kg).toLocaleString('tr-TR')} kg · {Number(o.quantity_kg * o.price_per_unit).toLocaleString('tr-TR', {maximumFractionDigits:0})} {o.currency}</span>
                     <div className="flex gap-1">
@@ -241,7 +241,7 @@ export default function PurchasingPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-700">{o.supplier_name || '—'}</td>
-                      <td className="px-4 py-3 text-gray-700">{o.product_name || '—'}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
+                      <td className="px-4 py-3 text-gray-700">{o.product_name || o.variety || '—'}{o.variety && o.product_name ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
                       <td className="px-4 py-3 text-right text-gray-700">{Number(o.quantity_kg).toLocaleString('tr-TR')} kg</td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900">
                         {Number(o.quantity_kg * o.price_per_unit).toLocaleString('tr-TR', {minimumFractionDigits:2,maximumFractionDigits:2})} {o.currency}
