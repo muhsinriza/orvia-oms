@@ -3,7 +3,7 @@ import { api } from '../lib/api'
 import Modal from '../components/ui/Modal'
 import { useToast } from '../components/ui/Toast'
 import { useAuth } from '../hooks/useAuth'
-import { Search, Plus, Edit2, Trash2 } from 'lucide-react'
+import { Search, Plus, Edit2, Trash2, Copy } from 'lucide-react'
 
 const UNITS = ['kg','kutu','adet','palet']
 const UNIT_TR = { kg:'kg', kutu:'Kutu', adet:'Adet', palet:'Palet' }
@@ -17,7 +17,7 @@ const EMPTY = {
 
 export default function ProductsPage() {
   const { user } = useAuth()
-  const { showToast } = useToast()
+  const showToast = useToast()
   const isAdmin = user?.role === 'admin'
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -46,6 +46,18 @@ export default function ProductsPage() {
   })
 
   function openAdd() { setEditing(null); setForm(EMPTY); setModalOpen(true) }
+  function openCopy(item) {
+    setEditing(null)
+    setForm({
+      ...EMPTY, ...item,
+      name: `${item.name} (Kopya)`,
+      box_net_kg:      item.box_net_kg      ?? '',
+      box_gross_kg:    item.box_gross_kg    ?? '',
+      units_per_box:   item.units_per_box   ?? '',
+      boxes_per_pallet:item.boxes_per_pallet ?? '',
+    })
+    setModalOpen(true)
+  }
   function openEdit(item) {
     setEditing(item)
     setForm({ ...EMPTY, ...item,
@@ -132,6 +144,7 @@ export default function ProductsPage() {
                   <div className="flex items-center gap-1 shrink-0">
                     <span className={item.is_active ? 'badge-completed' : 'badge-cancelled'}>{item.is_active ? 'Aktif' : 'Pasif'}</span>
                     {isAdmin && <>
+                      <button className="btn-ghost px-2 py-1" title="Kopyala" onClick={()=>openCopy(item)}><Copy size={14}/></button>
                       <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(item)}><Edit2 size={14}/></button>
                       <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(item)}><Trash2 size={14}/></button>
                     </>}
@@ -170,6 +183,7 @@ export default function ProductsPage() {
                       {isAdmin && (
                         <td className="px-4 py-3">
                           <div className="flex gap-1">
+                            <button className="btn-ghost px-2 py-1" title="Kopyala" onClick={()=>openCopy(item)}><Copy size={13}/></button>
                             <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(item)}><Edit2 size={13}/></button>
                             <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(item)}><Trash2 size={13}/></button>
                           </div>
