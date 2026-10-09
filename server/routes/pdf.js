@@ -457,13 +457,20 @@ function sigHTML (showBuyer, electronic) {
       <div class="sig-title">Name &amp; Title</div>
     </div>` : ''
   const sellerSig = electronic ? `
-    <div class="sig-box" style="background:#f0fdf4;border:1px solid #86efac;border-radius:4px;padding:6px 10px;">
-      <div class="sig-label" style="color:#166534;">Seller / Authorized Signature</div>
-      <div style="height:2mm"></div>
-      <div style="font-size:7.5pt;color:#166534;font-style:italic;margin-bottom:3px;">✦ Electronically Authorized</div>
-      <div class="sig-name" style="color:#14532d;">${CO.rep}</div>
-      <div class="sig-title" style="color:#166534;">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
-      <div style="font-size:6.5pt;color:#4ade80;margin-top:4px;font-style:italic;">This document has been electronically authorized and is legally valid without a handwritten signature.</div>
+    <div style="border-top:2px solid #0a5c3a;padding-top:3mm;">
+      <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#6b7280;margin-bottom:2mm;">Seller / Authorized Signature</div>
+      <div style="display:flex;align-items:flex-start;gap:3mm;">
+        <div style="flex:1;">
+          <div style="font-size:6.5pt;font-weight:600;color:#1d4ed8;letter-spacing:0.2px;margin-bottom:1.5mm;">⬡ &nbsp;ELECTRONICALLY AUTHORIZED</div>
+          <div style="font-size:8pt;font-weight:700;color:#111827;">${CO.rep}</div>
+          <div style="font-size:6.5pt;color:#6b7280;margin-top:0.5mm;">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
+        </div>
+        <div style="flex:1;font-size:5.5pt;color:#6b7280;line-height:1.7;text-align:right;padding-top:0.5mm;">
+          Authorized via Orvia OMS platform<br>
+          Valid without handwritten signature<br>
+          <span style="color:#1d4ed8;font-weight:600;">orviaoms.com</span>
+        </div>
+      </div>
     </div>` : `
     <div class="sig-box">
       <div class="sig-label">Seller / Authorized Signature</div>
@@ -598,10 +605,18 @@ ${shipmentInfoHTML(so)}
 ${invoiceGoodsTableHTML(orderItems, so)}
 ${qualitySection}
 ${bankHTML()}
-<div style="margin-top:6mm;padding:5px 10px;border-top:1px solid #e5e7eb;text-align:center;font-size:6.5pt;color:#6b7280;line-height:1.6;">
-  Bu belge, <strong style="color:#374151;">Orvia OMS</strong> tarafından elektronik olarak hazırlanmış ve yetkilendirilmiştir. &nbsp;·&nbsp;
-  This document has been electronically prepared and authorized by Orvia OMS. &nbsp;·&nbsp;
-  © ${new Date().getFullYear()} Orvia OMS · orviaoms.com
+<div style="margin:4mm 0 3mm;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:3mm;padding:3mm 4mm;background:#f8faff;border:1px solid #dbeafe;border-radius:3px;">
+  <div style="width:7mm;height:7mm;background:#1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+    <span style="color:#fff;font-size:8pt;font-weight:800;line-height:1;">✓</span>
+  </div>
+  <div>
+    <div style="font-size:7pt;font-weight:700;color:#1e3a8a;letter-spacing:0.2px;">Elektronik Belge Beyanı &nbsp;/&nbsp; Electronic Document Declaration</div>
+    <div style="font-size:6pt;color:#3b5ba5;margin-top:1mm;line-height:1.6;">
+      Bu belge <strong>Orvia OMS</strong> sistemi tarafından elektronik olarak oluşturulmuş ve yetkilendirilmiştir.
+      &nbsp;·&nbsp; This document has been electronically generated and authorized by the <strong>Orvia OMS</strong> platform.
+      &nbsp;·&nbsp; © ${new Date().getFullYear()} Orvia OMS &nbsp;·&nbsp; orviaoms.com
+    </div>
+  </div>
 </div>
 ${sigHTML(false, true)}
 `)
