@@ -492,57 +492,42 @@ function sigHTML (showBuyer, electronic) {
 </div>`
   }
 
-  // Electronic authorization block — letterhead / corporate signature style
-  const year = new Date().getFullYear()
+  // Electronic authorization block — modern clean design
+  const now = new Date()
+  const sigId = 'ORV-' + now.getFullYear() + '-' + Math.random().toString(36).toUpperCase().slice(2, 8)
+  const issuedAt = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) +
+    ', ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', timeZone:'Europe/Istanbul' }) + ' UTC+3'
   return `
-<div class="auth-block">
-  <div class="auth-inner">
-    <div class="auth-signatory">
-      <div class="auth-sig-eyebrow">Authorized Signatory</div>
-      <div class="auth-sig-name">${CO.rep}</div>
-      <div class="auth-sig-role">${CO.title}</div>
-      <div class="auth-sig-role">${CO.short}</div>
-      <div class="auth-sig-line"></div>
-      <div style="font-size:5pt;color:#6b7280;">Electronically signed &nbsp;·&nbsp; ${year}</div>
+<div style="background:linear-gradient(135deg,#f0f7f4 0%,#ffffff 60%);border:1px solid #d1e7dc;border-radius:3px;padding:4.5mm 5.5mm;margin-top:4mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+  <div style="display:flex;align-items:flex-start;gap:3.5mm;">
+    <div style="flex-shrink:0;width:9.5mm;height:9.5mm;background:#0a5c3a;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <div class="auth-divider"></div>
-    <div class="auth-declaration">
-      <div class="auth-decl-title">Electronic Document Declaration</div>
-      <div class="auth-decl-text">
-        Bu belge <strong style="color:#111827;">Orvia OMS</strong> platformu tarafından elektronik olarak oluşturulmuş ve yetkilendirilmiştir.
-        El yazısı imza aranmaksızın geçerlidir.
-      </div>
-      <div class="auth-decl-text">
-        This document has been electronically generated and authorized by the <strong style="color:#111827;">Orvia OMS</strong> platform.
-        Valid without a handwritten signature.
+    <div style="flex:1;">
+      <div style="font-size:5.5pt;font-weight:700;color:#0a5c3a;letter-spacing:2px;text-transform:uppercase;margin-bottom:1.2mm;">Electronically Authorized</div>
+      <div style="font-size:8pt;font-weight:700;color:#111827;margin-bottom:0.8mm;">${CO.name}</div>
+      <div style="font-size:6pt;color:#6b7280;">Tax No: ${CO.tax}</div>
+    </div>
+    <div style="flex-shrink:0;text-align:right;padding-top:0.5mm;">
+      <div style="font-size:5pt;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;">Authorized by</div>
+      <div style="font-size:7.5pt;font-weight:700;color:#111827;white-space:nowrap;">${CO.rep}</div>
+      <div style="font-size:6pt;color:#6b7280;white-space:nowrap;">${CO.title}</div>
+    </div>
+  </div>
+  <div style="margin-top:3mm;border-top:1px solid #e5e7eb;padding-top:2.5mm;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2mm;">
+      <span style="font-size:5.5pt;color:#9ca3af;">This document has been electronically generated and authorized by the Orvia OMS platform. Valid without handwritten signature.</span>
+      <div style="white-space:nowrap;margin-left:3mm;text-align:right;">
+        <div style="font-size:5.5pt;font-weight:700;color:#0a5c3a;">orviaoms.com</div>
+        <div style="font-size:5.5pt;font-weight:700;color:#0a5c3a;">orviatropical.com</div>
       </div>
     </div>
-    <div class="auth-divider"></div>
-    <div class="auth-stamp">
-      <svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg" style="-webkit-print-color-adjust:exact;print-color-adjust:exact;">
-        <!-- Outer ring -->
-        <circle cx="55" cy="55" r="52" stroke="#0a5c3a" stroke-width="1.8"/>
-        <!-- Inner ring -->
-        <circle cx="55" cy="55" r="43" stroke="#0a5c3a" stroke-width="0.8" stroke-dasharray="2 2"/>
-        <!-- Company name arc — 190°→350° CW large arc over top, r=48 -->
-        <path id="topArc" d="M 7.7,46.7 A 48,48 0 1,1 102.3,46.7" fill="none"/>
-        <text font-size="4.0" font-weight="700" letter-spacing="0.05" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
-          <textPath href="#topArc" startOffset="50%" text-anchor="middle">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</textPath>
-        </text>
-        <!-- Bottom arc — ANTALYA · TÜRKİYE: 10°→170° CW small arc, r=45 -->
-        <path id="botArc" d="M 99.3,62.8 A 45,45 0 0,1 10.7,62.8" fill="none"/>
-        <text font-size="5" font-weight="600" letter-spacing="0.8" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
-          <textPath href="#botArc" startOffset="50%" text-anchor="middle">ANTALYA  ·  TÜRKİYE</textPath>
-        </text>
-        <!-- Divider lines -->
-        <line x1="24" y1="37" x2="86" y2="37" stroke="#0a5c3a" stroke-width="0.6"/>
-        <line x1="24" y1="75" x2="86" y2="75" stroke="#0a5c3a" stroke-width="0.6"/>
-        <!-- Tax No above star -->
-        <text x="55" y="52" text-anchor="middle" font-size="5.5" font-weight="600" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">TAX NO: 6481831271</text>
-        <!-- Center star -->
-        <text x="55" y="69" text-anchor="middle" font-size="20" fill="#0a5c3a" font-family="serif">✦</text>
-      </svg>
-      <div class="auth-stamp-year">orviaoms.com</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;background:#f8faf9;border:1px solid #d1e7dc;border-radius:2px;padding:1.5mm 3mm;">
+      <div style="display:flex;align-items:center;gap:2mm;">
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><rect x="0.5" y="0.5" width="7" height="7" rx="1" stroke="#0a5c3a" stroke-width="0.7"/><path d="M1.8 4L3.2 5.5L6.2 2.5" stroke="#0a5c3a" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font-size:5.5pt;font-weight:700;color:#0a5c3a;letter-spacing:0.5px;">Signature ID: ${sigId}</span>
+      </div>
+      <span style="font-size:5pt;color:#9ca3af;">Issued: ${issuedAt}</span>
     </div>
   </div>
 </div>`
