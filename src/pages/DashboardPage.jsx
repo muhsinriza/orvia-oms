@@ -173,7 +173,10 @@ export default function DashboardPage() {
             {recent.filter(r => r.type === 'sales').slice(0, 5).map(r => (
               <Link key={r.id} to={`/sales/${r.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors">
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900">{r.party_no}</div>
+                  <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                    {r.party_no}
+                    {r.lot_no && <span className="text-xs font-mono text-primary-600 bg-primary-50 px-1.5 py-0.5 rounded">{r.lot_no}</span>}
+                  </div>
                   <div className="text-xs text-gray-400 truncate">{r.party_name} · {r.product_name}</div>
                 </div>
                 <span className={`badge badge-${r.status}`}>{STATUS_TR[r.status] || r.status}</span>

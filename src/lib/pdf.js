@@ -15,14 +15,20 @@ async function downloadPDF(endpoint, filename) {
   URL.revokeObjectURL(url)
 }
 
+// Dosya adı: ihracat sonrası parti no + müşteri ilk iki kelime + belge adı
+function soFilename(so, docLabel) {
+  const safe = s => (s || '').replace(/[^a-zA-Z0-9_\-]/g, '').replace(/_{2,}/g, '_')
+  const lotPart  = safe(so.lot_no || so.party_no || 'doc')
+  const custPart = safe((so.customer_name || '').split(/\s+/).slice(0, 2).join('_'))
+  return `${lotPart}_${custPart}_${docLabel}.pdf`
+}
+
 export function generateSalesInvoicePDF(so) {
-  const no = so.party_no || 'invoice'
-  return downloadPDF(`/api/pdf/invoice/${so.id}`, `Invoice_${no}.pdf`)
+  return downloadPDF(`/api/pdf/invoice/${so.id}`, soFilename(so, 'CommercialInvoice'))
 }
 
 export function generatePackingListPDF(so) {
-  const no = so.party_no || 'packing'
-  return downloadPDF(`/api/pdf/packing-list/${so.id}`, `PackingList_${no}.pdf`)
+  return downloadPDF(`/api/pdf/packing-list/${so.id}`, soFilename(so, 'PackingList'))
 }
 
 export function generateSalesAgreementPDF(so) {

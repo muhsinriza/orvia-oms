@@ -281,7 +281,7 @@ export default function SalesPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    {['Party No','Tip','Müşteri','Ürün','Miktar (kg)','Fiyat','Para','Durum','Tarih','İşlemler'].map(h=>(
+                    {['Party No','Parti No (İhr.)','Tip','Müşteri','Ürün','Miktar (kg)','Fiyat','Para','Durum','Tarih','İşlemler'].map(h=>(
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -291,6 +291,9 @@ export default function SalesPage() {
                     <tr key={o.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">
                         <Link to={`/sales/${o.id}`} className="hover:underline">{o.party_no}</Link>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-sm text-gray-700 whitespace-nowrap">
+                        {o.lot_no || <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${

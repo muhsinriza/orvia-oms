@@ -134,6 +134,14 @@ function DocumentsSection({ order }) {
     }
   }
 
+  // Dosya adı: ihracat sonrası parti no + müşteri ilk iki kelime + belge adı
+  function docFilename(docLabel) {
+    const lotPart = order.lot_no || order.party_no || 'doc'
+    const custPart = (order.customer_name || '').split(/\s+/).slice(0, 2).join('_') || 'customer'
+    const safe = s => s.replace(/[^a-zA-Z0-9_\-]/g, '')
+    return `${safe(lotPart)}_${safe(custPart)}_${docLabel}.pdf`
+  }
+
   const docs = [
     {
       key: 'sa',
@@ -149,7 +157,7 @@ function DocumentsSection({ order }) {
       icon: <FileText size={22} className="text-amber-600" />,
       label: 'Commercial Invoice',
       sublabel: 'Ticari fatura',
-      filename: `Invoice_${order.party_no || 'inv'}.pdf`,
+      filename: docFilename('CommercialInvoice'),
       endpoint: `/api/pdf/invoice/${order.id}`,
       always: false,
     },
@@ -158,7 +166,7 @@ function DocumentsSection({ order }) {
       icon: <Package size={22} className="text-blue-600" />,
       label: 'Packing List',
       sublabel: 'Paketleme listesi',
-      filename: `PackingList_${order.party_no || 'pl'}.pdf`,
+      filename: docFilename('PackingList'),
       endpoint: `/api/pdf/packing-list/${order.id}`,
       always: false,
     },
@@ -571,6 +579,18 @@ export default function SalesDetailPage() {
         <div className="card p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Sipariş Özeti</h2>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+            {order.lot_no && (
+              <div className="col-span-2">
+                <dt className="text-gray-500 text-xs">İhracat Sonrası Parti No</dt>
+                <dd className="font-semibold text-primary-700 font-mono">{order.lot_no}</dd>
+              </div>
+            )}
+            {order.invoice_no && (
+              <div className="col-span-2">
+                <dt className="text-gray-500 text-xs">Fatura No (İhracat Sonrası)</dt>
+                <dd className="font-semibold font-mono text-gray-800">{order.invoice_no}</dd>
+              </div>
+            )}
             <div>
               <dt className="text-gray-500 text-xs">Miktar</dt>
               <dd className="font-medium">{totalKg.toLocaleString('tr-TR')} kg</dd>

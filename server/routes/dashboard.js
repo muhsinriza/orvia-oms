@@ -24,7 +24,7 @@ router.get('/', requireAuth, async (req, res) => {
         ORDER BY po.created_at DESC LIMIT 5
       `),
       db.query(`
-        SELECT so.id, so.party_no, so.status, so.created_at,
+        SELECT so.id, so.party_no, so.lot_no, so.invoice_no, so.status, so.created_at,
                c.name AS party_name, p.name AS product_name,
                'sales' AS type
         FROM sales_orders so
