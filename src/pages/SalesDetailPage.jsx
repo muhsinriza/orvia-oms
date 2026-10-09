@@ -1094,16 +1094,16 @@ export default function SalesDetailPage() {
               <dt className="text-gray-500 text-xs">Varış Limanı</dt>
               <dd className="font-medium">{order.port_discharge || '—'}</dd>
             </div>
-            {order.shipment_date && (
+            {order.etd && (
               <div>
-                <dt className="text-gray-500 text-xs">Sevkiyat Tarihi</dt>
-                <dd className="font-medium">{new Date(order.shipment_date).toLocaleDateString('tr-TR')}</dd>
+                <dt className="text-gray-500 text-xs">Est. ETD</dt>
+                <dd className="font-medium">{new Date(order.etd).toLocaleDateString('en-GB')}</dd>
               </div>
             )}
-            {order.delivery_date && (
+            {order.eta && (
               <div>
-                <dt className="text-gray-500 text-xs">Teslim Tarihi</dt>
-                <dd className="font-medium">{new Date(order.delivery_date).toLocaleDateString('tr-TR')}</dd>
+                <dt className="text-gray-500 text-xs">Est. ETA</dt>
+                <dd className="font-medium">{new Date(order.eta).toLocaleDateString('en-GB')}</dd>
               </div>
             )}
             {order.payment_method && (
