@@ -153,10 +153,10 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .tc-num { font-weight:700; color:#0a5c3a; }
 
 /* PAGE FOOTER */
-.page-footer { margin-top:auto; padding-top:2.5mm; border-top:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between; gap:3mm; }
-.page-footer-logo { font-size:7pt; font-weight:800; color:#0a5c3a; letter-spacing:2px; white-space:nowrap; }
-.page-footer-text { font-size:5.5pt; color:#9ca3af; text-align:center; flex:1; }
-.page-footer-right { font-size:5.5pt; color:#9ca3af; text-align:right; white-space:nowrap; }
+.page-footer { margin-top:auto; padding-top:2.5mm; border-top:2px solid #0a5c3a; display:flex; align-items:center; justify-content:space-between; gap:3mm; }
+.page-footer-logo { font-size:8pt; font-weight:800; color:#0a5c3a; letter-spacing:3px; white-space:nowrap; }
+.page-footer-text { font-size:5.5pt; color:#9ca3af; text-align:center; flex:1; line-height:1.6; }
+.page-footer-right { font-size:5.5pt; color:#9ca3af; text-align:right; white-space:nowrap; line-height:1.6; }
 
 /* PACKAGE STRIP */
 .pkg-strip { background:#f0fdf4; border:1px solid #bbf7d0; display:flex; gap:0; border-radius:2px; overflow:hidden; margin-bottom:3mm; }
@@ -195,8 +195,11 @@ ${CSS}
   <div class="page-body">${body}</div>
   <div class="page-footer">
     <div class="page-footer-logo">ORVIA</div>
-    <div class="page-footer-text">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ. &nbsp;·&nbsp; Electronic Issue &nbsp;·&nbsp; Valid without handwritten signature</div>
-    <div class="page-footer-right">orviaoms.com</div>
+    <div class="page-footer-text">
+      ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.<br>
+      Electronic Issue &nbsp;·&nbsp; This document is electronically generated and valid without handwritten signature
+    </div>
+    <div class="page-footer-right">Powered by<br>orviaoms.com</div>
   </div>
 </div>
 </body></html>`
@@ -464,13 +467,13 @@ function sigHTML (showBuyer, electronic) {
       <div class="sig-title">Name &amp; Title</div>
     </div>` : ''
   const sellerSig = electronic ? `
-    <div style="border-top:2px solid #0a5c3a;padding-top:3mm;">
-      <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#6b7280;margin-bottom:2.5mm;">Seller / Authorized Signature</div>
-      <div style="font-size:8.5pt;font-weight:700;color:#111827;margin-bottom:0.5mm;">${CO.rep}</div>
-      <div style="font-size:6.5pt;color:#374151;">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
-      <div style="margin-top:2mm;display:inline-flex;align-items:center;gap:1.5mm;background:#f0fdf4;border:1px solid #86efac;border-radius:2px;padding:1mm 2.5mm;">
-        <span style="font-size:7pt;color:#16a34a;line-height:1;">✦</span>
-        <span style="font-size:6pt;font-weight:700;color:#15803d;letter-spacing:0.3px;text-transform:uppercase;">Electronically Authorized · Orvia OMS</span>
+    <div class="sig-box">
+      <div class="sig-label">Seller / Authorized Signature</div>
+      <div class="sig-name">${CO.rep}</div>
+      <div class="sig-title">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
+      <div style="margin-top:2.5mm;display:inline-flex;align-items:center;gap:1.5mm;background:#f0fdf4;border:1px solid #86efac;border-radius:2px;padding:0.8mm 2mm;">
+        <span style="font-size:6.5pt;color:#16a34a;">✦</span>
+        <span style="font-size:5.5pt;font-weight:700;color:#15803d;letter-spacing:0.4px;text-transform:uppercase;">Electronically Authorized · Orvia OMS</span>
       </div>
     </div>` : `
     <div class="sig-box">
