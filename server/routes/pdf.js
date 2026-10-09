@@ -525,12 +525,12 @@ function sigHTML (showBuyer, electronic) {
         <!-- Inner ring -->
         <circle cx="55" cy="55" r="43" stroke="#0a5c3a" stroke-width="0.8" stroke-dasharray="2 2"/>
         <!-- Company name arc — top (ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.) -->
-        <path id="topArc" d="M 4,55 A 51,51 0 0,1 106,55" fill="none"/>
+        <path id="topArc" d="M 10,25 A 51,51 0 0,1 100,25" fill="none"/>
         <text font-size="4.5" font-weight="700" letter-spacing="0.2" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
           <textPath href="#topArc" startOffset="50%" text-anchor="middle">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</textPath>
         </text>
         <!-- Bottom arc — ANTALYA · TÜRKİYE -->
-        <path id="botArc" d="M 7,57 A 48,48 0 0,0 103,57" fill="none"/>
+        <path id="botArc" d="M 12,88 A 48,48 0 0,0 98,88" fill="none"/>
         <text font-size="5" font-weight="600" letter-spacing="0.8" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
           <textPath href="#botArc" startOffset="50%" text-anchor="middle">ANTALYA  ·  TÜRKİYE</textPath>
         </text>
