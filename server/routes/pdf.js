@@ -302,7 +302,7 @@ function shipmentInfoHTML (so) {
     <div class="info-cell"><div class="info-label">SA Number</div><div class="info-value">${val(so.sa_number || so.party_no)}</div></div>
     <div class="info-cell"><div class="info-label">Invoice No</div><div class="info-value">${val(so.invoice_no || so.party_no)}</div></div>
     <div class="info-cell"><div class="info-label">Lot / Party No</div><div class="info-value">${val(so.lot_no)}</div></div>
-    <div class="info-cell"><div class="info-label">Shipment Date</div><div class="info-value">${fmtDate(so.shipment_date)}</div></div>
+    <div class="info-cell"><div class="info-label">Vessel Name</div><div class="info-value">${val(so.vessel_name)}</div></div>
   </div>
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(so.port_loading)}</div></div>
@@ -314,15 +314,8 @@ function shipmentInfoHTML (so) {
     <div class="info-cell"><div class="info-label">Payment Terms</div><div class="info-value">${val(so.payment_term)}</div></div>
     <div class="info-cell"><div class="info-label">Payment Method</div><div class="info-value">${val(so.payment_method)}</div></div>
     <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(so.currency)}</div></div>
-    <div class="info-cell"><div class="info-label">Delivery Date</div><div class="info-value">${fmtDate(so.delivery_date)}</div></div>
-  </div>
-  ${(so.container_number || so.vessel_name || so.seawaybill_number || so.tracking_number) ? `
-  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
-    <div class="info-cell"><div class="info-label">Vessel Name</div><div class="info-value">${val(so.vessel_name)}</div></div>
-    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
-    <div class="info-cell"><div class="info-label">ETD / ETA</div><div class="info-value">${fmtDate(so.etd)} / ${fmtDate(so.eta)}</div></div>
-  </div>` : ''}
+  </div>
 </div>`
 }
 
