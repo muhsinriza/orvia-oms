@@ -519,28 +519,28 @@ function sigHTML (showBuyer, electronic) {
     </div>
     <div class="auth-divider"></div>
     <div class="auth-stamp">
-      <svg width="84" height="84" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg" style="-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+      <svg width="110" height="110" viewBox="0 0 110 110" fill="none" xmlns="http://www.w3.org/2000/svg" style="-webkit-print-color-adjust:exact;print-color-adjust:exact;">
         <!-- Outer ring -->
-        <circle cx="42" cy="42" r="40" stroke="#0a5c3a" stroke-width="1.8"/>
+        <circle cx="55" cy="55" r="52" stroke="#0a5c3a" stroke-width="1.8"/>
         <!-- Inner ring -->
-        <circle cx="42" cy="42" r="33" stroke="#0a5c3a" stroke-width="0.8" stroke-dasharray="2 2"/>
+        <circle cx="55" cy="55" r="43" stroke="#0a5c3a" stroke-width="0.8" stroke-dasharray="2 2"/>
         <!-- Company name arc — top (ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.) -->
-        <path id="topArc" d="M 4,42 A 38,38 0 0,1 80,42" fill="none"/>
-        <text font-size="5" font-weight="700" letter-spacing="0.8" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
+        <path id="topArc" d="M 4,55 A 51,51 0 0,1 106,55" fill="none"/>
+        <text font-size="4.5" font-weight="700" letter-spacing="0.2" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
           <textPath href="#topArc" startOffset="50%" text-anchor="middle">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</textPath>
         </text>
         <!-- Bottom arc — ANTALYA · TÜRKİYE -->
-        <path id="botArc" d="M 6,44 A 36,36 0 0,0 78,44" fill="none"/>
+        <path id="botArc" d="M 7,57 A 48,48 0 0,0 103,57" fill="none"/>
         <text font-size="5" font-weight="600" letter-spacing="0.8" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
           <textPath href="#botArc" startOffset="50%" text-anchor="middle">ANTALYA  ·  TÜRKİYE</textPath>
         </text>
         <!-- Divider lines -->
-        <line x1="18" y1="28" x2="66" y2="28" stroke="#0a5c3a" stroke-width="0.6"/>
-        <line x1="18" y1="58" x2="66" y2="58" stroke="#0a5c3a" stroke-width="0.6"/>
+        <line x1="24" y1="37" x2="86" y2="37" stroke="#0a5c3a" stroke-width="0.6"/>
+        <line x1="24" y1="75" x2="86" y2="75" stroke="#0a5c3a" stroke-width="0.6"/>
         <!-- Tax No above star -->
-        <text x="42" y="39" text-anchor="middle" font-size="5" font-weight="600" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">VKN: 6481831271</text>
+        <text x="55" y="52" text-anchor="middle" font-size="5.5" font-weight="600" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">TAX NO: 6481831271</text>
         <!-- Center star -->
-        <text x="42" y="53" text-anchor="middle" font-size="16" fill="#0a5c3a" font-family="serif">✦</text>
+        <text x="55" y="69" text-anchor="middle" font-size="20" fill="#0a5c3a" font-family="serif">✦</text>
       </svg>
       <div class="auth-stamp-year">orviaoms.com</div>
     </div>
