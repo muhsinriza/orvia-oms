@@ -106,20 +106,20 @@ function StatusBar({ status, onStatusChange }) {
 
 // ── PACKING LIST MODAL ───────────────────────────────────────────────────────
 const PALLET_FIELDS = [
-  { key: 'label',   label: 'Palet / Kalem', width: '120px' },
-  { key: 'product', label: 'Ürün',          width: '140px' },
-  { key: 'variety', label: 'Çeşit / Kalip', width: '120px' },
-  { key: 'origin',  label: 'Menşei',        width: '90px'  },
-  { key: 'boxType', label: 'Koli Tipi',     width: '100px' },
-  { key: 'boxes',   label: 'Koli',          width: '70px', num: true },
-  { key: 'netBox',  label: 'Net/Koli (kg)', width: '90px', num: true },
-  { key: 'net',     label: 'Net (kg)',       width: '80px', num: true, auto: true },
-  { key: 'gross',   label: 'Brüt (kg)',     width: '80px', num: true, auto: true },
+  { key: 'label',   label: 'Pallet',          width: '110px' },
+  { key: 'product', label: 'Product',          width: '130px' },
+  { key: 'variety', label: 'Size',             width: '110px' },
+  { key: 'origin',  label: 'Origin',           width: '85px'  },
+  { key: 'boxType', label: 'Box Type',         width: '100px' },
+  { key: 'boxes',   label: 'Box Amount',       width: '80px', num: true },
+  { key: 'netBox',  label: 'Net Kg/Box',       width: '85px', num: true },
+  { key: 'net',     label: 'Net Kg/Pallet',    width: '90px', num: true, auto: true },
+  { key: 'gross',   label: 'Gross Kg/Pallet',  width: '95px', num: true, auto: true },
 ]
 
 function makeRow(idx, defaults = {}) {
   return {
-    label:   defaults.label   ?? `Palet ${idx + 1}`,
+    label:   defaults.label   ?? `Pallet ${idx + 1}`,
     product: defaults.product ?? '',
     variety: defaults.variety ?? '',
     origin:  defaults.origin  ?? '',
@@ -245,7 +245,7 @@ function PackingListModal({ order, filename, onClose }) {
         origin:  last.origin  || '',
         boxType: last.boxType || '',
         netBox:  last.netBox  || '',
-        label:   `Palet ${prev.length + 1}`,
+        label:   `Pallet ${prev.length + 1}`,
       })]
     })
     setPalletCount(c => c + 1)
@@ -259,7 +259,7 @@ function PackingListModal({ order, filename, onClose }) {
 
   function duplicateRow(idx) {
     setRows(prev => {
-      const copy = { ...prev[idx], label: `Palet ${prev.length + 1}` }
+      const copy = { ...prev[idx], label: `Pallet ${prev.length + 1}` }
       const next = [...prev]
       next.splice(idx + 1, 0, copy)
       return next
@@ -320,14 +320,14 @@ function PackingListModal({ order, filename, onClose }) {
 
   // Keyboard shortcut hint bar
   const shortcuts = [
-    ['Tab / Shift+Tab', 'Sütun geç'],
-    ['Enter', 'Alt satır'],
-    ['Alt+↓/↑', 'Satır atla'],
-    ['Ctrl+N', 'Yeni satır'],
-    ['Ctrl+D', 'Kopyala'],
-    ['Ctrl+Shift+F', 'Sütunu doldur'],
-    ['Ctrl+Delete', 'Satırı sil'],
-    ['Esc', 'Kapat'],
+    ['Tab / Shift+Tab', 'next column'],
+    ['Enter', 'next row'],
+    ['Alt+↓/↑', 'jump row'],
+    ['Ctrl+N', 'new row'],
+    ['Ctrl+D', 'duplicate'],
+    ['Ctrl+Shift+F', 'fill column'],
+    ['Ctrl+Delete', 'delete row'],
+    ['Esc', 'close'],
   ]
 
   return (
@@ -344,17 +344,17 @@ function PackingListModal({ order, filename, onClose }) {
           <div>
             <div className="flex items-center gap-3">
               <Package size={20} className="text-emerald-300" />
-              <span className="font-bold text-base tracking-tight">Packing List Düzenle</span>
+              <span className="font-bold text-base tracking-tight">Edit Packing List</span>
               <span className="text-emerald-300 text-sm font-normal">{order.party_no || order.invoice_no || ''}</span>
             </div>
-            <p className="text-emerald-300 text-xs mt-0.5">Aşağıdaki tabloyu düzenledikten sonra PDF oluşturun</p>
+            <p className="text-emerald-300 text-xs mt-0.5">Edit the table below, then generate the PDF</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={addRow}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
             >
-              <Plus size={13} /> Satır Ekle <kbd className="ml-1 opacity-60 text-xs">Ctrl+N</kbd>
+              <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">Ctrl+N</kbd>
             </button>
             <button
               onClick={generate}
@@ -362,8 +362,8 @@ function PackingListModal({ order, filename, onClose }) {
               className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors disabled:opacity-50"
             >
               {generating
-                ? <><Loader2 size={15} className="animate-spin" /> Oluşturuluyor…</>
-                : <><Download size={15} /> PDF Oluştur</>}
+                ? <><Loader2 size={15} className="animate-spin" /> Generating…</>
+                : <><Download size={15} /> Generate PDF</>}
             </button>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-emerald-800 transition-colors">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -376,7 +376,7 @@ function PackingListModal({ order, filename, onClose }) {
         {/* Pallet count control */}
         <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-6 shrink-0">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Toplam Palet:</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Pallets:</label>
             <input
               type="number"
               min={1}
@@ -385,9 +385,9 @@ function PackingListModal({ order, filename, onClose }) {
               className="w-16 text-center border border-gray-300 rounded-lg px-2 py-1 text-sm font-bold text-[#0a5c3a] focus:outline-none focus:ring-2 focus:ring-emerald-400"
             />
           </div>
-          <div className="text-xs text-gray-400">Satır sayısı: <strong className="text-gray-600">{rows.length}</strong></div>
+          <div className="text-xs text-gray-400">Rows: <strong className="text-gray-600">{rows.length}</strong></div>
           <div className="ml-auto flex items-center gap-2 text-xs text-gray-400">
-            <span className="font-semibold text-gray-600">Toplam:</span>
+            <span className="font-semibold text-gray-600">Total:</span>
             <span>{totals.boxes.toFixed(0)} koli</span>
             <span>·</span>
             <span>{totals.net.toFixed(2)} kg net</span>
@@ -445,7 +445,7 @@ function PackingListModal({ order, filename, onClose }) {
                       onClick={() => removeRow(rowIdx)}
                       disabled={rows.length === 1}
                       className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-20"
-                      title="Satırı sil (Ctrl+Del)"
+                      title="Delete row (Ctrl+Del)"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -457,7 +457,7 @@ function PackingListModal({ order, filename, onClose }) {
             <tfoot>
               <tr className="border-t-2 border-[#0a5c3a]">
                 <td />
-                <td colSpan={5} className="pt-2 text-xs font-bold text-[#0a5c3a] uppercase tracking-wide">TOPLAM</td>
+                <td colSpan={5} className="pt-2 text-xs font-bold text-[#0a5c3a] uppercase tracking-wide">TOTAL</td>
                 <td className="pt-2 text-right text-sm font-bold text-[#0a5c3a] px-1">{totals.boxes.toFixed(0)}</td>
                 <td className="pt-2 px-1"/>
                 <td className="pt-2 text-right text-sm font-bold text-[#0a5c3a] px-1">{totals.net.toFixed(2)}</td>
@@ -544,7 +544,7 @@ function DocumentsSection({ order }) {
       key: 'pl',
       icon: <Package size={22} className="text-blue-600" />,
       label: 'Packing List',
-      sublabel: 'Paketleme listesi',
+      sublabel: 'Packing list',
       filename: docFilename('PackingList'),
       endpoint: `/api/pdf/packing-list/${order.id}`,
       always: false,
@@ -582,7 +582,7 @@ function DocumentsSection({ order }) {
               {active ? (
                 <span className="flex items-center gap-1 text-xs text-primary-600 font-medium">
                   {doc.key === 'pl' ? <Edit2 size={12} /> : <Download size={12} />}
-                  {doc.key === 'pl' ? 'Düzenle & İndir' : 'PDF İndir'}
+                  {doc.key === 'pl' ? 'Edit & Download' : 'Download PDF'}
                 </span>
               ) : (
                 <span className="text-xs text-gray-400">Sevk sonrası aktif</span>
