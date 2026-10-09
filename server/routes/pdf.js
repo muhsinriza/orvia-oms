@@ -881,20 +881,14 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
 
     <div class="sec-hdr">Shipment Details</div>
     <div class="meta-grid">
-      <div class="meta-cell"><div class="ml">Packing List No</div><div class="mv">${val(so.invoice_no || so.party_no)}</div></div>
-      <div class="meta-cell"><div class="ml">Invoice No</div><div class="mv">${val(so.invoice_no || so.party_no)}</div></div>
-      <div class="meta-cell"><div class="ml">SA Number</div><div class="mv">${val(so.sa_number)}</div></div>
-      <div class="meta-cell"><div class="ml">Lot / Party No</div><div class="mv">${val(so.lot_no)}</div></div>
-      <div class="meta-cell"><div class="ml">Shipment Date</div><div class="mv">${fmtDate(so.shipment_date)}</div></div>
+      <div class="meta-cell"><div class="ml">SA Number</div><div class="mv">${val(so.sa_number || so.party_no)}</div></div>
       <div class="meta-cell"><div class="ml">Incoterm</div><div class="mv">${val(so.incoterm)}</div></div>
       <div class="meta-cell"><div class="ml">Transport Mode</div><div class="mv">${val(so.transport_mode)}</div></div>
-      <div class="meta-cell"><div class="ml">ETD</div><div class="mv">${fmtDate(so.etd)}</div></div>
+      <div class="meta-cell"><div class="ml">Est. ETD</div><div class="mv">${fmtDate(so.etd)}</div></div>
       <div class="meta-cell"><div class="ml">Port of Loading</div><div class="mv">${val(so.port_loading)}</div></div>
       <div class="meta-cell"><div class="ml">Port of Discharge</div><div class="mv">${val(so.port_discharge)}</div></div>
-      <div class="meta-cell"><div class="ml">ETA</div><div class="mv">${fmtDate(so.eta)}</div></div>
-      <div class="meta-cell"><div class="ml">Delivery Date</div><div class="mv">${fmtDate(so.delivery_date)}</div></div>
-      ${so.container_number ? `<div class="meta-cell"><div class="ml">Container No</div><div class="mv">${so.container_number}</div></div>` : ''}
-      ${so.vessel_name ? `<div class="meta-cell"><div class="ml">Vessel Name</div><div class="mv">${so.vessel_name}</div></div>` : ''}
+      <div class="meta-cell"><div class="ml">Est. ETA</div><div class="mv">${fmtDate(so.eta)}</div></div>
+      <div class="meta-cell"><div class="ml">Payment Terms</div><div class="mv">${val(so.payment_term)}</div></div>
       ${so.seawaybill_number ? `<div class="meta-cell"><div class="ml">Sea Waybill No</div><div class="mv">${so.seawaybill_number}</div></div>` : ''}
     </div>
 
