@@ -402,14 +402,14 @@ function PackingListModal({ order, filename, onClose }) {
           <table className="w-full border-collapse" style={{ minWidth: '900px' }}>
             <thead>
               <tr>
-                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-2 w-8">#</th>
+                <th className="text-left text-xs font-semibold text-gray-400 tracking-wide pb-2 pr-2 w-8">#</th>
                 {PALLET_FIELDS.map(f => (
                   <th
                     key={f.key}
-                    className={`text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2 px-1 ${f.num ? 'text-right' : 'text-left'} ${f.auto ? 'text-gray-300' : ''}`}
+                    className={`text-xs font-semibold text-gray-500 tracking-wide pb-2 px-1 ${f.num ? 'text-right' : 'text-left'} ${f.auto ? 'text-gray-300' : ''}`}
                     style={{ width: f.width }}
                   >
-                    {f.label}{f.auto ? ' (oto)' : ''}
+                    {f.label.toLocaleUpperCase('en-US')}{f.auto ? ' (AUTO)' : ''}
                   </th>
                 ))}
                 <th className="w-8"></th>
