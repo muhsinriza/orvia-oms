@@ -200,7 +200,7 @@ function PackingListModal({ order, filename, onClose }) {
       }
     } else if (e.key === 'Escape') {
       onClose()
-    } else if (e.key === 'Delete' && e.ctrlKey) {
+    } else if (e.key === 'Delete' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       removeRow(rowIdx)
     } else if (e.key === 'ArrowDown' && e.altKey) {
@@ -209,16 +209,16 @@ function PackingListModal({ order, filename, onClose }) {
     } else if (e.key === 'ArrowUp' && e.altKey) {
       e.preventDefault()
       if (rowIdx > 0) getRef(rowIdx - 1, fieldIdx)?.focus()
-    } else if (e.key === 'n' && e.ctrlKey) {
+    } else if (e.key === 'n' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       addRow()
       setTimeout(() => getRef(rows.length, 0)?.focus(), 50)
-    } else if (e.key === 'd' && e.ctrlKey) {
+    } else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       // Duplicate current row
       duplicateRow(rowIdx)
       setTimeout(() => getRef(rowIdx + 1, fieldIdx)?.focus(), 50)
-    } else if (e.key === 'f' && e.ctrlKey && e.shiftKey) {
+    } else if (e.key === 'f' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
       e.preventDefault()
       // Fill column down from current row
       fillColumnDown(rowIdx, fieldIdx)
@@ -319,14 +319,15 @@ function PackingListModal({ order, filename, onClose }) {
   }), { boxes: 0, net: 0, gross: 0 })
 
   // Keyboard shortcut hint bar
+  const mod = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? '⌘' : 'Ctrl'
   const shortcuts = [
     ['Tab / Shift+Tab', 'next column'],
     ['Enter', 'next row'],
     ['Alt+↓/↑', 'jump row'],
-    ['Ctrl+N', 'new row'],
-    ['Ctrl+D', 'duplicate'],
-    ['Ctrl+Shift+F', 'fill column'],
-    ['Ctrl+Delete', 'delete row'],
+    [`${mod}+N`, 'new row'],
+    [`${mod}+D`, 'duplicate'],
+    [`${mod}+Shift+F`, 'fill column'],
+    [`${mod}+Delete`, 'delete row'],
     ['Esc', 'close'],
   ]
 
@@ -354,7 +355,7 @@ function PackingListModal({ order, filename, onClose }) {
               onClick={addRow}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
             >
-              <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">Ctrl+N</kbd>
+              <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">{mod}+N</kbd>
             </button>
             <button
               onClick={generate}
@@ -445,7 +446,7 @@ function PackingListModal({ order, filename, onClose }) {
                       onClick={() => removeRow(rowIdx)}
                       disabled={rows.length === 1}
                       className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-20"
-                      title="Delete row (Ctrl+Del)"
+                      title={`Delete row (${mod}+Del)`}
                     >
                       <Trash2 size={13} />
                     </button>
