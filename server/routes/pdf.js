@@ -86,7 +86,7 @@ function val (v) { return v || '—' }
 const CSS = `
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Inter',sans-serif; font-size:7.5pt; color:#111827; background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-.page { width:210mm; min-height:297mm; padding:8mm; display:flex; flex-direction:column; }
+.page { width:210mm; padding:8mm; display:flex; flex-direction:column; }
 .page-body { flex:1; display:flex; flex-direction:column; }
 
 /* HEADER */
@@ -1204,7 +1204,7 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
 </table>
 </div>
 ${qualitySection}
-${sigHTML(false)}
+${sigHTML(false, true)}
 `)
 
     const pdf = await htmlToPDF(html)
@@ -1407,7 +1407,7 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
 </table>
 </div>
 ${qualitySection}
-${sigHTML(false)}
+${sigHTML(false, true)}
 `)
 
     const pdf = await htmlToPDF(html)

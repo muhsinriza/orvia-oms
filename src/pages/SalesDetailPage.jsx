@@ -104,9 +104,388 @@ function StatusBar({ status, onStatusChange }) {
   )
 }
 
+// ── PACKING LIST MODAL ───────────────────────────────────────────────────────
+const PALLET_FIELDS = [
+  { key: 'label',   label: 'Palet / Kalem', width: '120px' },
+  { key: 'product', label: 'Ürün',          width: '140px' },
+  { key: 'variety', label: 'Çeşit / Kalip', width: '120px' },
+  { key: 'origin',  label: 'Menşei',        width: '90px'  },
+  { key: 'boxType', label: 'Koli Tipi',     width: '100px' },
+  { key: 'boxes',   label: 'Koli',          width: '70px', num: true },
+  { key: 'netBox',  label: 'Net/Koli (kg)', width: '90px', num: true },
+  { key: 'net',     label: 'Net (kg)',       width: '80px', num: true, auto: true },
+  { key: 'gross',   label: 'Brüt (kg)',     width: '80px', num: true, auto: true },
+]
+
+function makeRow(idx, defaults = {}) {
+  return {
+    label:   defaults.label   ?? `Palet ${idx + 1}`,
+    product: defaults.product ?? '',
+    variety: defaults.variety ?? '',
+    origin:  defaults.origin  ?? '',
+    boxType: defaults.boxType ?? '',
+    boxes:   defaults.boxes   ?? '',
+    netBox:  defaults.netBox  ?? '',
+    net:     defaults.net     ?? '',
+    gross:   defaults.gross   ?? '',
+  }
+}
+
+function computeRow(row) {
+  const boxes  = parseFloat(row.boxes)  || 0
+  const netBox = parseFloat(row.netBox) || 0
+  return {
+    ...row,
+    net:   boxes * netBox > 0 ? (boxes * netBox).toFixed(2) : row.net,
+    gross: boxes * netBox > 0 ? (boxes * netBox * 1.05).toFixed(2) : row.gross,
+  }
+}
+
+function PackingListModal({ order, filename, onClose }) {
+  const { showToast } = useToast()
+  const [rows, setRows] = useState(() => {
+    // Seed one row from order data
+    return [makeRow(0, {
+      product: order.product_name || '',
+      variety: [order.variety, order.caliber].filter(Boolean).join(' / ') || '',
+      origin:  order.origin || '',
+      boxType: order.box_type || '',
+      netBox:  order.box_weight_kg || '',
+    })]
+  })
+  const [palletCount, setPalletCount] = useState(order.pallets || rows.length || 1)
+  const [generating, setGenerating] = useState(false)
+  const inputRefs = React.useRef({})
+
+  // Register a ref for a cell input
+  function refKey(rowIdx, fieldIdx) { return `${rowIdx}_${fieldIdx}` }
+  function getRef(rowIdx, fieldIdx) { return inputRefs.current[refKey(rowIdx, fieldIdx)] }
+
+  // Move focus: Tab = next field in row, then first field of next row
+  // Shift+Tab = previous. Enter = next row same column.
+  function handleKeyDown(e, rowIdx, fieldIdx) {
+    const editable = PALLET_FIELDS.filter(f => !f.auto)
+    const editIdx  = editable.findIndex(f => f.key === PALLET_FIELDS[fieldIdx].key)
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      if (!e.shiftKey) {
+        // forward
+        if (editIdx < editable.length - 1) {
+          const nextKey = editable[editIdx + 1].key
+          const nextFieldIdx = PALLET_FIELDS.findIndex(f => f.key === nextKey)
+          getRef(rowIdx, nextFieldIdx)?.focus()
+        } else if (rowIdx < rows.length - 1) {
+          getRef(rowIdx + 1, 0)?.focus()
+        }
+      } else {
+        // backward
+        if (editIdx > 0) {
+          const prevKey = editable[editIdx - 1].key
+          const prevFieldIdx = PALLET_FIELDS.findIndex(f => f.key === prevKey)
+          getRef(rowIdx, prevFieldIdx)?.focus()
+        } else if (rowIdx > 0) {
+          const lastEditableKey = editable[editable.length - 1].key
+          const lastFieldIdx = PALLET_FIELDS.findIndex(f => f.key === lastEditableKey)
+          getRef(rowIdx - 1, lastFieldIdx)?.focus()
+        }
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      if (rowIdx < rows.length - 1) {
+        getRef(rowIdx + 1, fieldIdx)?.focus()
+      } else {
+        // Add new row and focus it
+        addRow()
+        setTimeout(() => getRef(rowIdx + 1, fieldIdx)?.focus(), 50)
+      }
+    } else if (e.key === 'Escape') {
+      onClose()
+    } else if (e.key === 'Delete' && e.ctrlKey) {
+      e.preventDefault()
+      removeRow(rowIdx)
+    } else if (e.key === 'ArrowDown' && e.altKey) {
+      e.preventDefault()
+      if (rowIdx < rows.length - 1) getRef(rowIdx + 1, fieldIdx)?.focus()
+    } else if (e.key === 'ArrowUp' && e.altKey) {
+      e.preventDefault()
+      if (rowIdx > 0) getRef(rowIdx - 1, fieldIdx)?.focus()
+    } else if (e.key === 'n' && e.ctrlKey) {
+      e.preventDefault()
+      addRow()
+      setTimeout(() => getRef(rows.length, 0)?.focus(), 50)
+    } else if (e.key === 'd' && e.ctrlKey) {
+      e.preventDefault()
+      // Duplicate current row
+      duplicateRow(rowIdx)
+      setTimeout(() => getRef(rowIdx + 1, fieldIdx)?.focus(), 50)
+    } else if (e.key === 'f' && e.ctrlKey && e.shiftKey) {
+      e.preventDefault()
+      // Fill column down from current row
+      fillColumnDown(rowIdx, fieldIdx)
+    }
+  }
+
+  function updateCell(rowIdx, key, value) {
+    setRows(prev => {
+      const next = prev.map((r, i) => i === rowIdx ? { ...r, [key]: value } : r)
+      // Auto-compute net and gross if boxes or netBox changed
+      if (key === 'boxes' || key === 'netBox') {
+        return next.map((r, i) => i === rowIdx ? computeRow(r) : r)
+      }
+      return next
+    })
+  }
+
+  function addRow() {
+    setRows(prev => {
+      const last = prev[prev.length - 1] || {}
+      return [...prev, makeRow(prev.length, {
+        product: last.product || '',
+        variety: last.variety || '',
+        origin:  last.origin  || '',
+        boxType: last.boxType || '',
+        netBox:  last.netBox  || '',
+        label:   `Palet ${prev.length + 1}`,
+      })]
+    })
+    setPalletCount(c => c + 1)
+  }
+
+  function removeRow(idx) {
+    if (rows.length === 1) return
+    setRows(prev => prev.filter((_, i) => i !== idx))
+    setPalletCount(c => Math.max(1, c - 1))
+  }
+
+  function duplicateRow(idx) {
+    setRows(prev => {
+      const copy = { ...prev[idx], label: `Palet ${prev.length + 1}` }
+      const next = [...prev]
+      next.splice(idx + 1, 0, copy)
+      return next
+    })
+    setPalletCount(c => c + 1)
+  }
+
+  function fillColumnDown(fromRow, fieldIdx) {
+    const field = PALLET_FIELDS[fieldIdx]
+    if (!field || field.auto) return
+    const value = rows[fromRow][field.key]
+    setRows(prev => prev.map((r, i) => i <= fromRow ? r : { ...r, [field.key]: value }))
+  }
+
+  async function generate() {
+    setGenerating(true)
+    try {
+      const payload = {
+        rows: rows.map(r => ({
+          ...r,
+          net:   parseFloat(r.net)   || 0,
+          gross: parseFloat(r.gross) || 0,
+          boxes: parseFloat(r.boxes) || 0,
+          netBox: parseFloat(r.netBox) || 0,
+        })),
+        palletCount,
+      }
+      const res = await fetch(`/api/pdf/packing-list-custom/${order.id}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'PDF oluşturulamadı' }))
+        throw new Error(err.error || 'PDF oluşturulamadı')
+      }
+      const blob = await res.blob()
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href     = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+      onClose()
+    } catch (e) {
+      showToast(e.message, 'error')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const totals = rows.reduce((acc, r) => ({
+    boxes: acc.boxes + (parseFloat(r.boxes) || 0),
+    net:   acc.net   + (parseFloat(r.net)   || 0),
+    gross: acc.gross + (parseFloat(r.gross) || 0),
+  }), { boxes: 0, net: 0, gross: 0 })
+
+  // Keyboard shortcut hint bar
+  const shortcuts = [
+    ['Tab / Shift+Tab', 'Sütun geç'],
+    ['Enter', 'Alt satır'],
+    ['Alt+↓/↑', 'Satır atla'],
+    ['Ctrl+N', 'Yeni satır'],
+    ['Ctrl+D', 'Kopyala'],
+    ['Ctrl+Shift+F', 'Sütunu doldur'],
+    ['Ctrl+Delete', 'Satırı sil'],
+    ['Esc', 'Kapat'],
+  ]
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }}
+      onKeyDown={e => e.key === 'Escape' && onClose()}
+    >
+      {/* Modal panel */}
+      <div className="flex flex-col bg-white w-full max-w-6xl mx-auto my-6 rounded-2xl shadow-2xl overflow-hidden" style={{ maxHeight: 'calc(100vh - 48px)' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-[#0a5c3a] text-white shrink-0">
+          <div>
+            <div className="flex items-center gap-3">
+              <Package size={20} className="text-emerald-300" />
+              <span className="font-bold text-base tracking-tight">Packing List Düzenle</span>
+              <span className="text-emerald-300 text-sm font-normal">{order.party_no || order.invoice_no || ''}</span>
+            </div>
+            <p className="text-emerald-300 text-xs mt-0.5">Aşağıdaki tabloyu düzenledikten sonra PDF oluşturun</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={addRow}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
+            >
+              <Plus size={13} /> Satır Ekle <kbd className="ml-1 opacity-60 text-xs">Ctrl+N</kbd>
+            </button>
+            <button
+              onClick={generate}
+              disabled={generating}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors disabled:opacity-50"
+            >
+              {generating
+                ? <><Loader2 size={15} className="animate-spin" /> Oluşturuluyor…</>
+                : <><Download size={15} /> PDF Oluştur</>}
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-emerald-800 transition-colors">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                <path d="M4 4L14 14M14 4L4 14" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Pallet count control */}
+        <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-6 shrink-0">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Toplam Palet:</label>
+            <input
+              type="number"
+              min={1}
+              value={palletCount}
+              onChange={e => setPalletCount(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-16 text-center border border-gray-300 rounded-lg px-2 py-1 text-sm font-bold text-[#0a5c3a] focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+          </div>
+          <div className="text-xs text-gray-400">Satır sayısı: <strong className="text-gray-600">{rows.length}</strong></div>
+          <div className="ml-auto flex items-center gap-2 text-xs text-gray-400">
+            <span className="font-semibold text-gray-600">Toplam:</span>
+            <span>{totals.boxes.toFixed(0)} koli</span>
+            <span>·</span>
+            <span>{totals.net.toFixed(2)} kg net</span>
+            <span>·</span>
+            <span>{totals.gross.toFixed(2)} kg brüt</span>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-auto flex-1 px-6 py-4">
+          <table className="w-full border-collapse" style={{ minWidth: '900px' }}>
+            <thead>
+              <tr>
+                <th className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide pb-2 pr-2 w-8">#</th>
+                {PALLET_FIELDS.map(f => (
+                  <th
+                    key={f.key}
+                    className={`text-xs font-semibold text-gray-500 uppercase tracking-wide pb-2 px-1 ${f.num ? 'text-right' : 'text-left'} ${f.auto ? 'text-gray-300' : ''}`}
+                    style={{ width: f.width }}
+                  >
+                    {f.label}{f.auto ? ' (oto)' : ''}
+                  </th>
+                ))}
+                <th className="w-8"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, rowIdx) => (
+                <tr key={rowIdx} className="group">
+                  <td className="pr-2 text-xs text-gray-300 font-mono pt-1 align-top w-8">{rowIdx + 1}</td>
+                  {PALLET_FIELDS.map((field, fieldIdx) => (
+                    <td key={field.key} className="px-1 pb-1.5 align-top" style={{ width: field.width }}>
+                      <input
+                        ref={el => { inputRefs.current[refKey(rowIdx, fieldIdx)] = el }}
+                        type={field.num ? 'number' : 'text'}
+                        step={field.num ? 'any' : undefined}
+                        readOnly={field.auto}
+                        value={row[field.key]}
+                        onChange={e => !field.auto && updateCell(rowIdx, field.key, e.target.value)}
+                        onKeyDown={e => !field.auto && handleKeyDown(e, rowIdx, fieldIdx)}
+                        onFocus={e => e.target.select()}
+                        className={`w-full border rounded-lg px-2 py-1.5 text-sm transition-all
+                          ${field.auto
+                            ? 'bg-gray-50 text-gray-400 border-gray-100 cursor-default text-right'
+                            : field.num
+                              ? 'text-right border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 focus:outline-none bg-white'
+                              : 'border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 focus:outline-none bg-white'
+                          }`}
+                        style={{ minWidth: 0 }}
+                      />
+                    </td>
+                  ))}
+                  <td className="pl-1 pb-1.5 align-top w-8">
+                    <button
+                      onClick={() => removeRow(rowIdx)}
+                      disabled={rows.length === 1}
+                      className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-20"
+                      title="Satırı sil (Ctrl+Del)"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {/* Totals footer */}
+            <tfoot>
+              <tr className="border-t-2 border-[#0a5c3a]">
+                <td />
+                <td colSpan={5} className="pt-2 text-xs font-bold text-[#0a5c3a] uppercase tracking-wide">TOPLAM</td>
+                <td className="pt-2 text-right text-sm font-bold text-[#0a5c3a] px-1">{totals.boxes.toFixed(0)}</td>
+                <td className="pt-2 px-1"/>
+                <td className="pt-2 text-right text-sm font-bold text-[#0a5c3a] px-1">{totals.net.toFixed(2)}</td>
+                <td className="pt-2 text-right text-sm font-bold text-[#0a5c3a] px-1">{totals.gross.toFixed(2)}</td>
+                <td/>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        {/* Shortcuts bar */}
+        <div className="px-6 py-2 border-t border-gray-100 bg-gray-50 shrink-0 flex flex-wrap gap-x-4 gap-y-1">
+          {shortcuts.map(([keys, desc]) => (
+            <span key={keys} className="text-xs text-gray-400">
+              <kbd className="bg-white border border-gray-200 rounded px-1 py-0.5 text-gray-500 font-mono text-xs shadow-sm">{keys}</kbd>
+              {' '}{desc}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── DOCUMENTS SECTION ─────────────────────────────────────────────────────────
 function DocumentsSection({ order }) {
   const [loading, setLoading] = useState({})
+  const [plModal, setPlModal] = useState(false)
   const { showToast } = useToast()
 
   const shippedStatuses = ['in_transit', 'arrived', 'completed', 'delivered']
@@ -187,7 +566,11 @@ function DocumentsSection({ order }) {
                   ? 'border-gray-200 hover:border-primary-300 hover:shadow-sm cursor-pointer bg-white'
                   : 'border-dashed border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed'
                 }`}
-              onClick={() => active && !isLoading && downloadPDF(doc.endpoint, doc.filename)}
+              onClick={() => {
+                if (!active || isLoading) return
+                if (doc.key === 'pl') { setPlModal(true); return }
+                downloadPDF(doc.endpoint, doc.filename)
+              }}
             >
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${active ? 'bg-gray-50' : 'bg-gray-100'}`}>
                 {isLoading ? <Loader2 size={22} className="animate-spin text-gray-400" /> : doc.icon}
@@ -198,7 +581,8 @@ function DocumentsSection({ order }) {
               </div>
               {active ? (
                 <span className="flex items-center gap-1 text-xs text-primary-600 font-medium">
-                  <Download size={12} /> PDF İndir
+                  {doc.key === 'pl' ? <Edit2 size={12} /> : <Download size={12} />}
+                  {doc.key === 'pl' ? 'Düzenle & İndir' : 'PDF İndir'}
                 </span>
               ) : (
                 <span className="text-xs text-gray-400">Sevk sonrası aktif</span>
@@ -207,6 +591,13 @@ function DocumentsSection({ order }) {
           )
         })}
       </div>
+      {plModal && (
+        <PackingListModal
+          order={order}
+          filename={docFilename('PackingList')}
+          onClose={() => setPlModal(false)}
+        />
+      )}
     </div>
   )
 }
