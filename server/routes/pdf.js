@@ -43,7 +43,7 @@ async function htmlToPDF (html) {
 // ─── Shared constants ─────────────────────────────────────────────────────────
 
 const CO = {
-  name:    'ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.',
+  name:    'ORVIA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.',
   short:   'ORVIA TROPICAL',
   address: 'Fener Mah. 1964 Sk. Hacı M Gebizli Sit. D Blok No:6/A No:3, Muratpaşa / Antalya / Türkiye',
   tax:     '6481831271 · Antalya Kurumlar V.D.',
@@ -849,7 +849,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
   <div class="doc-hdr">
     <div class="hdr-brand">
       <div class="hdr-logo">ORVIA <span>TROPICAL</span></div>
-      <div class="hdr-co">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.<br>
+      <div class="hdr-co">ORVIA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.<br>
         Fener Mah. 1964 Sk. Hacı M Gebizli Sit. D Blok No:6/A No:3, Muratpaşa / Antalya / Türkiye<br>
         Tel: +90 530 552 83 06 · www.orviatropical.com · orviaoms.com
       </div>
@@ -866,7 +866,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
     <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid #e2e8f0;margin-bottom:8px;">
       <div style="padding:8px 10px;border-right:1px solid #e2e8f0;">
         <div style="font-size:5pt;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 6px;margin:-8px -10px 6px;color:#fff;background:#0a5c3a;">Shipper / Exporter</div>
-        <div style="font-size:7.5pt;font-weight:700;color:#0a5c3a;margin:5px 0 2px;">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</div>
+        <div style="font-size:7.5pt;font-weight:700;color:#0a5c3a;margin:5px 0 2px;">ORVIA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</div>
         <div style="font-size:6pt;color:#475569;line-height:1.65;">Fener Mah. 1964 Sk. Hacı M Gebizli Sit. D Blok No:6/A No:3, Muratpaşa / Antalya / Türkiye<br>Tax No: 6481831271 · Antalya Kurumlar V.D.<br>Tel: +90 530 552 83 06 · www.orviatropical.com · orviaoms.com</div>
       </div>
       <div style="padding:8px 10px;">
@@ -942,7 +942,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
   </div>
 
   <div class="doc-footer">
-    <span>ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</span>
+    <span>ORVIA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</span>
     <span>www.orviatropical.com · orviaoms.com</span>
   </div>
 </div>
