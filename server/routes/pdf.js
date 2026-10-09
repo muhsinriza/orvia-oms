@@ -1159,7 +1159,7 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
     <div class="info-cell"><div class="info-label">Lot / Party No</div><div class="info-value">${val(so.lot_no)}</div></div>
   </div>
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
-    <div class="info-cell"><div class="info-label">Shipment Date</div><div class="info-value">${fmtDate(so.shipment_date)}</div></div>
+    <div class="info-cell"><div class="info-label">Vessel Name</div><div class="info-value">${val(so.vessel_name)}</div></div>
     <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
     <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
     <div class="info-cell"><div class="info-label">ETD</div><div class="info-value">${fmtDate(so.etd)}</div></div>
@@ -1168,15 +1168,8 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
     <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(so.port_loading)}</div></div>
     <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(so.port_discharge)}</div></div>
     <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
-    <div class="info-cell"><div class="info-label">Delivery Date</div><div class="info-value">${fmtDate(so.delivery_date)}</div></div>
-  </div>
-  ${(so.container_number || so.vessel_name || so.seawaybill_number) ? `
-  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
-    <div class="info-cell"><div class="info-label">Vessel Name</div><div class="info-value">${val(so.vessel_name)}</div></div>
-    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
-    <div class="info-cell"><div class="info-label">Pallets</div><div class="info-value">${pc}</div></div>
-  </div>` : ''}
+  </div>
 </div>
 <div class="pkg-strip">
   <div class="pkg-item"><div class="pkg-lbl">Total Pallets</div><div class="pkg-val">${pc}</div></div>
@@ -1355,7 +1348,7 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
     <div class="info-cell"><div class="info-label">Lot / Party No</div><div class="info-value">${val(so.lot_no)}</div></div>
   </div>
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
-    <div class="info-cell"><div class="info-label">Shipment Date</div><div class="info-value">${fmtDate(so.shipment_date)}</div></div>
+    <div class="info-cell"><div class="info-label">Vessel Name</div><div class="info-value">${val(so.vessel_name)}</div></div>
     <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
     <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
     <div class="info-cell"><div class="info-label">ETD</div><div class="info-value">${fmtDate(so.etd)}</div></div>
@@ -1364,15 +1357,8 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
     <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(so.port_loading)}</div></div>
     <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(so.port_discharge)}</div></div>
     <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
-    <div class="info-cell"><div class="info-label">Delivery Date</div><div class="info-value">${fmtDate(so.delivery_date)}</div></div>
-  </div>
-  ${(so.container_number || so.vessel_name || so.seawaybill_number) ? `
-  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
-    <div class="info-cell"><div class="info-label">Vessel Name</div><div class="info-value">${val(so.vessel_name)}</div></div>
-    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
-    <div class="info-cell"><div class="info-label">Pallets</div><div class="info-value">${palletCount}</div></div>
-  </div>` : ''}
+  </div>
 </div>
 <div class="pkg-strip">
   <div class="pkg-item"><div class="pkg-lbl">Total Pallets</div><div class="pkg-val">${palletCount}</div></div>
