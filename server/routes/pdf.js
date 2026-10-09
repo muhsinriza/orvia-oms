@@ -1483,27 +1483,27 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
 <div class="notes-box">${so.notes}</div>` : ''
 
     const html = wrap(`
-${headerHTML('SALES AGREEMENT', val(so.sa_number || so.party_no), fmtDate(so.shipment_date || new Date()))}
+${headerHTML('SALES AGREEMENT', val(so.sa_number || so.party_no), fmtDate(new Date()))}
 ${partiesHTML(so, customer, false)}
 <div class="section-header">Agreement Details</div>
 <div class="info-grid" style="margin-bottom:3mm">
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">SA Number</div><div class="info-value">${val(so.sa_number || so.party_no)}</div></div>
-    <div class="info-cell"><div class="info-label">Lot / Party No</div><div class="info-value">${val(so.lot_no)}</div></div>
-    <div class="info-cell"><div class="info-label">Shipment Date</div><div class="info-value">${fmtDate(so.shipment_date)}</div></div>
-    <div class="info-cell"><div class="info-label">Delivery Date</div><div class="info-value">${fmtDate(so.delivery_date)}</div></div>
+    <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
+    <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
+    <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(so.currency)}</div></div>
   </div>
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
-    <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
     <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(so.port_loading)}</div></div>
     <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(so.port_discharge)}</div></div>
-    <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
+    <div class="info-cell"><div class="info-label">Est. ETD</div><div class="info-value">${fmtDate(so.etd)}</div></div>
+    <div class="info-cell"><div class="info-label">Est. ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
   </div>
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">Payment Method</div><div class="info-value">${val(so.payment_method)}</div></div>
     <div class="info-cell"><div class="info-label">Payment Terms</div><div class="info-value">${val(so.payment_term)}</div></div>
-    <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(so.currency)}</div></div>
     <div class="info-cell"><div class="info-label">Pallets</div><div class="info-value">${val(so.pallets)}</div></div>
+    <div class="info-cell"></div>
   </div>
 </div>
 ${saGoodsTableHTML(orderItems, so)}
