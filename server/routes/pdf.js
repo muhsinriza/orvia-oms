@@ -153,12 +153,8 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .auth-decl-title { font-size:5pt; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#6b7280; margin-bottom:2.5mm; }
 .auth-decl-text { font-size:6pt; color:#374151; line-height:1.75; }
 .auth-decl-text + .auth-decl-text { margin-top:1.5mm; }
-.auth-stamp { padding:4mm 5mm; display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:36mm; background:#f9fafb; }
-.auth-stamp-ring { width:22mm; height:22mm; border-radius:50%; border:2px solid #0a5c3a; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5mm; }
-.auth-stamp-top { font-size:4.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#0a5c3a; }
-.auth-stamp-icon { font-size:12pt; color:#0a5c3a; line-height:1; }
-.auth-stamp-bottom { font-size:4pt; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#0a5c3a; }
-.auth-stamp-year { font-size:5pt; color:#6b7280; margin-top:2mm; }
+.auth-stamp { padding:3mm 5mm; display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:38mm; background:#f9fafb; }
+.auth-stamp-year { font-size:5pt; color:#6b7280; margin-top:1.5mm; }
 
 /* T&C */
 .tc-grid { display:grid; grid-template-columns:1fr 1fr; gap:2mm 4mm; margin-bottom:3mm; }
@@ -523,11 +519,29 @@ function sigHTML (showBuyer, electronic) {
     </div>
     <div class="auth-divider"></div>
     <div class="auth-stamp">
-      <div class="auth-stamp-ring">
-        <div class="auth-stamp-top">Orvia</div>
-        <div class="auth-stamp-icon">✦</div>
-        <div class="auth-stamp-bottom">OMS</div>
-      </div>
+      <svg width="84" height="84" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg" style="-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+        <!-- Outer ring -->
+        <circle cx="42" cy="42" r="40" stroke="#0a5c3a" stroke-width="1.8"/>
+        <!-- Inner ring -->
+        <circle cx="42" cy="42" r="33" stroke="#0a5c3a" stroke-width="0.8" stroke-dasharray="2 2"/>
+        <!-- Company name arc — top (ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.) -->
+        <path id="topArc" d="M 4,42 A 38,38 0 0,1 80,42" fill="none"/>
+        <text font-size="5" font-weight="700" letter-spacing="0.8" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
+          <textPath href="#topArc" startOffset="50%" text-anchor="middle">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</textPath>
+        </text>
+        <!-- Bottom arc — ANTALYA · TÜRKİYE -->
+        <path id="botArc" d="M 6,44 A 36,36 0 0,0 78,44" fill="none"/>
+        <text font-size="5" font-weight="600" letter-spacing="0.8" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
+          <textPath href="#botArc" startOffset="50%" text-anchor="middle">ANTALYA  ·  TÜRKİYE</textPath>
+        </text>
+        <!-- Divider lines -->
+        <line x1="18" y1="28" x2="66" y2="28" stroke="#0a5c3a" stroke-width="0.6"/>
+        <line x1="18" y1="58" x2="66" y2="58" stroke="#0a5c3a" stroke-width="0.6"/>
+        <!-- Tax No above star -->
+        <text x="42" y="39" text-anchor="middle" font-size="5" font-weight="600" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">VKN: 6481831271</text>
+        <!-- Center star -->
+        <text x="42" y="53" text-anchor="middle" font-size="16" fill="#0a5c3a" font-family="serif">✦</text>
+      </svg>
       <div class="auth-stamp-year">orviaoms.com</div>
     </div>
   </div>
