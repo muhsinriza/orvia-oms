@@ -140,25 +140,25 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .bank-iban { font-size:8pt; font-weight:700; font-family:monospace; letter-spacing:0.5px; color:#111827; margin-bottom:1mm; }
 .bank-detail { font-size:6.5pt; color:#374151; line-height:1.6; }
 
-/* SIGNATURE / AUTH FOOTER */
-.auth-block { margin-top:4mm; border-radius:2px; overflow:hidden; border:1px solid #e5e7eb; }
-.auth-header { background:#0a5c3a; color:#fff; display:grid; grid-template-columns:1fr 1fr 1fr; }
-.auth-hcell { padding:2.5mm 4mm; border-right:1px solid rgba(255,255,255,0.15); }
-.auth-hcell:last-child { border-right:none; }
-.auth-hlabel { font-size:5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:rgba(255,255,255,0.55); margin-bottom:1mm; }
-.auth-hval { font-size:6.5pt; font-weight:600; color:#fff; line-height:1.4; }
-.auth-body { display:grid; grid-template-columns:1fr 1fr 1fr; background:#f9fafb; }
-.auth-cell { padding:3mm 4mm; border-right:1px solid #e5e7eb; }
-.auth-cell:last-child { border-right:none; text-align:right; }
-.auth-cell-center { text-align:center; }
-.auth-label { font-size:5.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; margin-bottom:1.5mm; }
-.auth-name { font-size:8.5pt; font-weight:700; color:#111827; margin-bottom:0.5mm; }
-.auth-role { font-size:6pt; color:#374151; }
-.auth-badge { display:inline-block; background:#0a5c3a; color:#fff; font-size:5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.7px; padding:1mm 2.5mm; border-radius:2px; margin-bottom:2mm; }
-.auth-decl { font-size:5.5pt; color:#374151; line-height:1.6; }
-.auth-seal { display:inline-flex; flex-direction:column; align-items:flex-end; gap:0.5mm; }
-.auth-seal-icon { font-size:18pt; color:#0a5c3a; line-height:1; }
-.auth-seal-text { font-size:5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#0a5c3a; }
+/* ELECTRONIC AUTHORIZATION */
+.auth-block { margin-top:4mm; border-radius:2px; overflow:hidden; border:1px solid #d1d5db; border-left:4px solid #0a5c3a; background:#fff; }
+.auth-inner { display:grid; grid-template-columns:auto 1px 1fr 1px auto; align-items:stretch; }
+.auth-divider { background:#e5e7eb; }
+.auth-signatory { padding:4mm 5mm; min-width:48mm; }
+.auth-sig-eyebrow { font-size:5pt; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#0a5c3a; margin-bottom:3mm; }
+.auth-sig-name { font-size:10pt; font-weight:800; color:#111827; letter-spacing:-0.2px; margin-bottom:1mm; }
+.auth-sig-role { font-size:6.5pt; font-weight:500; color:#374151; line-height:1.5; }
+.auth-sig-line { width:32mm; height:0.4mm; background:#0a5c3a; margin:3mm 0 2mm; opacity:0.35; }
+.auth-declaration { padding:4mm 5mm; }
+.auth-decl-title { font-size:5pt; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#6b7280; margin-bottom:2.5mm; }
+.auth-decl-text { font-size:6pt; color:#374151; line-height:1.75; }
+.auth-decl-text + .auth-decl-text { margin-top:1.5mm; }
+.auth-stamp { padding:4mm 5mm; display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:36mm; background:#f9fafb; }
+.auth-stamp-ring { width:22mm; height:22mm; border-radius:50%; border:2px solid #0a5c3a; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0.5mm; }
+.auth-stamp-top { font-size:4.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#0a5c3a; }
+.auth-stamp-icon { font-size:12pt; color:#0a5c3a; line-height:1; }
+.auth-stamp-bottom { font-size:4pt; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#0a5c3a; }
+.auth-stamp-year { font-size:5pt; color:#6b7280; margin-top:2mm; }
 
 /* T&C */
 .tc-grid { display:grid; grid-template-columns:1fr 1fr; gap:2mm 4mm; margin-bottom:3mm; }
@@ -214,7 +214,7 @@ ${CSS}
         ${CO.name}<br>
         ${CO.address}
       </div>
-      <div class="page-footer-right">${CO.tel}<br>orviaoms.com</div>
+      <div class="page-footer-right">WhatsApp: +90 530 552 83 06<br>Direct: +90 532 703 55 07<br>orviatropical.com &nbsp;·&nbsp; orviaoms.com</div>
     </div>
   </div>
 </div>
@@ -496,47 +496,39 @@ function sigHTML (showBuyer, electronic) {
 </div>`
   }
 
-  // Electronic authorization block — mirrors the doc header style
+  // Electronic authorization block — letterhead / corporate signature style
   const year = new Date().getFullYear()
   return `
 <div class="auth-block">
-  <div class="auth-header">
-    <div class="auth-hcell">
-      <div class="auth-hlabel">Document Status</div>
-      <div class="auth-hval">✦ &nbsp;Electronically Authorized</div>
+  <div class="auth-inner">
+    <div class="auth-signatory">
+      <div class="auth-sig-eyebrow">Authorized Signatory</div>
+      <div class="auth-sig-name">${CO.rep}</div>
+      <div class="auth-sig-role">${CO.title}</div>
+      <div class="auth-sig-role">${CO.short}</div>
+      <div class="auth-sig-line"></div>
+      <div style="font-size:5pt;color:#6b7280;">Electronically signed &nbsp;·&nbsp; ${year}</div>
     </div>
-    <div class="auth-hcell" style="text-align:center;">
-      <div class="auth-hlabel">Issued By</div>
-      <div class="auth-hval">Orvia OMS Platform &nbsp;·&nbsp; ${year}</div>
-    </div>
-    <div class="auth-hcell" style="text-align:right;">
-      <div class="auth-hlabel">Validity</div>
-      <div class="auth-hval">Valid without handwritten signature</div>
-    </div>
-  </div>
-  <div class="auth-body">
-    <div class="auth-cell">
-      <div class="auth-label">Authorized Signatory</div>
-      <div class="auth-name">${CO.rep}</div>
-      <div class="auth-role">${CO.title}</div>
-      <div class="auth-role" style="margin-top:0.5mm;">${CO.short}</div>
-    </div>
-    <div class="auth-cell auth-cell-center">
-      <div class="auth-label">Electronic Declaration</div>
-      <div class="auth-decl">
+    <div class="auth-divider"></div>
+    <div class="auth-declaration">
+      <div class="auth-decl-title">Electronic Document Declaration</div>
+      <div class="auth-decl-text">
         Bu belge <strong style="color:#111827;">Orvia OMS</strong> platformu tarafından elektronik olarak oluşturulmuş ve yetkilendirilmiştir.
+        El yazısı imza aranmaksızın geçerlidir.
       </div>
-      <div class="auth-decl" style="margin-top:1mm;">
+      <div class="auth-decl-text">
         This document has been electronically generated and authorized by the <strong style="color:#111827;">Orvia OMS</strong> platform.
+        Valid without a handwritten signature.
       </div>
     </div>
-    <div class="auth-cell">
-      <div class="auth-label">Electronic Seal</div>
-      <div class="auth-seal">
-        <div class="auth-seal-icon">◉</div>
-        <div class="auth-seal-text">Orvia OMS</div>
-        <div class="auth-seal-text" style="color:#6b7280;font-weight:400;text-transform:none;letter-spacing:0;">orviaoms.com</div>
+    <div class="auth-divider"></div>
+    <div class="auth-stamp">
+      <div class="auth-stamp-ring">
+        <div class="auth-stamp-top">Orvia</div>
+        <div class="auth-stamp-icon">✦</div>
+        <div class="auth-stamp-bottom">OMS</div>
       </div>
+      <div class="auth-stamp-year">orviaoms.com</div>
     </div>
   </div>
 </div>`
