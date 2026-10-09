@@ -153,7 +153,10 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .tc-num { font-weight:700; color:#0a5c3a; }
 
 /* PAGE FOOTER */
-.page-footer { margin-top:auto; padding-top:3mm; border-top:1px solid #e5e7eb; text-align:center; font-size:5.5pt; color:#9ca3af; }
+.page-footer { margin-top:auto; padding-top:2.5mm; border-top:1px solid #e5e7eb; display:flex; align-items:center; justify-content:space-between; gap:3mm; }
+.page-footer-logo { font-size:7pt; font-weight:800; color:#0a5c3a; letter-spacing:2px; white-space:nowrap; }
+.page-footer-text { font-size:5.5pt; color:#9ca3af; text-align:center; flex:1; }
+.page-footer-right { font-size:5.5pt; color:#9ca3af; text-align:right; white-space:nowrap; }
 
 /* PACKAGE STRIP */
 .pkg-strip { background:#f0fdf4; border:1px solid #bbf7d0; display:flex; gap:0; border-radius:2px; overflow:hidden; margin-bottom:3mm; }
@@ -190,7 +193,11 @@ ${CSS}
 </style></head><body>
 <div class="page">
   <div class="page-body">${body}</div>
-  <div class="page-footer">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ. &nbsp;·&nbsp; Electronic Issue &nbsp;·&nbsp; This document is computer generated and valid without signature</div>
+  <div class="page-footer">
+    <div class="page-footer-logo">ORVIA</div>
+    <div class="page-footer-text">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ. &nbsp;·&nbsp; Electronic Issue &nbsp;·&nbsp; Valid without handwritten signature</div>
+    <div class="page-footer-right">orviaoms.com</div>
+  </div>
 </div>
 </body></html>`
 }
@@ -458,18 +465,12 @@ function sigHTML (showBuyer, electronic) {
     </div>` : ''
   const sellerSig = electronic ? `
     <div style="border-top:2px solid #0a5c3a;padding-top:3mm;">
-      <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#6b7280;margin-bottom:2mm;">Seller / Authorized Signature</div>
-      <div style="display:flex;align-items:flex-start;gap:3mm;">
-        <div style="flex:1;">
-          <div style="font-size:6.5pt;font-weight:600;color:#1d4ed8;letter-spacing:0.2px;margin-bottom:1.5mm;">⬡ &nbsp;ELECTRONICALLY AUTHORIZED</div>
-          <div style="font-size:8pt;font-weight:700;color:#111827;">${CO.rep}</div>
-          <div style="font-size:6.5pt;color:#6b7280;margin-top:0.5mm;">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
-        </div>
-        <div style="flex:1;font-size:5.5pt;color:#6b7280;line-height:1.7;text-align:right;padding-top:0.5mm;">
-          Authorized via Orvia OMS platform<br>
-          Valid without handwritten signature<br>
-          <span style="color:#1d4ed8;font-weight:600;">orviaoms.com</span>
-        </div>
+      <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:#6b7280;margin-bottom:2.5mm;">Seller / Authorized Signature</div>
+      <div style="font-size:8.5pt;font-weight:700;color:#111827;margin-bottom:0.5mm;">${CO.rep}</div>
+      <div style="font-size:6.5pt;color:#374151;">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
+      <div style="margin-top:2mm;display:inline-flex;align-items:center;gap:1.5mm;background:#f0fdf4;border:1px solid #86efac;border-radius:2px;padding:1mm 2.5mm;">
+        <span style="font-size:7pt;color:#16a34a;line-height:1;">✦</span>
+        <span style="font-size:6pt;font-weight:700;color:#15803d;letter-spacing:0.3px;text-transform:uppercase;">Electronically Authorized · Orvia OMS</span>
       </div>
     </div>` : `
     <div class="sig-box">
@@ -605,17 +606,17 @@ ${shipmentInfoHTML(so)}
 ${invoiceGoodsTableHTML(orderItems, so)}
 ${qualitySection}
 ${bankHTML()}
-<div style="margin:4mm 0 3mm;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:3mm;padding:3mm 4mm;background:#f8faff;border:1px solid #dbeafe;border-radius:3px;">
-  <div style="width:7mm;height:7mm;background:#1d4ed8;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-    <span style="color:#fff;font-size:8pt;font-weight:800;line-height:1;">✓</span>
-  </div>
-  <div>
-    <div style="font-size:7pt;font-weight:700;color:#1e3a8a;letter-spacing:0.2px;">Elektronik Belge Beyanı &nbsp;/&nbsp; Electronic Document Declaration</div>
-    <div style="font-size:6pt;color:#3b5ba5;margin-top:1mm;line-height:1.6;">
-      Bu belge <strong>Orvia OMS</strong> sistemi tarafından elektronik olarak oluşturulmuş ve yetkilendirilmiştir.
-      &nbsp;·&nbsp; This document has been electronically generated and authorized by the <strong>Orvia OMS</strong> platform.
-      &nbsp;·&nbsp; © ${new Date().getFullYear()} Orvia OMS &nbsp;·&nbsp; orviaoms.com
+<div style="margin:4mm 0 4mm;padding:3mm 4mm;background:#f0fdf4;border:1px solid #86efac;border-radius:3px;display:flex;align-items:center;gap:4mm;">
+  <div style="font-size:11pt;line-height:1;color:#16a34a;flex-shrink:0;">✦</div>
+  <div style="flex:1;">
+    <div style="font-size:6.5pt;font-weight:700;color:#14532d;letter-spacing:0.3px;margin-bottom:1mm;text-transform:uppercase;">Elektronik Belge Beyanı · Electronic Document Declaration</div>
+    <div style="font-size:6pt;color:#166534;line-height:1.7;">
+      Bu belge <strong>Orvia OMS</strong> platformu tarafından elektronik olarak oluşturulmuş ve yetkilendirilmiştir. &nbsp;·&nbsp;
+      This document has been electronically generated and authorized by the <strong>Orvia OMS</strong> platform.
     </div>
+  </div>
+  <div style="font-size:5.5pt;color:#16a34a;text-align:right;flex-shrink:0;line-height:1.8;">
+    © ${new Date().getFullYear()} Orvia OMS<br>orviaoms.com
   </div>
 </div>
 ${sigHTML(false, true)}
