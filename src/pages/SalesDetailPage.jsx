@@ -483,10 +483,89 @@ function PackingListModal({ order, filename, onClose }) {
   )
 }
 
+// ── INVOICE MODAL ─────────────────────────────────────────────────────────────
+function InvoiceModal({ order, filename, onClose }) {
+  const { showToast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState({
+    invoice_no: '',
+    lot_no: '',
+    vessel_name: '',
+    container_number: '',
+    etd: order.etd ? order.etd.slice(0, 10) : '',
+    eta: order.eta ? order.eta.slice(0, 10) : '',
+  })
+
+  async function handleDownload() {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/pdf/invoice/${order.id}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'PDF oluşturulamadı' }))
+        throw new Error(err.error || 'PDF oluşturulamadı')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      URL.revokeObjectURL(url)
+      onClose()
+    } catch (e) {
+      showToast(e.message, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const field = (key, label, type = 'text', placeholder = '') => (
+    <div>
+      <label className="label">{label}</label>
+      <input
+        className="input"
+        type={type}
+        placeholder={placeholder}
+        value={form[key]}
+        onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+      />
+    </div>
+  )
+
+  return (
+    <Modal open onClose={onClose} title="Commercial Invoice" size="md">
+      <div className="space-y-4">
+        <p className="text-sm text-gray-500">Bu bilgiler PDF'e yazılır, sisteme kaydedilmez.</p>
+        <div className="grid grid-cols-2 gap-3">
+          {field('invoice_no', 'Invoice No', 'text', 'INV-2026-001')}
+          {field('lot_no', 'Lot / Party No', 'text', 'LOT-2026-001')}
+          {field('vessel_name', 'Vessel Name', 'text', 'MSC OSCAR')}
+          {field('container_number', 'Container No', 'text', 'MSCU1234567')}
+          {field('etd', 'ETD (Gerçek Kalkış)', 'date')}
+          {field('eta', 'ETA (Gerçek Varış)', 'date')}
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <button className="btn-secondary" onClick={onClose}>İptal</button>
+          <button className="btn-primary flex items-center gap-2" onClick={handleDownload} disabled={loading}>
+            {loading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            PDF İndir
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // ── DOCUMENTS SECTION ─────────────────────────────────────────────────────────
 function DocumentsSection({ order }) {
   const [loading, setLoading] = useState({})
   const [plModal, setPlModal] = useState(false)
+  const [invModal, setInvModal] = useState(false)
   const { showToast } = useToast()
 
   const shippedStatuses = ['in_transit', 'arrived', 'completed', 'delivered']
@@ -570,6 +649,7 @@ function DocumentsSection({ order }) {
               onClick={() => {
                 if (!active || isLoading) return
                 if (doc.key === 'pl') { setPlModal(true); return }
+                if (doc.key === 'inv') { setInvModal(true); return }
                 downloadPDF(doc.endpoint, doc.filename)
               }}
             >
@@ -582,8 +662,8 @@ function DocumentsSection({ order }) {
               </div>
               {active ? (
                 <span className="flex items-center gap-1 text-xs text-primary-600 font-medium">
-                  {doc.key === 'pl' ? <Edit2 size={12} /> : <Download size={12} />}
-                  {doc.key === 'pl' ? 'Edit & Download' : 'Download PDF'}
+                  {(doc.key === 'pl' || doc.key === 'inv') ? <Edit2 size={12} /> : <Download size={12} />}
+                  {(doc.key === 'pl' || doc.key === 'inv') ? 'Fill & Download' : 'Download PDF'}
                 </span>
               ) : (
                 <span className="text-xs text-gray-400">Sevk sonrası aktif</span>
@@ -597,6 +677,13 @@ function DocumentsSection({ order }) {
           order={order}
           filename={docFilename('PackingList')}
           onClose={() => setPlModal(false)}
+        />
+      )}
+      {invModal && (
+        <InvoiceModal
+          order={order}
+          filename={docFilename('CommercialInvoice')}
+          onClose={() => setInvModal(false)}
         />
       )}
     </div>

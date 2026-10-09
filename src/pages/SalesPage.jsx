@@ -22,13 +22,11 @@ const EMPTY_ITEM = { product_id:'', variety:'', caliber:'', origin:'', quantity_
 const EMPTY_FORM = {
   sales_type:'ihracat',
   sa_number:'',
-  invoice_no:'',
-  lot_no:'',
   customer_id:'', currency:'USD',
   payment_method:'', payment_term:'', incoterm:'FOB',
   port_loading:'', port_discharge:'',
   dest_country:'', transit_entry:'', transit_exit:'',
-  shipment_date:'', delivery_date:'', etd:'', eta:'',
+  etd:'', eta:'',
   transport_mode:'Sea', pallets:'',
   quality_notes:'', notes:'', status:'draft',
   required_docs: { invoice:false, packing_list:false, health_certificate:false, phytosanitary:false, certificate_of_origin:false },
@@ -111,15 +109,12 @@ export default function SalesPage() {
     setForm({
       sales_type: o.sales_type||'ihracat',
       sa_number: o.sa_number||'',
-      invoice_no: o.invoice_no||'',
-      lot_no: o.lot_no||'',
+
       customer_id: o.customer_id||'',
       dest_country: o.dest_country||'', transit_entry: o.transit_entry||'', transit_exit: o.transit_exit||'',
       currency: o.currency||'USD', payment_method: o.payment_method||'',
       payment_term: o.payment_term||'', incoterm: o.incoterm||'FOB',
       port_loading: o.port_loading||'', port_discharge: o.port_discharge||'',
-      shipment_date: o.shipment_date ? o.shipment_date.slice(0,10) : '',
-      delivery_date: o.delivery_date ? o.delivery_date.slice(0,10) : '',
       etd: o.etd ? o.etd.slice(0,10) : '',
       eta: o.eta ? o.eta.slice(0,10) : '',
       transport_mode: o.transport_mode||'Sea', pallets: o.pallets||'',
@@ -474,19 +469,11 @@ export default function SalesPage() {
           )}
 
           <div>
-            <label className="label">Yükleme Tarihi</label>
-            <input className="input" type="date" value={form.shipment_date} onChange={e=>setField('shipment_date',e.target.value)}/>
-          </div>
-          <div>
-            <label className="label">Teslim Tarihi</label>
-            <input className="input" type="date" value={form.delivery_date} onChange={e=>setField('delivery_date',e.target.value)}/>
-          </div>
-          <div>
-            <label className="label">ETD (Tahmini Kalkış)</label>
+            <label className="label">Est. ETD <span className="text-gray-400 font-normal text-xs">(Tahmini Kalkış)</span></label>
             <input className="input" type="date" value={form.etd} onChange={e=>setField('etd',e.target.value)}/>
           </div>
           <div>
-            <label className="label">ETA (Tahmini Varış)</label>
+            <label className="label">Est. ETA <span className="text-gray-400 font-normal text-xs">(Tahmini Varış)</span></label>
             <input className="input" type="date" value={form.eta} onChange={e=>setField('eta',e.target.value)}/>
           </div>
           <div>
@@ -504,14 +491,6 @@ export default function SalesPage() {
             <select className="select" value={form.status} onChange={e=>setField('status',e.target.value)}>
               {STATUS_OPTS.map(s=><option key={s} value={s}>{STATUS_TR[s]}</option>)}
             </select>
-          </div>
-          <div>
-            <label className="label">Fatura No <span className="text-gray-400 font-normal text-xs">(ihracat sonrası)</span></label>
-            <input className="input" value={form.invoice_no} onChange={e=>setField('invoice_no',e.target.value)} placeholder="Örn: INV-2026-001"/>
-          </div>
-          <div>
-            <label className="label">Parti / Lot No <span className="text-gray-400 font-normal text-xs">(ihracat sonrası)</span></label>
-            <input className="input" value={form.lot_no} onChange={e=>setField('lot_no',e.target.value)} placeholder="Örn: LOT-2026-001"/>
           </div>
           <div className="sm:col-span-2 lg:col-span-3">
             <label className="label">Gerekli Belgeler</label>

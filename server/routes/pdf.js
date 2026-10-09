@@ -564,7 +564,7 @@ const PO_CLAUSES = [
 
 // ─── Route: Commercial Invoice ────────────────────────────────────────────────
 
-router.get('/invoice/:id', requireAuth, async (req, res) => {
+router.post('/invoice/:id', requireAuth, async (req, res) => {
   try {
     const { rows } = await db.query(`
       SELECT so.*,
@@ -583,7 +583,17 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
     `, [req.params.id])
 
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
-    const so = rows[0]
+    // Merge modal fields (invoice_no, lot_no, vessel_name, container_number, etd, eta) over DB data
+    const { invoice_no, lot_no, vessel_name, container_number, etd, eta } = req.body || {}
+    const so = {
+      ...rows[0],
+      ...(invoice_no      !== undefined && { invoice_no }),
+      ...(lot_no          !== undefined && { lot_no }),
+      ...(vessel_name     !== undefined && { vessel_name }),
+      ...(container_number !== undefined && { container_number }),
+      ...(etd             !== undefined && { etd }),
+      ...(eta             !== undefined && { eta }),
+    }
 
     // Load multi-line items (fall back to legacy single-row if none)
     let orderItems = []
