@@ -524,13 +524,13 @@ function sigHTML (showBuyer, electronic) {
         <circle cx="55" cy="55" r="52" stroke="#0a5c3a" stroke-width="1.8"/>
         <!-- Inner ring -->
         <circle cx="55" cy="55" r="43" stroke="#0a5c3a" stroke-width="0.8" stroke-dasharray="2 2"/>
-        <!-- Company name arc — top: cx=55 cy=55 r=48, 200°→340° clockwise (large arc) -->
-        <path id="topArc" d="M 9.9,38.6 A 48,48 0 1,1 100.1,38.6" fill="none"/>
-        <text font-size="4.2" font-weight="700" letter-spacing="0.15" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
+        <!-- Company name arc — 190°→350° CW large arc over top, r=48 -->
+        <path id="topArc" d="M 7.7,46.7 A 48,48 0 1,1 102.3,46.7" fill="none"/>
+        <text font-size="4.0" font-weight="700" letter-spacing="0.05" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
           <textPath href="#topArc" startOffset="50%" text-anchor="middle">ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.</textPath>
         </text>
-        <!-- Bottom arc — ANTALYA · TÜRKİYE: cx=55 cy=55 r=45, 20°→160° clockwise -->
-        <path id="botArc" d="M 97.3,70.4 A 45,45 0 0,1 12.7,70.4" fill="none"/>
+        <!-- Bottom arc — ANTALYA · TÜRKİYE: 10°→170° CW small arc, r=45 -->
+        <path id="botArc" d="M 99.3,62.8 A 45,45 0 0,1 10.7,62.8" fill="none"/>
         <text font-size="5" font-weight="600" letter-spacing="0.8" fill="#0a5c3a" font-family="Inter,Arial,sans-serif">
           <textPath href="#botArc" startOffset="50%" text-anchor="middle">ANTALYA  ·  TÜRKİYE</textPath>
         </text>
