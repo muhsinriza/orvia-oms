@@ -140,12 +140,25 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .bank-iban { font-size:8pt; font-weight:700; font-family:monospace; letter-spacing:0.5px; color:#111827; margin-bottom:1mm; }
 .bank-detail { font-size:6.5pt; color:#374151; line-height:1.6; }
 
-/* SIGNATURE */
-.sig-area { display:grid; gap:5mm; margin-top:auto; padding-top:0; }
-.sig-box { padding:3mm 4mm; }
-.sig-label { font-size:5.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#fff; opacity:0.75; margin-bottom:2mm; }
-.sig-name { font-size:9pt; font-weight:700; color:#fff; }
-.sig-title { font-size:6pt; color:#fff; opacity:0.8; margin-top:0.5mm; }
+/* SIGNATURE / AUTH FOOTER */
+.auth-block { margin-top:4mm; border-radius:2px; overflow:hidden; border:1px solid #e5e7eb; }
+.auth-header { background:#0a5c3a; color:#fff; display:grid; grid-template-columns:1fr 1fr 1fr; }
+.auth-hcell { padding:2.5mm 4mm; border-right:1px solid rgba(255,255,255,0.15); }
+.auth-hcell:last-child { border-right:none; }
+.auth-hlabel { font-size:5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:rgba(255,255,255,0.55); margin-bottom:1mm; }
+.auth-hval { font-size:6.5pt; font-weight:600; color:#fff; line-height:1.4; }
+.auth-body { display:grid; grid-template-columns:1fr 1fr 1fr; background:#f9fafb; }
+.auth-cell { padding:3mm 4mm; border-right:1px solid #e5e7eb; }
+.auth-cell:last-child { border-right:none; text-align:right; }
+.auth-cell-center { text-align:center; }
+.auth-label { font-size:5.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:#6b7280; margin-bottom:1.5mm; }
+.auth-name { font-size:8.5pt; font-weight:700; color:#111827; margin-bottom:0.5mm; }
+.auth-role { font-size:6pt; color:#374151; }
+.auth-badge { display:inline-block; background:#0a5c3a; color:#fff; font-size:5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.7px; padding:1mm 2.5mm; border-radius:2px; margin-bottom:2mm; }
+.auth-decl { font-size:5.5pt; color:#374151; line-height:1.6; }
+.auth-seal { display:inline-flex; flex-direction:column; align-items:flex-end; gap:0.5mm; }
+.auth-seal-icon { font-size:18pt; color:#0a5c3a; line-height:1; }
+.auth-seal-text { font-size:5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#0a5c3a; }
 
 /* T&C */
 .tc-grid { display:grid; grid-template-columns:1fr 1fr; gap:2mm 4mm; margin-bottom:3mm; }
@@ -153,10 +166,11 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .tc-num { font-weight:700; color:#0a5c3a; }
 
 /* PAGE FOOTER */
-.page-footer { margin-top:auto; background:#0a5c3a; border-radius:2px; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:0; overflow:hidden; }
-.page-footer-logo { padding:3mm 5mm; font-size:10pt; font-weight:800; color:#fff; letter-spacing:4px; border-right:1px solid rgba(255,255,255,0.15); }
-.page-footer-text { padding:3mm 4mm; font-size:5.5pt; color:rgba(255,255,255,0.7); text-align:center; line-height:1.7; }
-.page-footer-right { padding:3mm 5mm; font-size:5.5pt; color:rgba(255,255,255,0.7); text-align:right; line-height:1.7; border-left:1px solid rgba(255,255,255,0.15); white-space:nowrap; }
+.page-footer { margin-top:3mm; }
+.page-footer-inner { background:#0a5c3a; border-radius:2px; display:grid; grid-template-columns:auto 1fr auto; align-items:center; overflow:hidden; }
+.page-footer-logo { padding:2.5mm 5mm; font-size:10pt; font-weight:800; color:#fff; letter-spacing:4px; border-right:1px solid rgba(255,255,255,0.2); white-space:nowrap; }
+.page-footer-text { padding:2.5mm 4mm; font-size:5.5pt; color:rgba(255,255,255,0.65); text-align:center; line-height:1.8; }
+.page-footer-right { padding:2.5mm 5mm; font-size:5.5pt; color:rgba(255,255,255,0.65); text-align:right; line-height:1.8; border-left:1px solid rgba(255,255,255,0.2); white-space:nowrap; }
 
 /* PACKAGE STRIP */
 .pkg-strip { background:#f0fdf4; border:1px solid #bbf7d0; display:flex; gap:0; border-radius:2px; overflow:hidden; margin-bottom:3mm; }
@@ -194,12 +208,14 @@ ${CSS}
 <div class="page">
   <div class="page-body">${body}</div>
   <div class="page-footer">
-    <div class="page-footer-logo">ORVIA</div>
-    <div class="page-footer-text">
-      ORVİA TROPICAL SEBZE MEYVE SAN. VE TİC. LTD. ŞTİ.<br>
-      Electronic Issue &nbsp;·&nbsp; This document is electronically generated and valid without handwritten signature
+    <div class="page-footer-inner">
+      <div class="page-footer-logo">ORVIA</div>
+      <div class="page-footer-text">
+        ${CO.name}<br>
+        ${CO.address}
+      </div>
+      <div class="page-footer-right">${CO.tel}<br>orviaoms.com</div>
     </div>
-    <div class="page-footer-right">Powered by<br>orviaoms.com</div>
   </div>
 </div>
 </body></html>`
@@ -459,28 +475,69 @@ function bankHTML () {
 function sigHTML (showBuyer, electronic) {
   showBuyer = showBuyer || false
   electronic = electronic || false
-  const buyerCol = showBuyer ? `
-    <div class="sig-box" style="border-left:1px solid rgba(255,255,255,0.15);">
-      <div class="sig-label">Buyer / Authorized Signature</div>
-      <div style="height:6mm"></div>
-      <div class="sig-name">_______________________</div>
-      <div class="sig-title">Name &amp; Title</div>
-    </div>` : ''
-  const badge = electronic ? `
-      <div style="margin-top:2.5mm;display:inline-flex;align-items:center;gap:1.5mm;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);border-radius:2px;padding:0.8mm 2.5mm;">
-        <span style="font-size:6pt;color:rgba(255,255,255,0.9);">✦</span>
-        <span style="font-size:5.5pt;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:0.5px;text-transform:uppercase;">Electronically Authorized · Orvia OMS</span>
-      </div>` : `<div style="height:6mm"></div>`
+
+  // Non-electronic (standard sig boxes for other docs)
+  if (!electronic) {
+    const cols = showBuyer ? '1fr 1fr' : '1fr 2fr'
+    const buyerCol = showBuyer ? `
+      <div style="padding:4mm;border-left:1px solid #e5e7eb;">
+        <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#6b7280;margin-bottom:8mm;">Buyer / Authorized Signature</div>
+        <div style="font-size:9pt;font-weight:700;color:#111827;margin-bottom:0.5mm;">_______________________</div>
+        <div style="font-size:6.5pt;color:#374151;">Name &amp; Title</div>
+      </div>` : ''
+    return `
+<div style="border:1px solid #e5e7eb;border-radius:2px;overflow:hidden;margin-top:4mm;display:grid;grid-template-columns:${cols};">
+  <div style="padding:4mm;border-top:3px solid #0a5c3a;">
+    <div style="font-size:5.5pt;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:#6b7280;margin-bottom:8mm;">Seller / Authorized Signature</div>
+    <div style="font-size:9pt;font-weight:700;color:#111827;margin-bottom:0.5mm;">${CO.rep}</div>
+    <div style="font-size:6.5pt;color:#374151;">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
+  </div>
+  ${buyerCol}
+</div>`
+  }
+
+  // Electronic authorization block — mirrors the doc header style
+  const year = new Date().getFullYear()
   return `
-<div style="background:#0a5c3a;border-radius:2px;overflow:hidden;margin-top:4mm;">
-  <div style="display:grid;grid-template-columns:${showBuyer ? '1fr 1fr' : '1fr 2fr'};">
-    <div class="sig-box">
-      <div class="sig-label">Seller / Authorized Signature</div>
-      <div class="sig-name">${CO.rep}</div>
-      <div class="sig-title">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
-      ${badge}
+<div class="auth-block">
+  <div class="auth-header">
+    <div class="auth-hcell">
+      <div class="auth-hlabel">Document Status</div>
+      <div class="auth-hval">✦ &nbsp;Electronically Authorized</div>
     </div>
-    ${buyerCol}
+    <div class="auth-hcell" style="text-align:center;">
+      <div class="auth-hlabel">Issued By</div>
+      <div class="auth-hval">Orvia OMS Platform &nbsp;·&nbsp; ${year}</div>
+    </div>
+    <div class="auth-hcell" style="text-align:right;">
+      <div class="auth-hlabel">Validity</div>
+      <div class="auth-hval">Valid without handwritten signature</div>
+    </div>
+  </div>
+  <div class="auth-body">
+    <div class="auth-cell">
+      <div class="auth-label">Authorized Signatory</div>
+      <div class="auth-name">${CO.rep}</div>
+      <div class="auth-role">${CO.title}</div>
+      <div class="auth-role" style="margin-top:0.5mm;">${CO.short}</div>
+    </div>
+    <div class="auth-cell auth-cell-center">
+      <div class="auth-label">Electronic Declaration</div>
+      <div class="auth-decl">
+        Bu belge <strong style="color:#111827;">Orvia OMS</strong> platformu tarafından elektronik olarak oluşturulmuş ve yetkilendirilmiştir.
+      </div>
+      <div class="auth-decl" style="margin-top:1mm;">
+        This document has been electronically generated and authorized by the <strong style="color:#111827;">Orvia OMS</strong> platform.
+      </div>
+    </div>
+    <div class="auth-cell">
+      <div class="auth-label">Electronic Seal</div>
+      <div class="auth-seal">
+        <div class="auth-seal-icon">◉</div>
+        <div class="auth-seal-text">Orvia OMS</div>
+        <div class="auth-seal-text" style="color:#6b7280;font-weight:400;text-transform:none;letter-spacing:0;">orviaoms.com</div>
+      </div>
+    </div>
   </div>
 </div>`
 }
@@ -605,19 +662,6 @@ ${shipmentInfoHTML(so)}
 ${invoiceGoodsTableHTML(orderItems, so)}
 ${qualitySection}
 ${bankHTML()}
-<div style="margin:4mm 0 0;background:#0a5c3a;border-radius:2px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:0;overflow:hidden;">
-  <div style="padding:3mm 4mm;border-right:1px solid rgba(255,255,255,0.15);font-size:9pt;color:rgba(255,255,255,0.5);">✦</div>
-  <div style="padding:3mm 4mm;">
-    <div style="font-size:5.5pt;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:1mm;">Elektronik Belge Beyanı · Electronic Document Declaration</div>
-    <div style="font-size:6pt;color:rgba(255,255,255,0.8);line-height:1.6;">
-      Bu belge <strong style="color:#fff;">Orvia OMS</strong> platformu tarafından elektronik olarak oluşturulmuş ve yetkilendirilmiştir. &nbsp;·&nbsp;
-      This document has been electronically generated and authorized by the <strong style="color:#fff;">Orvia OMS</strong> platform.
-    </div>
-  </div>
-  <div style="padding:3mm 4mm;border-left:1px solid rgba(255,255,255,0.15);font-size:5.5pt;color:rgba(255,255,255,0.6);text-align:right;line-height:1.8;white-space:nowrap;">
-    © ${new Date().getFullYear()} Orvia OMS<br>orviaoms.com
-  </div>
-</div>
 ${sigHTML(false, true)}
 `)
 
