@@ -446,8 +446,9 @@ function bankHTML () {
 </div>`
 }
 
-function sigHTML (showBuyer) {
+function sigHTML (showBuyer, electronic) {
   showBuyer = showBuyer || false
+  electronic = electronic || false
   const buyerCol = showBuyer ? `
     <div class="sig-box">
       <div class="sig-label">Buyer / Authorized Signature</div>
@@ -455,14 +456,24 @@ function sigHTML (showBuyer) {
       <div class="sig-name">_______________________</div>
       <div class="sig-title">Name &amp; Title</div>
     </div>` : ''
+  const sellerSig = electronic ? `
+    <div class="sig-box" style="background:#f0fdf4;border:1px solid #86efac;border-radius:4px;padding:6px 10px;">
+      <div class="sig-label" style="color:#166534;">Seller / Authorized Signature</div>
+      <div style="height:2mm"></div>
+      <div style="font-size:7.5pt;color:#166534;font-style:italic;margin-bottom:3px;">✦ Electronically Authorized</div>
+      <div class="sig-name" style="color:#14532d;">${CO.rep}</div>
+      <div class="sig-title" style="color:#166534;">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
+      <div style="font-size:6.5pt;color:#4ade80;margin-top:4px;font-style:italic;">This document has been electronically authorized and is legally valid without a handwritten signature.</div>
+    </div>` : `
+    <div class="sig-box">
+      <div class="sig-label">Seller / Authorized Signature</div>
+      <div style="height:8mm"></div>
+      <div class="sig-name">${CO.rep}</div>
+      <div class="sig-title">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
+    </div>`
   return `
 <div class="sig-area" style="grid-template-columns:${showBuyer ? '1fr 1fr' : '1fr 2fr'}">
-  <div class="sig-box">
-    <div class="sig-label">Seller / Authorized Signature</div>
-    <div style="height:8mm"></div>
-    <div class="sig-name">${CO.rep}</div>
-    <div class="sig-title">${CO.title} &nbsp;·&nbsp; ${CO.short}</div>
-  </div>
+  ${sellerSig}
   ${buyerCol}
 </div>`
 }
@@ -581,13 +592,13 @@ router.get('/invoice/:id', requireAuth, async (req, res) => {
 
     const html = wrap(`
 ${headerHTML('COMMERCIAL INVOICE', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
-${partiesHTML(so, customer, isIndia)}
+${partiesHTML(so, customer, false)}
 ${indiaRegSection}
 ${shipmentInfoHTML(so)}
 ${invoiceGoodsTableHTML(orderItems, so)}
 ${qualitySection}
 ${bankHTML()}
-${sigHTML(false)}
+${sigHTML(false, true)}
 `)
 
     const pdf = await htmlToPDF(html)
