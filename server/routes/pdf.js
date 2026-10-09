@@ -598,6 +598,11 @@ ${shipmentInfoHTML(so)}
 ${invoiceGoodsTableHTML(orderItems, so)}
 ${qualitySection}
 ${bankHTML()}
+<div style="margin-top:6mm;padding:5px 10px;border-top:1px solid #e5e7eb;text-align:center;font-size:6.5pt;color:#6b7280;line-height:1.6;">
+  Bu belge, <strong style="color:#374151;">Orvia OMS</strong> tarafından elektronik olarak hazırlanmış ve yetkilendirilmiştir. &nbsp;·&nbsp;
+  This document has been electronically prepared and authorized by Orvia OMS. &nbsp;·&nbsp;
+  © ${new Date().getFullYear()} Orvia OMS · orviaoms.com
+</div>
 ${sigHTML(false, true)}
 `)
 
