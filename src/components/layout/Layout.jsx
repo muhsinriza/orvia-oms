@@ -133,19 +133,19 @@ export default function Layout() {
         </main>
 
         {/* Mobile Bottom Nav */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-20">
-          {visibleNav.slice(0, 5).map(({ to, icon: Icon, label }) => (
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex overflow-x-auto z-20 scrollbar-none">
+          {visibleNav.map(({ to, icon: Icon, label }) => (
             <NavLink
               key={to}
               to={to}
               end={to === '/'}
               className={({ isActive }) => clsx(
-                'flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium transition-colors',
+                'flex-shrink-0 flex flex-col items-center justify-center py-2 gap-0.5 text-[10px] font-medium transition-colors px-3 min-w-[60px]',
                 isActive ? 'text-green-600' : 'text-gray-400'
               )}
             >
               <Icon size={20} />
-              <span>{label}</span>
+              <span className="whitespace-nowrap">{label}</span>
             </NavLink>
           ))}
         </nav>

@@ -222,6 +222,9 @@ function PackingListEditor({ order, containerNo, savedData, onDataChange, inputR
     setPalletCount(c => c + 1)
   }, [])
 
+  // Expose addRow to parent via shared inputRefs
+  useEffect(() => { inputRefs.current._addRow = addRow }, [addRow])
+
   const removeRow = useCallback((idx) => {
     setRows(prev => prev.length === 1 ? prev : prev.filter((_, i) => i !== idx))
     setPalletCount(c => Math.max(1, c - 1))
@@ -275,7 +278,7 @@ function PackingListEditor({ order, containerNo, savedData, onDataChange, inputR
       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex flex-wrap items-center gap-3 shrink-0">
         <div className="flex items-center gap-2">
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Pallets:</label>
-          <input type="number" min={1} value={palletCount} onChange={e => setPalletCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 text-center border border-gray-300 rounded-lg px-2 py-1 text-sm font-bold text-[#0a5c3a] focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+          <input type="number" min={1} value={palletCount} onChange={e => setPalletCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 text-center border border-gray-300 rounded-lg px-2 py-2 text-sm font-bold text-[#0a5c3a] focus:outline-none focus:ring-2 focus:ring-emerald-400 touch-manipulation" style={{ minHeight: 40 }} />
         </div>
         <div className="text-xs text-gray-400">Rows: <strong className="text-gray-600">{rows.length}</strong></div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 sm:ml-auto">
@@ -319,9 +322,9 @@ function PackingListEditor({ order, containerNo, savedData, onDataChange, inputR
                     />
                   </td>
                 ))}
-                <td className="pl-1 pb-1.5 align-top w-8">
-                  <button onClick={() => removeRow(rowIdx)} disabled={rows.length === 1} className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-20">
-                    <Trash2 size={13} />
+                <td className="pl-1 pb-1.5 align-top w-10">
+                  <button onClick={() => removeRow(rowIdx)} disabled={rows.length === 1} className="p-2.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 active:bg-red-100 transition-colors disabled:opacity-20 touch-manipulation" style={{ minWidth: 40, minHeight: 40 }}>
+                    <Trash2 size={16} />
                   </button>
                 </td>
               </tr>
@@ -472,13 +475,13 @@ function PackingListModal({ order, filename, onClose }) {
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
-            {/* Add row button — hidden on mobile (use tap on last row) */}
+            {/* Add row button — visible on all screen sizes */}
             <button
-              onClick={() => { /* trigger via global Alt+Enter — this is visual only */ }}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
+              onClick={() => { const fn = inputRefs.current._addRow; if (fn) fn() }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-white transition-colors touch-manipulation"
               title="⌥+Enter"
             >
-              <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">⌥+Enter</kbd>
+              <Plus size={14} /> <span>+ Satır</span>
             </button>
 
             {/* Save & Continue — shown for non-last containers; on last container show Kaydet too */}
