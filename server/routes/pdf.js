@@ -965,7 +965,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
       <div style="padding:8px 10px;">
         <div style="font-size:5pt;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:3px 6px;margin:-8px -10px 6px;color:#fff;background:#1d4ed8;">Consignee</div>
         <div style="font-size:7.5pt;font-weight:700;color:#1d4ed8;margin:5px 0 2px;">${val(so.customer_name)}</div>
-        <div style="font-size:6pt;color:#475569;line-height:1.65;">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
+        <div style="font-size:6pt;color:#475569;line-height:1.65;">${val(so.customer_address)}${so.customer_country ? '<br>' + esc(so.customer_country) : ''}</div>
       </div>
     </div>
 
@@ -979,7 +979,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
       <div class="meta-cell"><div class="ml">Port of Discharge</div><div class="mv">${val(so.port_discharge)}</div></div>
       <div class="meta-cell"><div class="ml">Est. ETA</div><div class="mv">${fmtDate(so.eta)}</div></div>
       <div class="meta-cell"><div class="ml">Payment Terms</div><div class="mv">${val(so.payment_term)}</div></div>
-      ${so.seawaybill_number ? `<div class="meta-cell"><div class="ml">Sea Waybill No</div><div class="mv">${so.seawaybill_number}</div></div>` : ''}
+      ${so.seawaybill_number ? `<div class="meta-cell"><div class="ml">Sea Waybill No</div><div class="mv">${val(so.seawaybill_number)}</div></div>` : ''}
     </div>
 
     <!-- Summary strip (auto-calculated) -->
@@ -1190,11 +1190,11 @@ function buildPackingListPageBody (so, containerNumber, orderRows, palletCount, 
 
   const palletRowsHTML = orderRows.map(r => `
   <tr>
-    <td>${r.label || '—'}</td>
-    <td>${r.product || '—'}</td>
-    <td>${r.variety || '—'}</td>
-    <td>${r.origin || '—'}</td>
-    <td>${r.boxType || '—'}</td>
+    <td>${esc(r.label || '—')}</td>
+    <td>${esc(r.product || '—')}</td>
+    <td>${esc(r.variety || '—')}</td>
+    <td>${esc(r.origin || '—')}</td>
+    <td>${esc(r.boxType || '—')}</td>
     <td class="r">${fmtNum(parseFloat(r.boxes) || 0, 0)}</td>
     <td class="r">${fmtNum(parseFloat(r.netBox) || 0)} kg</td>
     <td class="r">${fmtNum(parseFloat(r.net) || 0)} kg</td>
@@ -1223,7 +1223,7 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
   <div class="party-col">
     <div class="party-label">Consignee</div>
     <div class="party-name">${val(so.customer_name)}</div>
-    <div class="party-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
+    <div class="party-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + esc(so.customer_country) : ''}</div>
   </div>
 </div>
 <div class="section-header">Shipment Details</div>
@@ -1521,7 +1521,7 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
   <div class="party-col">
     <div class="party-label">Consignee</div>
     <div class="party-name">${val(so.customer_name)}</div>
-    <div class="party-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + so.customer_country : ''}</div>
+    <div class="party-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + esc(so.customer_country) : ''}</div>
   </div>
 </div>
 <div class="section-header">Shipment Details</div>
