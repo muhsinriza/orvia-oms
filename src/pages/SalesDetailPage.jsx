@@ -202,6 +202,7 @@ function PackingListModal({ order, filename, onClose }) {
       onClose()
     } else if (e.key === 'Delete' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
+      e.stopPropagation()
       removeRow(rowIdx)
     } else if (e.key === 'ArrowDown' && e.altKey) {
       e.preventDefault()
@@ -211,15 +212,18 @@ function PackingListModal({ order, filename, onClose }) {
       if (rowIdx > 0) getRef(rowIdx - 1, fieldIdx)?.focus()
     } else if (e.key === 'n' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
+      e.stopPropagation()
       addRow()
       setTimeout(() => getRef(rows.length, 0)?.focus(), 50)
     } else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
+      e.stopPropagation()
       // Duplicate current row
       duplicateRow(rowIdx)
       setTimeout(() => getRef(rowIdx + 1, fieldIdx)?.focus(), 50)
     } else if (e.key === 'f' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
       e.preventDefault()
+      e.stopPropagation()
       // Fill column down from current row
       fillColumnDown(rowIdx, fieldIdx)
     }
