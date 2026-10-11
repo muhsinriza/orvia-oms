@@ -1210,7 +1210,23 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
 </table>
 </div>
 ${qualitySection}
-${sigHTML(false, true)}
+<div class="auth-block">
+  <div style="display:flex;align-items:center;gap:3mm;background:linear-gradient(135deg,#f0f7f4 0%,#ffffff 60%);border:1px solid #d1e7dc;border-radius:2px;padding:2mm 3mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+    <div style="flex-shrink:0;width:6mm;height:6mm;background:#0a5c3a;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+      <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:4.5pt;font-weight:700;color:#0a5c3a;letter-spacing:1.5px;text-transform:uppercase;">Electronically Authorized &nbsp;·&nbsp; ${CO.name} &nbsp;·&nbsp; Tax No: ${CO.tax}</div>
+      <div style="font-size:4pt;color:#9ca3af;margin-top:0.5mm;">This document has been electronically generated and authorized by the Orvia OMS platform. Valid without handwritten signature.</div>
+    </div>
+    <div style="flex-shrink:0;text-align:right;">
+      <div style="font-size:4pt;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Authorized by</div>
+      <div style="font-size:6pt;font-weight:700;color:#111827;white-space:nowrap;">${CO.rep}</div>
+      <div style="font-size:4pt;color:#6b7280;white-space:nowrap;">${CO.title}</div>
+      <div style="font-size:4pt;font-weight:700;color:#0a5c3a;margin-top:0.5mm;">orviaoms.com &nbsp;·&nbsp; orviatropical.com</div>
+    </div>
+  </div>
+</div>
 `, { noFooter: true })
 
     // Compact CSS overrides — fits 21 pallet rows on one A4 page, stretches to fill full page
