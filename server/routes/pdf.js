@@ -1255,30 +1255,16 @@ html, body { height: 100%; margin: 0; }
 .page-footer-text, .page-footer-right { font-size:4.5pt; padding:1.2mm 3mm; line-height:1.7; }
 </style>`
 
-    // Script to stretch table rows to fill available space
-    const stretchScript = `<script>
-window.addEventListener('load', function() {
-  var page = document.querySelector('.page');
-  var tableWrapper = document.querySelector('.table-wrapper');
-  var tbody = document.querySelector('.pl-table tbody');
-  if (!page || !tableWrapper || !tbody) return;
-  var pageH = page.getBoundingClientRect().height;
-  var wrapperTop = tableWrapper.getBoundingClientRect().top - page.getBoundingClientRect().top;
-  var authH = (document.querySelector('.auth-block') || {offsetHeight:0}).offsetHeight || 0;
-  var footerH = (document.querySelector('.page-footer') || {offsetHeight:0}).offsetHeight || 0;
-  var available = pageH - wrapperTop - authH - footerH - 8;
-  var rows = tbody.querySelectorAll('tr');
-  if (rows.length > 0) {
-    var rowH = Math.floor(available / rows.length);
-    rows.forEach(function(r) { r.style.height = rowH + 'px'; });
-  }
-});
-</script>`
-    const htmlCompact = html
-      .replace('</style></head>', plCompact + '</style></head>')
-      .replace('</body></html>', stretchScript + '</body></html>')
+    // Dynamically compute row height based on pallet count so table fills the page
+    const rowCount = customRows.length || pc || 21
+    // Available for tbody ≈ 281mm total - fixed sections (~122mm) = 159mm, divided by rowCount
+    const rowHeightMm = Math.min(10, Math.max(4, Math.floor(159 / rowCount * 10) / 10))
+    const dynamicRowCSS = `<style>.pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
 
-    const pdf = await htmlToPDF(htmlCompact, { margin: { top: '0', right: '0', bottom: '0', left: '0' }, waitUntil: 'load' })
+    const htmlCompact = html
+      .replace('</style></head>', plCompact + dynamicRowCSS + '</style></head>')
+
+    const pdf = await htmlToPDF(htmlCompact, { margin: { top: '0', right: '0', bottom: '0', left: '0' } })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="PackingList_' + so.party_no + '.pdf"',
