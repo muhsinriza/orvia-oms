@@ -22,7 +22,7 @@ async function launchBrowser () {
   })
 }
 
-async function htmlToPDF (html) {
+async function htmlToPDF (html, opts = {}) {
   const browser = await launchBrowser()
   try {
     const page = await browser.newPage()
@@ -33,6 +33,7 @@ async function htmlToPDF (html) {
       printBackground: true,
       preferCSSPageSize: false,
       margin: { top: '8mm', right: '8mm', bottom: '8mm', left: '8mm' },
+      ...(opts.scale ? { scale: opts.scale } : {}),
     })
     return pdf
   } finally {
@@ -1254,7 +1255,7 @@ ${sigHTML(false, true)}
 
     const htmlCompact = html.replace('</style></head>', plCompact + '</style></head>')
 
-    const pdf = await htmlToPDF(htmlCompact)
+    const pdf = await htmlToPDF(htmlCompact, { scale: 1.4 })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="PackingList_' + so.party_no + '.pdf"',
