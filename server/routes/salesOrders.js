@@ -31,7 +31,8 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { rows } = await db.query(`
-      SELECT so.*, c.name AS customer_name, p.name AS product_name
+      SELECT so.*, c.name AS customer_name, p.name AS product_name,
+             p.box_net_kg, p.box_gross_kg
       FROM sales_orders so
       LEFT JOIN customers c ON c.id = so.customer_id
       LEFT JOIN products  p ON p.id = so.product_id

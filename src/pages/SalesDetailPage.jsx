@@ -119,25 +119,29 @@ const PALLET_FIELDS = [
 
 function makeRow(idx, defaults = {}) {
   return {
-    label:   defaults.label   ?? `Pallet ${idx + 1}`,
-    product: defaults.product ?? '',
-    variety: defaults.variety ?? '',
-    origin:  defaults.origin  ?? '',
-    boxType: defaults.boxType ?? '',
-    boxes:   defaults.boxes   ?? '',
-    netBox:  defaults.netBox  ?? '',
-    net:     defaults.net     ?? '',
-    gross:   defaults.gross   ?? '',
+    label:    defaults.label    ?? `Pallet ${idx + 1}`,
+    product:  defaults.product  ?? '',
+    variety:  defaults.variety  ?? '',
+    origin:   defaults.origin   ?? '',
+    boxType:  defaults.boxType  ?? '',
+    boxes:    defaults.boxes    ?? '',
+    netBox:   defaults.netBox   ?? '',
+    grossBox: defaults.grossBox ?? '',
+    net:      defaults.net      ?? '',
+    gross:    defaults.gross    ?? '',
   }
 }
 
 function computeRow(row) {
-  const boxes  = parseFloat(row.boxes)  || 0
-  const netBox = parseFloat(row.netBox) || 0
+  const boxes    = parseFloat(row.boxes)    || 0
+  const netBox   = parseFloat(row.netBox)   || 0
+  const grossBox = parseFloat(row.grossBox) || 0
+  const net      = boxes * netBox
+  const gross    = grossBox > 0 ? boxes * grossBox : net * 1.05
   return {
     ...row,
-    net:   boxes * netBox > 0 ? (boxes * netBox).toFixed(2) : row.net,
-    gross: boxes * netBox > 0 ? (boxes * netBox * 1.05).toFixed(2) : row.gross,
+    net:   net   > 0 ? net.toFixed(2)   : row.net,
+    gross: gross > 0 ? gross.toFixed(2) : row.gross,
   }
 }
 
@@ -146,11 +150,12 @@ function PackingListModal({ order, filename, onClose }) {
   const [rows, setRows] = useState(() => {
     // Seed one row from order data
     return [makeRow(0, {
-      product: order.product_name || '',
-      variety: [order.variety, order.caliber].filter(Boolean).join(' / ') || '',
-      origin:  order.origin || '',
-      boxType: order.box_type || '',
-      netBox:  order.box_weight_kg || '',
+      product:  order.product_name || '',
+      variety:  [order.variety, order.caliber].filter(Boolean).join(' / ') || '',
+      origin:   order.origin || '',
+      boxType:  order.box_type || '',
+      netBox:   order.box_net_kg || order.box_weight_kg || '',
+      grossBox: order.box_gross_kg || '',
     })]
   })
   const [palletCount, setPalletCount] = useState(order.pallets || rows.length || 1)
@@ -238,7 +243,7 @@ function PackingListModal({ order, filename, onClose }) {
     setRows(prev => {
       const next = prev.map((r, i) => i === rowIdx ? { ...r, [key]: value } : r)
       // Auto-compute net and gross if boxes or netBox changed
-      if (key === 'boxes' || key === 'netBox') {
+      if (key === 'boxes' || key === 'netBox' || key === 'grossBox') {
         return next.map((r, i) => i === rowIdx ? computeRow(r) : r)
       }
       return next
@@ -249,12 +254,13 @@ function PackingListModal({ order, filename, onClose }) {
     setRows(prev => {
       const last = prev[prev.length - 1] || {}
       return [...prev, makeRow(prev.length, {
-        product: last.product || '',
-        variety: last.variety || '',
-        origin:  last.origin  || '',
-        boxType: last.boxType || '',
-        netBox:  last.netBox  || '',
-        label:   `Pallet ${prev.length + 1}`,
+        product:  last.product  || '',
+        variety:  last.variety  || '',
+        origin:   last.origin   || '',
+        boxType:  last.boxType  || '',
+        netBox:   last.netBox   || '',
+        grossBox: last.grossBox || '',
+        label:    `Pallet ${prev.length + 1}`,
       })]
     })
     setPalletCount(c => c + 1)
@@ -303,12 +309,13 @@ function PackingListModal({ order, filename, onClose }) {
         setRows(prev => {
           const last = prev[prev.length - 1] || {}
           const newRow = makeRow(prev.length, {
-            product: last.product || '',
-            variety: last.variety || '',
-            origin:  last.origin  || '',
-            boxType: last.boxType || '',
-            netBox:  last.netBox  || '',
-            label:   `Pallet ${prev.length + 1}`,
+            product:  last.product  || '',
+            variety:  last.variety  || '',
+            origin:   last.origin   || '',
+            boxType:  last.boxType  || '',
+            netBox:   last.netBox   || '',
+            grossBox: last.grossBox || '',
+            label:    `Pallet ${prev.length + 1}`,
           })
           setTimeout(() => getRef(prev.length, 0)?.focus(), 50)
           return [...prev, newRow]
