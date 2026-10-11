@@ -6,7 +6,7 @@ import Modal from '../components/ui/Modal'
 import {
   ArrowLeft, Truck, Ship, Plane, Plus, Trash2, MapPin, Clock,
   FileText, Edit2, Package, FileSignature, ChevronRight, CheckCircle2,
-  Download, Loader2
+  Download, Loader2, X, ChevronLeft
 } from 'lucide-react'
 
 const STATUS_FLOW = ['draft', 'confirmed', 'in_transit', 'arrived', 'completed']
@@ -145,7 +145,392 @@ function computeRow(row) {
   }
 }
 
+// ── PackingListEditor: reusable table editor for one container ─────────────────
+function PackingListEditor({ order, containerNo, savedData, onDataChange, inputRefs, lastFocused }) {
+  const seedRows = () => {
+    if (savedData && Array.isArray(savedData.rows) && savedData.rows.length > 0) return savedData.rows
+    const items = Array.isArray(order.items) && order.items.length > 0 ? order.items : null
+    if (items) {
+      return items.map((it, idx) => computeRow(makeRow(idx, {
+        product:  it.product_name || order.product_name || '',
+        variety:  [it.variety, it.caliber].filter(Boolean).join(' / ') || '',
+        origin:   it.origin   || order.origin   || '',
+        boxType:  it.box_type || order.box_type || '',
+        netBox:   it.p_box_net_kg   || it.box_weight_kg || order.box_net_kg || order.box_weight_kg || '',
+        grossBox: it.p_box_gross_kg || order.box_gross_kg || '',
+      })))
+    }
+    return [computeRow(makeRow(0, {
+      product:  order.product_name || '',
+      variety:  [order.variety, order.caliber].filter(Boolean).join(' / ') || '',
+      origin:   order.origin || '',
+      boxType:  order.box_type || '',
+      netBox:   order.box_net_kg || order.box_weight_kg || '',
+      grossBox: order.box_gross_kg || '',
+    }))]
+  }
+  const seedPalletCount = () => {
+    if (savedData && savedData.palletCount) return savedData.palletCount
+    const items = Array.isArray(order.items) && order.items.length > 0 ? order.items : null
+    return items ? items.length : (order.pallets || 1)
+  }
+
+  const [rows, setRows] = useState(seedRows)
+  const [palletCount, setPalletCount] = useState(seedPalletCount)
+
+  // Notify parent of changes
+  useEffect(() => {
+    onDataChange({ rows, palletCount })
+  }, [rows, palletCount])
+
+  function refKey(rowIdx, fieldIdx) { return `${rowIdx}_${fieldIdx}` }
+  function getRef(rowIdx, fieldIdx) { return inputRefs.current[refKey(rowIdx, fieldIdx)] }
+
+  function handleKeyDown(e, rowIdx, fieldIdx) {
+    const editable = PALLET_FIELDS.filter(f => !f.auto)
+    const editIdx  = editable.findIndex(f => f.key === PALLET_FIELDS[fieldIdx].key)
+    if (e.key === 'Tab') {
+      e.preventDefault()
+      if (!e.shiftKey) {
+        if (editIdx < editable.length - 1) { getRef(rowIdx, PALLET_FIELDS.findIndex(f => f.key === editable[editIdx + 1].key))?.focus() }
+        else if (rowIdx < rows.length - 1) { getRef(rowIdx + 1, 0)?.focus() }
+      } else {
+        if (editIdx > 0) { getRef(rowIdx, PALLET_FIELDS.findIndex(f => f.key === editable[editIdx - 1].key))?.focus() }
+        else if (rowIdx > 0) { getRef(rowIdx - 1, PALLET_FIELDS.findIndex(f => f.key === editable[editable.length - 1].key))?.focus() }
+      }
+    } else if (e.key === 'Enter' && !e.altKey) {
+      e.preventDefault()
+      if (rowIdx < rows.length - 1) { getRef(rowIdx + 1, fieldIdx)?.focus() }
+      else { addRow(); setTimeout(() => getRef(rowIdx + 1, fieldIdx)?.focus(), 50) }
+    } else if (e.key === 'ArrowDown') { e.preventDefault(); if (rowIdx < rows.length - 1) getRef(rowIdx + 1, fieldIdx)?.focus() }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); if (rowIdx > 0) getRef(rowIdx - 1, fieldIdx)?.focus() }
+  }
+
+  function updateCell(rowIdx, key, value) {
+    setRows(prev => {
+      const next = prev.map((r, i) => i === rowIdx ? { ...r, [key]: value } : r)
+      if (key === 'boxes' || key === 'netBox' || key === 'grossBox') return next.map((r, i) => i === rowIdx ? computeRow(r) : r)
+      return next
+    })
+  }
+
+  const addRow = useCallback(() => {
+    setRows(prev => {
+      const last = prev[prev.length - 1] || {}
+      return [...prev, makeRow(prev.length, { product: last.product || '', variety: last.variety || '', origin: last.origin || '', boxType: last.boxType || '', netBox: last.netBox || '', grossBox: last.grossBox || '', label: `Pallet ${prev.length + 1}` })]
+    })
+    setPalletCount(c => c + 1)
+  }, [])
+
+  const removeRow = useCallback((idx) => {
+    setRows(prev => prev.length === 1 ? prev : prev.filter((_, i) => i !== idx))
+    setPalletCount(c => Math.max(1, c - 1))
+  }, [])
+
+  // Global Alt shortcuts
+  useEffect(() => {
+    function onWindowKey(e) {
+      if (!e.altKey) return
+      const { rowIdx: activeRowIdx, fieldIdx: activeFieldIdx } = lastFocused.current
+      if (activeRowIdx === -1) return
+      if (!e.shiftKey && e.code === 'Enter') {
+        e.preventDefault()
+        setRows(prev => {
+          const last = prev[prev.length - 1] || {}
+          const newRow = makeRow(prev.length, { product: last.product || '', variety: last.variety || '', origin: last.origin || '', boxType: last.boxType || '', netBox: last.netBox || '', grossBox: last.grossBox || '', label: `Pallet ${prev.length + 1}` })
+          setTimeout(() => getRef(prev.length, 0)?.focus(), 50)
+          return [...prev, newRow]
+        })
+        setPalletCount(c => c + 1)
+      } else if (!e.shiftKey && e.code === 'Backspace') {
+        e.preventDefault()
+        setRows(prev => {
+          if (prev.length === 1) return prev
+          const newRows = prev.filter((_, i) => i !== activeRowIdx)
+          setTimeout(() => getRef(Math.max(0, Math.min(activeRowIdx, newRows.length - 1)), activeFieldIdx)?.focus(), 50)
+          return newRows
+        })
+        setPalletCount(c => Math.max(1, c - 1))
+      } else if (e.shiftKey && e.code === 'KeyD') {
+        e.preventDefault()
+        setRows(prev => {
+          if (activeRowIdx < 0 || activeRowIdx >= prev.length) return prev
+          const copy = { ...prev[activeRowIdx], label: `Pallet ${prev.length + 1}` }
+          const next = [...prev]; next.splice(activeRowIdx + 1, 0, copy)
+          setTimeout(() => getRef(activeRowIdx + 1, activeFieldIdx)?.focus(), 50)
+          return next
+        })
+        setPalletCount(c => c + 1)
+      }
+    }
+    window.addEventListener('keydown', onWindowKey)
+    return () => window.removeEventListener('keydown', onWindowKey)
+  }, [])
+
+  const totals = rows.reduce((acc, r) => ({ boxes: acc.boxes + (parseFloat(r.boxes) || 0), net: acc.net + (parseFloat(r.net) || 0), gross: acc.gross + (parseFloat(r.gross) || 0) }), { boxes: 0, net: 0, gross: 0 })
+
+  return (
+    <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Sub-header: pallet count + totals */}
+      <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-6 shrink-0">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Pallets:</label>
+          <input type="number" min={1} value={palletCount} onChange={e => setPalletCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 text-center border border-gray-300 rounded-lg px-2 py-1 text-sm font-bold text-[#0a5c3a] focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+        </div>
+        <div className="text-xs text-gray-400">Rows: <strong className="text-gray-600">{rows.length}</strong></div>
+        <div className="ml-auto flex items-center gap-2 text-xs text-gray-400">
+          <span className="font-semibold text-gray-600">Total:</span>
+          <span>{totals.boxes.toFixed(0)} boxes</span><span>·</span>
+          <span>{totals.net.toFixed(2)} kg net</span><span>·</span>
+          <span>{totals.gross.toFixed(2)} kg gross</span>
+        </div>
+      </div>
+      {/* Table */}
+      <div className="overflow-auto flex-1 px-6 py-4">
+        <table className="w-full border-collapse" style={{ minWidth: '900px' }}>
+          <thead>
+            <tr>
+              <th className="text-left text-xs font-semibold text-gray-400 tracking-wide pb-2 pr-2 w-8">#</th>
+              {PALLET_FIELDS.map(f => (
+                <th key={f.key} className={`text-xs font-semibold text-gray-500 tracking-wide pb-2 px-1 ${f.num ? 'text-right' : 'text-left'} ${f.auto ? 'text-gray-300' : ''}`} style={{ width: f.width }}>
+                  {f.label.toLocaleUpperCase('en-US')}{f.auto ? ' (AUTO)' : ''}
+                </th>
+              ))}
+              <th className="w-8"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rowIdx) => (
+              <tr key={rowIdx} className="group">
+                <td className="pr-2 text-xs text-gray-300 font-mono pt-1 align-top w-8">{rowIdx + 1}</td>
+                {PALLET_FIELDS.map((field, fieldIdx) => (
+                  <td key={field.key} className="px-1 pb-1.5 align-top" style={{ width: field.width }}>
+                    <input
+                      ref={el => { inputRefs.current[refKey(rowIdx, fieldIdx)] = el }}
+                      type={field.num ? 'number' : 'text'}
+                      step={field.num ? 'any' : undefined}
+                      readOnly={field.auto}
+                      value={row[field.key]}
+                      onChange={e => !field.auto && updateCell(rowIdx, field.key, e.target.value)}
+                      onKeyDown={e => !field.auto && handleKeyDown(e, rowIdx, fieldIdx)}
+                      onFocus={e => { e.target.select(); lastFocused.current = { rowIdx, fieldIdx } }}
+                      className={`w-full border rounded-lg px-2 py-1.5 text-sm transition-all ${field.auto ? 'bg-gray-50 text-gray-400 border-gray-100 cursor-default text-right' : field.num ? 'text-right border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 focus:outline-none bg-white' : 'border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 focus:outline-none bg-white'}`}
+                      style={{ minWidth: 0 }}
+                    />
+                  </td>
+                ))}
+                <td className="pl-1 pb-1.5 align-top w-8">
+                  <button onClick={() => removeRow(rowIdx)} disabled={rows.length === 1} className="p-1.5 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-20">
+                    <Trash2 size={13} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-[#0a5c3a]">
+              <td /><td colSpan={5} className="pt-2 text-xs font-bold text-[#0a5c3a] uppercase tracking-wide">TOTAL</td>
+              <td className="pt-2 text-right text-sm font-bold text-[#0a5c3a] px-1">{totals.boxes.toFixed(0)}</td>
+              <td className="pt-2 px-1"/>
+              <td className="pt-2 text-right text-sm font-bold text-[#0a5c3a] px-1">{totals.net.toFixed(2)}</td>
+              <td className="pt-2 text-right text-sm font-bold text-[#0a5c3a] px-1">{totals.gross.toFixed(2)}</td>
+              <td/>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── PackingListModal: wizard for multi-container packing lists ─────────────────
 function PackingListModal({ order, filename, onClose }) {
+  const { showToast } = useToast()
+  const inputRefs = React.useRef({})
+  const lastFocused = React.useRef({ rowIdx: -1, fieldIdx: -1 })
+
+  // Get containers from order (new multi-container) or fallback to legacy
+  const getContainers = () => {
+    if (order.containers && order.containers.length > 0) return order.containers
+    // Legacy: single container or no container
+    return [{ id: null, container_number: order.container_number || '', packing_list_data: order.packing_list_data || null }]
+  }
+
+  const containers = getContainers()
+  const isMulti = containers.length > 1
+  const [step, setStep] = useState(0) // current container index
+  const [containerData, setContainerData] = useState(() =>
+    containers.map(c => ({ rows: null, palletCount: null, saved: false, containerId: c.id }))
+  )
+  const [generating, setGenerating] = useState(false)
+
+  const currentContainer = containers[step]
+  const currentData = containerData[step]
+  const allSaved = containerData.every(d => d.saved)
+
+  function handleDataChange(data) {
+    setContainerData(prev => prev.map((d, i) => i === step ? { ...d, ...data } : d))
+  }
+
+  async function handleSaveAndContinue() {
+    const data = containerData[step]
+    const payload = {
+      rows: (data.rows || []).map(r => ({ ...r, net: parseFloat(r.net) || 0, gross: parseFloat(r.gross) || 0, boxes: parseFloat(r.boxes) || 0, netBox: parseFloat(r.netBox) || 0 })),
+      palletCount: data.palletCount,
+      containerId: currentData.containerId,
+    }
+    try {
+      await fetch(`/api/sales-orders/${order.id}/packing-list`, {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      setContainerData(prev => prev.map((d, i) => i === step ? { ...d, saved: true } : d))
+      if (step < containers.length - 1) {
+        setStep(s => s + 1)
+        inputRefs.current = {}
+        lastFocused.current = { rowIdx: -1, fieldIdx: -1 }
+      }
+    } catch (e) {
+      showToast('Kayıt hatası: ' + e.message, 'error')
+    }
+  }
+
+  async function handleGenerate() {
+    setGenerating(true)
+    try {
+      // Save current step first if not saved
+      const data = containerData[step]
+      if (!data.saved && data.rows) await handleSaveAndContinue()
+
+      // Generate combined PDF for all containers
+      const allPayloads = containerData.map((d, i) => ({
+        containerId: d.containerId,
+        containerNumber: containers[i].container_number,
+        rows: (d.rows || []).map(r => ({ ...r, net: parseFloat(r.net) || 0, gross: parseFloat(r.gross) || 0, boxes: parseFloat(r.boxes) || 0, netBox: parseFloat(r.netBox) || 0 })),
+        palletCount: d.palletCount,
+      }))
+
+      const res = await fetch(`/api/pdf/packing-list-custom/${order.id}`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ containers: allPayloads }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'PDF oluşturulamadı' }))
+        throw new Error(err.error || 'PDF oluşturulamadı')
+      }
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
+      URL.revokeObjectURL(url)
+      onClose()
+    } catch (e) {
+      showToast(e.message, 'error')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const shortcuts = [
+    ['Tab / Shift+Tab', 'next column'], ['Enter', 'next row'],
+    ['↑ ↓', 'navigate'], ['⌥+Enter', 'new row'],
+    ['⌥+Shift+D', 'duplicate'], ['⌥+Backspace', 'delete row'],
+  ]
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(2px)' }} onKeyDown={e => e.key === 'Escape' && onClose()}>
+      <div className="flex flex-col bg-white w-full max-w-6xl mx-auto my-6 rounded-2xl shadow-2xl overflow-hidden" style={{ maxHeight: 'calc(100vh - 48px)' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-[#0a5c3a] text-white shrink-0">
+          <div>
+            <div className="flex items-center gap-3">
+              <Package size={20} className="text-emerald-300" />
+              <span className="font-bold text-base tracking-tight">Edit Packing List</span>
+              <span className="text-emerald-300 text-sm font-normal">{order.party_no || order.invoice_no || ''}</span>
+              {isMulti && (
+                <span className="bg-emerald-700 text-emerald-100 text-xs font-semibold px-2 py-0.5 rounded-full">
+                  Konteyner {step + 1} / {containers.length}
+                </span>
+              )}
+            </div>
+            {currentContainer.container_number && (
+              <p className="text-emerald-300 text-xs mt-0.5 font-mono">{currentContainer.container_number}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Add row button */}
+            <button
+              onClick={() => { /* trigger via global Alt+Enter — this is visual only */ }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
+              title="⌥+Enter"
+            >
+              <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">⌥+Enter</kbd>
+            </button>
+
+            {/* Save & Continue OR Generate PDF */}
+            {isMulti && step < containers.length - 1 ? (
+              <button onClick={handleSaveAndContinue} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors">
+                Kaydet &amp; Devam <ChevronRight size={15} />
+              </button>
+            ) : (
+              <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors disabled:opacity-50">
+                {generating ? <><Loader2 size={15} className="animate-spin" /> Generating…</> : <><Download size={15} /> Generate PDF</>}
+              </button>
+            )}
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-emerald-800 transition-colors">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4L14 14M14 4L4 14" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Step indicator for multi-container */}
+        {isMulti && (
+          <div className="px-6 py-2 border-b border-gray-100 bg-gray-50 flex items-center gap-3 shrink-0">
+            {containers.map((c, i) => (
+              <button
+                key={i}
+                onClick={() => setStep(i)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${i === step ? 'bg-[#0a5c3a] text-white' : containerData[i].saved ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+              >
+                {containerData[i].saved && i !== step && <CheckCircle2 size={11} />}
+                {c.container_number || `Konteyner ${i + 1}`}
+              </button>
+            ))}
+            <span className="text-xs text-gray-400 ml-auto">
+              {containerData.filter(d => d.saved).length} / {containers.length} kaydedildi
+            </span>
+          </div>
+        )}
+
+        {/* Editor */}
+        <PackingListEditor
+          key={step}
+          order={order}
+          containerNo={currentContainer.container_number}
+          savedData={currentContainer.packing_list_data}
+          onDataChange={handleDataChange}
+          inputRefs={inputRefs}
+          lastFocused={lastFocused}
+        />
+
+        {/* Shortcuts bar */}
+        <div className="px-6 py-2 border-t border-gray-100 bg-gray-50 shrink-0 flex flex-wrap gap-x-4 gap-y-1">
+          {shortcuts.map(([keys, desc]) => (
+            <span key={keys} className="text-xs text-gray-400">
+              <kbd className="bg-white border border-gray-200 rounded px-1 py-0.5 text-gray-500 font-mono text-xs shadow-sm">{keys}</kbd>
+              {' '}{desc}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Legacy single-container state (kept for backwards compat reference only - now handled in PackingListEditor)
+function _unused_PackingListModal({ order, filename, onClose }) {
   const { showToast } = useToast()
   const [rows, setRows] = useState(() => {
     // First: load from saved packing_list_data if available
@@ -595,34 +980,51 @@ function PackingListModal({ order, filename, onClose }) {
 function InvoiceModal({ order, filename, onClose, onSaved }) {
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
+
+  // Seed containers from order.containers (new) or fallback to single container_number (legacy)
+  const seedContainers = () => {
+    if (order.containers && order.containers.length > 0) {
+      return order.containers.map(c => c.container_number)
+    }
+    return order.container_number ? [order.container_number] : ['']
+  }
+
   const [form, setForm] = useState({
     invoice_no:        order.invoice_no        || '',
     lot_no:            order.lot_no            || '',
     vessel_name:       order.vessel_name       || '',
-    container_number:  order.container_number  || '',
     seawaybill_number: order.seawaybill_number || '',
     etd: order.etd ? order.etd.slice(0, 10) : '',
     eta: order.eta ? order.eta.slice(0, 10) : '',
   })
+  const [containers, setContainers] = useState(seedContainers)
+
+  const addContainer = () => setContainers(c => [...c, ''])
+  const removeContainer = i => setContainers(c => c.length > 1 ? c.filter((_, idx) => idx !== i) : c)
+  const updateContainer = (i, val) => setContainers(c => c.map((v, idx) => idx === i ? val : v))
 
   async function handleDownload() {
     setLoading(true)
     try {
+      const filledContainers = containers.filter(c => c.trim())
+      const container_number = filledContainers[0] || ''
+      const payload = { ...form, container_number, containers: filledContainers }
+
       // 1. Siparişe kaydet
       await fetch(`/api/sales-orders/${order.id}/shipping`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
-      if (onSaved) onSaved(form)
+      if (onSaved) onSaved({ ...payload, containers: filledContainers })
 
       // 2. PDF oluştur ve indir
       const res = await fetch(`/api/pdf/invoice/${order.id}`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'PDF oluşturulamadı' }))
@@ -664,11 +1066,47 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
           {field('invoice_no', 'Invoice No', 'text', 'INV-2026-001')}
           {field('lot_no', 'Lot / Party No', 'text', 'LOT-2026-001')}
           {field('vessel_name', 'Vessel Name', 'text', 'MSC OSCAR')}
-          {field('container_number', 'Container No', 'text', 'MSCU1234567')}
           {field('seawaybill_number', 'Sea Waybill No (SWB)', 'text', 'SWB123456789')}
           {field('etd', 'ETD (Gerçek Kalkış)', 'date')}
           {field('eta', 'ETA (Gerçek Varış)', 'date')}
         </div>
+
+        {/* Multi-container section */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="label mb-0">Konteyner No{containers.length > 1 ? ` (${containers.length} konteyner)` : ''}</label>
+            <button
+              type="button"
+              onClick={addContainer}
+              className="flex items-center gap-1 text-xs text-green-700 hover:text-green-900 font-medium"
+            >
+              <Plus size={12} /> Konteyner Ekle
+            </button>
+          </div>
+          <div className="space-y-2">
+            {containers.map((cn, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 w-5 text-right flex-shrink-0">{i + 1}.</span>
+                <input
+                  className="input font-mono flex-1"
+                  placeholder="MSCU1234567"
+                  value={cn}
+                  onChange={e => updateContainer(i, e.target.value.toUpperCase())}
+                />
+                {containers.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeContainer(i)}
+                    className="text-gray-400 hover:text-red-500 flex-shrink-0"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="flex justify-end gap-2 pt-2">
           <button className="btn-secondary" onClick={onClose}>İptal</button>
           <button className="btn-primary flex items-center gap-2" onClick={handleDownload} disabled={loading}>

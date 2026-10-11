@@ -298,7 +298,20 @@ function partiesPOHTML (po) {
 </div>`
 }
 
-function shipmentInfoHTML (so) {
+function shipmentInfoHTML (so, extraContainers) {
+  // Build container display: use extraContainers array if provided, else fall back to so.container_number
+  let containerDisplay = val(so.container_number)
+  if (Array.isArray(extraContainers) && extraContainers.length > 0) {
+    const filled = extraContainers.filter(c => c && c.trim())
+    if (filled.length > 1) {
+      // Multiple containers: stack them with small font, comma-labeled
+      const fontSz = filled.length <= 3 ? '7pt' : filled.length <= 5 ? '6pt' : '5.5pt'
+      containerDisplay = `<span style="font-size:${fontSz};line-height:1.6;font-family:monospace;">${filled.join('<br>')}</span>`
+    } else if (filled.length === 1) {
+      containerDisplay = filled[0]
+    }
+  }
+
   return `
 <div class="section-header">Shipment Details</div>
 <div class="info-grid" style="margin-bottom:3mm">
@@ -318,7 +331,7 @@ function shipmentInfoHTML (so) {
     <div class="info-cell"><div class="info-label">Payment Terms</div><div class="info-value">${val(so.payment_term)}</div></div>
     <div class="info-cell"><div class="info-label">Payment Method</div><div class="info-value">${val(so.payment_method)}</div></div>
     <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(so.currency)}</div></div>
-    <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
+    <div class="info-cell"><div class="info-label">Container No</div><div class="info-value" style="line-height:1.5">${containerDisplay}</div></div>
   </div>
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">ETD</div><div class="info-value">${fmtDate(so.etd)}</div></div>
@@ -623,7 +636,7 @@ router.post('/invoice/:id', requireAuth, async (req, res) => {
 
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
     // Merge modal fields over DB data
-    const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta } = req.body || {}
+    const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta, containers: bodyContainers } = req.body || {}
     const so = {
       ...rows[0],
       ...(invoice_no        !== undefined && { invoice_no }),
@@ -633,6 +646,27 @@ router.post('/invoice/:id', requireAuth, async (req, res) => {
       ...(seawaybill_number !== undefined && { seawaybill_number }),
       ...(etd               !== undefined && { etd }),
       ...(eta               !== undefined && { eta }),
+    }
+
+    // Resolve containers list for multi-container display
+    // Priority: sent in body → DB containers table → legacy single field
+    let allContainers = null
+    if (Array.isArray(bodyContainers) && bodyContainers.length > 0) {
+      allContainers = bodyContainers.map(c => (typeof c === 'string' ? c : c.container_number || '')).filter(Boolean)
+    } else {
+      try {
+        const contRes = await db.query(
+          'SELECT container_number FROM sales_order_containers WHERE sales_order_id=$1 ORDER BY sort_order, id',
+          [req.params.id]
+        )
+        if (contRes.rows.length > 0) {
+          allContainers = contRes.rows.map(r => r.container_number).filter(Boolean)
+        }
+      } catch (_) {}
+    }
+    // If still nothing, use the single container_number field
+    if (!allContainers || allContainers.length === 0) {
+      allContainers = so.container_number ? [so.container_number] : null
     }
 
     // Load multi-line items (fall back to legacy single-row if none)
@@ -692,7 +726,7 @@ router.post('/invoice/:id', requireAuth, async (req, res) => {
 ${headerHTML('COMMERCIAL INVOICE', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
 ${partiesHTML(so, customer, false)}
 ${indiaRegSection}
-${shipmentInfoHTML(so)}
+${shipmentInfoHTML(so, allContainers)}
 ${invoiceGoodsTableHTML(orderItems, so)}
 ${qualitySection}
 ${bankHTML()}
@@ -1131,50 +1165,39 @@ render();
 
 // ─── Route: Packing List Custom PDF (from editor POST) ───────────────────────
 
-router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
-  try {
-    const { rows: customRows, palletCount } = req.body
+// Helper: build one packing list page's HTML body (no wrap, no doctype)
+function buildPackingListPageBody (so, containerNumber, orderRows, palletCount, pageIndex, totalPages) {
+  const totalBoxes = orderRows.reduce((s, r) => s + (parseFloat(r.boxes) || 0), 0)
+  const totalNet   = orderRows.reduce((s, r) => s + (parseFloat(r.net) || 0), 0)
+  const totalGross = orderRows.reduce((s, r) => s + (parseFloat(r.gross) || 0), 0)
+  const pc = Number(palletCount) || 1
 
-    const { rows } = await db.query(`
-      SELECT so.*,
-             c.name    AS customer_name,
-             c.address AS customer_address,
-             c.country AS customer_country,
-             p.name    AS product_name
-      FROM sales_orders so
-      LEFT JOIN customers c ON c.id = so.customer_id
-      LEFT JOIN products  p ON p.id = so.product_id
-      WHERE so.id = $1
-    `, [req.params.id])
+  const palletRowsHTML = orderRows.map(r => `
+  <tr>
+    <td>${r.label || '—'}</td>
+    <td>${r.product || '—'}</td>
+    <td>${r.variety || '—'}</td>
+    <td>${r.origin || '—'}</td>
+    <td>${r.boxType || '—'}</td>
+    <td class="r">${fmtNum(parseFloat(r.boxes) || 0, 0)}</td>
+    <td class="r">${fmtNum(parseFloat(r.netBox) || 0)} kg</td>
+    <td class="r">${fmtNum(parseFloat(r.net) || 0)} kg</td>
+    <td class="r">${fmtNum(parseFloat(r.gross) || 0)} kg</td>
+  </tr>`).join('')
 
-    if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
-    const so = rows[0]
-
-    const orderRows  = customRows || []
-    const totalBoxes = orderRows.reduce((s, r) => s + (parseFloat(r.boxes) || 0), 0)
-    const totalNet   = orderRows.reduce((s, r) => s + (parseFloat(r.net) || 0), 0)
-    const totalGross = orderRows.reduce((s, r) => s + (parseFloat(r.gross) || 0), 0)
-    const pc = Number(palletCount) || 1
-
-    const palletRowsHTML = orderRows.map(r => `
-    <tr>
-      <td>${r.label || '—'}</td>
-      <td>${r.product || '—'}</td>
-      <td>${r.variety || '—'}</td>
-      <td>${r.origin || '—'}</td>
-      <td>${r.boxType || '—'}</td>
-      <td class="r">${fmtNum(parseFloat(r.boxes) || 0, 0)}</td>
-      <td class="r">${fmtNum(parseFloat(r.netBox) || 0)} kg</td>
-      <td class="r">${fmtNum(parseFloat(r.net) || 0)} kg</td>
-      <td class="r">${fmtNum(parseFloat(r.gross) || 0)} kg</td>
-    </tr>`).join('')
-
-    const qualitySection = so.quality_notes ? `
+  const qualitySection = so.quality_notes ? `
 <div class="section-header">Quality Notes</div>
 <div class="notes-box">${so.quality_notes}</div>` : ''
 
-    const html = wrap(`
-${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
+  // Page counter badge for multi-container
+  const pageCounter = totalPages > 1 ? `<div style="font-size:6pt;color:rgba(255,255,255,0.75);margin-top:1mm;">PL ${pageIndex + 1} / ${totalPages}</div>` : ''
+
+  const pageBreak = pageIndex > 0 ? 'style="page-break-before:always"' : ''
+
+  return `
+<div class="page" ${pageBreak}>
+  <div class="page-body">
+${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()), pageCounter)}
 <div class="parties">
   <div class="party-col">
     <div class="party-label">Shipper / Exporter</div>
@@ -1205,7 +1228,7 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
     <div class="info-cell"><div class="info-label">Port of Loading</div><div class="info-value">${val(so.port_loading)}</div></div>
     <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(so.port_discharge)}</div></div>
     <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
-    <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
+    <div class="info-cell"><div class="info-label">Container No</div><div class="info-value" style="font-family:monospace;font-size:7pt;">${val(containerNumber || so.container_number)}</div></div>
   </div>
   <div class="info-row" style="grid-template-columns:1fr 3fr">
     <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
@@ -1239,13 +1262,46 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
 </div>
 ${qualitySection}
 ${sigHTML(false, true, true)}
-`)
+  </div>
+  <div class="page-footer">
+    <div class="page-footer-inner">
+      <div class="page-footer-logo">ORVIA</div>
+      <div class="page-footer-text">
+        ${CO.name}<br>
+        ${CO.address}
+      </div>
+      <div class="page-footer-right">WhatsApp: +90 530 552 83 06<br>Direct: +90 532 703 55 07<br>orviatropical.com &nbsp;·&nbsp; orviaoms.com</div>
+    </div>
+  </div>
+</div>`
+}
 
-    // Compact CSS overrides — fits 21 pallet rows on one A4 page, stretches to fill full page
+router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
+  try {
+    // Support both legacy single { rows, palletCount } and new multi-container { containers: [...] }
+    const { rows: customRows, palletCount, containers: containersPayload } = req.body
+
+    const { rows } = await db.query(`
+      SELECT so.*,
+             c.name    AS customer_name,
+             c.address AS customer_address,
+             c.country AS customer_country,
+             p.name    AS product_name
+      FROM sales_orders so
+      LEFT JOIN customers c ON c.id = so.customer_id
+      LEFT JOIN products  p ON p.id = so.product_id
+      WHERE so.id = $1
+    `, [req.params.id])
+
+    if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
+    const so = rows[0]
+
+    // Compact CSS overrides — fits pallet rows on one A4 page per container
     const plCompact = `<style>
-@page { margin: 8mm; }
-html, body { height: 100%; margin: 0; }
-.page { padding:4mm; height:calc(297mm - 16mm); display:flex; flex-direction:column; box-sizing:border-box; }
+@page { margin: 0; size: A4; }
+html, body { margin: 0; padding: 0; }
+.page { padding:4mm; width:210mm; min-height:297mm; display:flex; flex-direction:column; box-sizing:border-box; page-break-after:always; }
+.page:last-child { page-break-after:auto; }
 .doc-header { padding:2.5mm 0 2mm; margin-bottom:2mm; }
 .doc-header-inner { padding:0 4mm; gap:3mm; }
 .doc-title { font-size:11pt; }
@@ -1274,19 +1330,41 @@ html, body { height: 100%; margin: 0; }
 .page-footer-text, .page-footer-right { font-size:4.5pt; padding:1.2mm 3mm; line-height:1.7; }
 </style>`
 
-    // Dynamically compute row height based on pallet count so table fills the page
-    const rowCount = customRows.length || pc || 21
-    // Available for tbody ≈ 281mm total - fixed sections (~122mm) = 159mm, divided by rowCount
-    const rowHeightMm = Math.min(10, Math.max(4, Math.floor(159 / rowCount * 10) / 10))
-    const dynamicRowCSS = `<style>.pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
+    let pagesHTML = ''
 
-    const htmlCompact = html
-      .replace('</style></head>', plCompact + dynamicRowCSS + '</style></head>')
+    if (Array.isArray(containersPayload) && containersPayload.length > 0) {
+      // Multi-container mode: one page per container
+      const total = containersPayload.length
+      pagesHTML = containersPayload.map((c, idx) => {
+        const rowCount = (c.rows || []).length || c.palletCount || 1
+        const rowHeightMm = Math.min(10, Math.max(4, Math.floor(159 / rowCount * 10) / 10))
+        const dynamicRowCSS = `<style>.page:nth-child(${idx + 1}) .pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
+        return buildPackingListPageBody(so, c.containerNumber, c.rows || [], c.palletCount, idx, total) + dynamicRowCSS
+      }).join('\n')
+    } else {
+      // Legacy single-container mode
+      const orderRows = customRows || []
+      const rowCount = orderRows.length || Number(palletCount) || 1
+      const rowHeightMm = Math.min(10, Math.max(4, Math.floor(159 / rowCount * 10) / 10))
+      const dynamicRowCSS = `<style>.pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
+      pagesHTML = buildPackingListPageBody(so, so.container_number, orderRows, palletCount, 0, 1) + dynamicRowCSS
+    }
 
-    const pdf = await htmlToPDF(htmlCompact, { margin: { top: '0', right: '0', bottom: '0', left: '0' } })
+    // Full HTML document wrapping all pages
+    const fullHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+${CSS}
+</style>
+${plCompact}
+</head><body>
+${pagesHTML}
+</body></html>`
+
+    const pdf = await htmlToPDF(fullHTML, { margin: { top: '0', right: '0', bottom: '0', left: '0' } })
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': 'inline; filename="PackingList_' + so.party_no + '.pdf"',
+      'Content-Disposition': 'inline; filename="PackingList_' + (so.invoice_no || so.party_no) + '.pdf"',
     })
     res.send(pdf)
   } catch (e) {

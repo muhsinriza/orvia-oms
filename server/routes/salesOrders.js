@@ -62,7 +62,16 @@ router.get('/:id', async (req, res) => {
       itemRows = itemsRes.rows
     } catch (itemErr) { console.error('[salesOrders] items fetch error:', itemErr.message) }
 
-    res.json({ ...rows[0], links: links.rows, items: itemRows })
+    let containerRows = []
+    try {
+      const contRes = await db.query(
+        'SELECT * FROM sales_order_containers WHERE sales_order_id=$1 ORDER BY sort_order, id',
+        [req.params.id]
+      )
+      containerRows = contRes.rows
+    } catch (contErr) { console.error('[salesOrders] containers fetch error:', contErr.message) }
+
+    res.json({ ...rows[0], links: links.rows, items: itemRows, containers: containerRows })
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
@@ -263,7 +272,8 @@ router.patch('/:id/status', async (req, res) => {
 
 // PATCH /sales-orders/:id/shipping — update invoice/logistics fields only
 router.patch('/:id/shipping', async (req, res) => {
-  const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta } = req.body
+  const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta, containers } = req.body
+  const client = await db.getClient ? db.getClient() : null
   try {
     const { rows } = await db.query(`
       UPDATE sales_orders SET
@@ -275,19 +285,55 @@ router.patch('/:id/shipping', async (req, res) => {
       req.params.id,
     ])
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
+
+    // If multi-container list provided, sync the containers table
+    if (Array.isArray(containers)) {
+      await db.query('DELETE FROM sales_order_containers WHERE sales_order_id=$1', [req.params.id])
+      for (let i = 0; i < containers.length; i++) {
+        const cn = (containers[i] || '').trim()
+        if (!cn) continue
+        await db.query(
+          'INSERT INTO sales_order_containers (sales_order_id, container_number, sort_order) VALUES ($1,$2,$3)',
+          [req.params.id, cn, i]
+        )
+      }
+    }
+
     res.json(rows[0])
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
-// PATCH /sales-orders/:id/packing-list
-router.patch('/:id/packing-list', async (req, res) => {
-  const { rows, palletCount } = req.body
+// GET /sales-orders/:id/containers — list containers for an order
+router.get('/:id/containers', async (req, res) => {
   try {
-    const { rows: dbRows } = await db.query(
-      'UPDATE sales_orders SET packing_list_data=$1 WHERE id=$2 RETURNING id',
-      [JSON.stringify({ rows, palletCount }), req.params.id]
+    const { rows } = await db.query(
+      'SELECT * FROM sales_order_containers WHERE sales_order_id=$1 ORDER BY sort_order, id',
+      [req.params.id]
     )
-    if (!dbRows[0]) return res.status(404).json({ error: 'Bulunamadı' })
+    res.json(rows)
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
+})
+
+// PATCH /sales-orders/:id/packing-list — save packing list data for a specific container
+router.patch('/:id/packing-list', async (req, res) => {
+  const { rows, palletCount, containerId } = req.body
+  const data = JSON.stringify({ rows, palletCount })
+  try {
+    if (containerId) {
+      // Save per-container packing list data
+      const { rows: dbRows } = await db.query(
+        'UPDATE sales_order_containers SET packing_list_data=$1, updated_at=NOW() WHERE id=$2 AND sales_order_id=$3 RETURNING id',
+        [data, containerId, req.params.id]
+      )
+      if (!dbRows[0]) return res.status(404).json({ error: 'Konteyner bulunamadı' })
+    } else {
+      // Legacy: save to sales_orders directly (single container)
+      const { rows: dbRows } = await db.query(
+        'UPDATE sales_orders SET packing_list_data=$1 WHERE id=$2 RETURNING id',
+        [data, req.params.id]
+      )
+      if (!dbRows[0]) return res.status(404).json({ error: 'Bulunamadı' })
+    }
     res.json({ ok: true })
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
