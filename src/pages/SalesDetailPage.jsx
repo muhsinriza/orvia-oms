@@ -291,6 +291,7 @@ function PackingListModal({ order, filename, onClose }) {
   // Attached to window so browser-level shortcuts don't intercept
   useEffect(() => {
     function onWindowKey(e) {
+      if (e.altKey) console.log('[PKL-KEY]', { key: e.key, code: e.code, altKey: e.altKey, shiftKey: e.shiftKey, active: document.activeElement?.tagName })
       if (!e.altKey) return
       // Find which packing list cell is focused
       let activeRowIdx = -1
