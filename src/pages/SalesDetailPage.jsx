@@ -200,31 +200,53 @@ function PackingListModal({ order, filename, onClose }) {
       }
     } else if (e.key === 'Escape') {
       onClose()
-    } else if (e.key === 'Delete' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault()
-      e.stopPropagation()
-      removeRow(rowIdx)
-    } else if (e.key === 'ArrowDown' && e.altKey) {
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault()
       if (rowIdx < rows.length - 1) getRef(rowIdx + 1, fieldIdx)?.focus()
-    } else if (e.key === 'ArrowUp' && e.altKey) {
+    } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       if (rowIdx > 0) getRef(rowIdx - 1, fieldIdx)?.focus()
-    } else if (e.key === 'n' && (e.ctrlKey || e.metaKey)) {
+    } else if (e.key === 'ArrowRight' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      // only move if at end of input value
+      const input = e.target
+      if (input.selectionStart === input.value.length) {
+        e.preventDefault()
+        const nextEditable = editable[editIdx + 1]
+        if (nextEditable) {
+          getRef(rowIdx, PALLET_FIELDS.findIndex(f => f.key === nextEditable.key))?.focus()
+        } else if (rowIdx < rows.length - 1) {
+          getRef(rowIdx + 1, 0)?.focus()
+        }
+      }
+    } else if (e.key === 'ArrowLeft' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+      const input = e.target
+      if (input.selectionStart === 0) {
+        e.preventDefault()
+        const prevEditable = editable[editIdx - 1]
+        if (prevEditable) {
+          getRef(rowIdx, PALLET_FIELDS.findIndex(f => f.key === prevEditable.key))?.focus()
+        } else if (rowIdx > 0) {
+          const lastKey = editable[editable.length - 1].key
+          getRef(rowIdx - 1, PALLET_FIELDS.findIndex(f => f.key === lastKey))?.focus()
+        }
+      }
+    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
       e.stopPropagation()
       addRow()
       setTimeout(() => getRef(rows.length, 0)?.focus(), 50)
-    } else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
+    } else if (e.key === 'Delete' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
       e.preventDefault()
       e.stopPropagation()
-      // Duplicate current row
+      removeRow(rowIdx)
+    } else if (e.key === 'd' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+      e.preventDefault()
+      e.stopPropagation()
       duplicateRow(rowIdx)
       setTimeout(() => getRef(rowIdx + 1, fieldIdx)?.focus(), 50)
     } else if (e.key === 'f' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
       e.preventDefault()
       e.stopPropagation()
-      // Fill column down from current row
       fillColumnDown(rowIdx, fieldIdx)
     }
   }
@@ -327,11 +349,11 @@ function PackingListModal({ order, filename, onClose }) {
   const shortcuts = [
     ['Tab / Shift+Tab', 'next column'],
     ['Enter', 'next row'],
-    ['Alt+↓/↑', 'jump row'],
-    [`${mod}+N`, 'new row'],
-    [`${mod}+D`, 'duplicate'],
+    ['↑ ↓ ← →', 'navigate cells'],
+    [`${mod}+Enter`, 'new row'],
+    [`${mod}+Shift+D`, 'duplicate row'],
     [`${mod}+Shift+F`, 'fill column'],
-    [`${mod}+Delete`, 'delete row'],
+    [`${mod}+Shift+Del`, 'delete row'],
     ['Esc', 'close'],
   ]
 
@@ -359,7 +381,7 @@ function PackingListModal({ order, filename, onClose }) {
               onClick={addRow}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
             >
-              <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">{mod}+N</kbd>
+              <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">{mod}+Enter</kbd>
             </button>
             <button
               onClick={generate}
