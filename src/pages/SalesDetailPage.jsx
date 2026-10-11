@@ -156,6 +156,7 @@ function PackingListModal({ order, filename, onClose }) {
   const [palletCount, setPalletCount] = useState(order.pallets || rows.length || 1)
   const [generating, setGenerating] = useState(false)
   const inputRefs = React.useRef({})
+  const lastFocused = React.useRef({ rowIdx: -1, fieldIdx: -1 })
 
   // Register a ref for a cell input
   function refKey(rowIdx, fieldIdx) { return `${rowIdx}_${fieldIdx}` }
@@ -291,20 +292,10 @@ function PackingListModal({ order, filename, onClose }) {
   // Attached to window so browser-level shortcuts don't intercept
   useEffect(() => {
     function onWindowKey(e) {
-      if (e.altKey) console.log('[PKL-KEY]', { key: e.key, code: e.code, altKey: e.altKey, shiftKey: e.shiftKey, active: document.activeElement?.tagName })
       if (!e.altKey) return
-      // Find which packing list cell is focused
-      let activeRowIdx = -1
-      let activeFieldIdx = -1
-      for (const key of Object.keys(inputRefs.current)) {
-        if (inputRefs.current[key] === document.activeElement) {
-          const [r, f] = key.split('_').map(Number)
-          activeRowIdx = r
-          activeFieldIdx = f
-          break
-        }
-      }
-      if (activeRowIdx === -1) return  // no packing list cell focused
+      // Use last focused cell (activeElement loses focus when Alt key is pressed on Mac)
+      const { rowIdx: activeRowIdx, fieldIdx: activeFieldIdx } = lastFocused.current
+      if (activeRowIdx === -1) return  // no packing list cell was focused
 
       if (!e.shiftKey && e.code === 'Enter') {
         e.preventDefault()
@@ -482,7 +473,7 @@ function PackingListModal({ order, filename, onClose }) {
                         value={row[field.key]}
                         onChange={e => !field.auto && updateCell(rowIdx, field.key, e.target.value)}
                         onKeyDown={e => !field.auto && handleKeyDown(e, rowIdx, fieldIdx)}
-                        onFocus={e => e.target.select()}
+                        onFocus={e => { e.target.select(); lastFocused.current = { rowIdx, fieldIdx } }}
                         className={`w-full border rounded-lg px-2 py-1.5 text-sm transition-all
                           ${field.auto
                             ? 'bg-gray-50 text-gray-400 border-gray-100 cursor-default text-right'
