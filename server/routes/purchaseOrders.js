@@ -103,7 +103,7 @@ router.post('/', async (req, res) => {
       flight_number || null, driver_name || null, driver_phone || null,
     ])
     res.status(201).json(rows[0])
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası', detail: e.message }) }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
 // PUT /purchase-orders/:id
@@ -160,12 +160,14 @@ router.put('/:id', async (req, res) => {
     ])
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
     res.json(rows[0])
-  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası', detail: e.message }) }
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
 // PATCH /purchase-orders/:id/status
+const VALID_PO_STATUSES = ['draft', 'confirmed', 'in_transit', 'completed', 'delivered', 'cancelled']
 router.patch('/:id/status', async (req, res) => {
   const { status } = req.body
+  if (!VALID_PO_STATUSES.includes(status)) return res.status(400).json({ error: 'Geçersiz durum değeri' })
   try {
     const { rows } = await db.query(
       'UPDATE purchase_orders SET status=$1 WHERE id=$2 RETURNING *',

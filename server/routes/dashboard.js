@@ -2,7 +2,9 @@ const router = require('express').Router()
 const db = require('../db')
 const { requireAuth } = require('../middleware/auth')
 
-router.get('/', requireAuth, async (req, res) => {
+router.use(requireAuth)
+
+router.get('/', async (req, res) => {
   try {
     const [stats, recentPO, recentSO, shipments] = await Promise.all([
       db.query(`

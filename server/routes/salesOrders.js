@@ -179,7 +179,7 @@ router.post('/', async (req, res) => {
     res.status(201).json(rows[0])
   } catch (e) {
     await client.query('ROLLBACK')
-    console.error(e); res.status(500).json({ error: 'Sunucu hatası', detail: e.message })
+    console.error(e); res.status(500).json({ error: 'Sunucu hatası' })
   } finally {
     client.release()
   }
@@ -258,8 +258,10 @@ router.put('/:id', async (req, res) => {
 })
 
 // PATCH /sales-orders/:id/status
+const VALID_SO_STATUSES = ['draft', 'confirmed', 'in_transit', 'completed', 'delivered', 'cancelled']
 router.patch('/:id/status', async (req, res) => {
   const { status } = req.body
+  if (!VALID_SO_STATUSES.includes(status)) return res.status(400).json({ error: 'Geçersiz durum değeri' })
   try {
     const { rows } = await db.query(
       'UPDATE sales_orders SET status=$1 WHERE id=$2 RETURNING *',

@@ -4,12 +4,29 @@ const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const session = require('express-session')
 const pgSession = require('connect-pg-simple')(session)
+const helmet = require('helmet')
+const rateLimit = require('express-rate-limit')
 const db = require('./db')
 
 const app = express()
 const PORT = process.env.PORT || 3001
 
 app.set('trust proxy', 1)
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // PDF/packing list routes serve inline HTML — CSP would break them
+  crossOriginEmbedderPolicy: false,
+}))
+
+// Rate limiting — login endpoint
+app.use('/api/auth/login', rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
+}))
 
 // CORS — allow dev origin and production domain
 const allowedOrigins = [
@@ -26,7 +43,7 @@ app.use(cors({
   credentials: true,
 }))
 
-app.use(express.json())
+app.use(express.json({ limit: '2mb' }))
 app.use(cookieParser())
 
 // Session store in PostgreSQL
@@ -54,7 +71,7 @@ app.use(session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   },
 }))

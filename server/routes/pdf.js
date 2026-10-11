@@ -56,11 +56,22 @@ const CO = {
   bankBranch:  '1128 / FENER MAHALLESİ / ANTALYA',
   bankAddress: 'Çağlayan Mah. Barınaklar Bulvarı No:32, Muratpaşa / Antalya / Türkiye',
   bic:         'TGBATRISXXX',
-  usd:         'TR72 0006 2001 1280 0009 0700 75',
-  eur:         'TR02 0006 2001 1280 0009 0700 74',
+  usd:         process.env.BANK_IBAN_USD || 'TR72 0006 2001 1280 0009 0700 75',
+  eur:         process.env.BANK_IBAN_EUR || 'TR02 0006 2001 1280 0009 0700 74',
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
+
+// HTML-escape to prevent XSS in server-rendered HTML pages
+function esc (s) {
+  if (s === null || s === undefined) return '—'
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 function fmtDate (d) {
   if (!d) return '—'
@@ -80,7 +91,7 @@ function fmtNum (n, dec = 2) {
   return Number(n).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })
 }
 
-function val (v) { return v || '—' }
+function val (v) { return esc(v) }
 
 // ─── Design System CSS ────────────────────────────────────────────────────────
 
@@ -244,10 +255,10 @@ function headerHTML (docType, docNum, date, extra) {
 function partiesHTML (order, customer, showIndiaFields) {
   showIndiaFields = showIndiaFields || false
   const indiaFields = showIndiaFields ? `
-    ${customer.gst_no ? `<div style="margin-top:1mm;"><span class="india-tag">GST</span> <span style="font-size:6.5pt;font-weight:600;">${customer.gst_no}</span></div>` : ''}
-    ${customer.iec_no ? `<div style="margin-top:0.5mm;"><span class="india-tag">IEC</span> <span style="font-size:6.5pt;font-weight:600;">${customer.iec_no}</span></div>` : ''}
-    ${customer.pan_no ? `<div style="margin-top:0.5mm;"><span class="india-tag">PAN</span> <span style="font-size:6.5pt;font-weight:600;">${customer.pan_no}</span></div>` : ''}
-    ${customer.fssai_no ? `<div style="margin-top:0.5mm;"><span class="india-tag">FSSAI</span> <span style="font-size:6.5pt;font-weight:600;">${customer.fssai_no}</span></div>` : ''}
+    ${customer.gst_no ? `<div style="margin-top:1mm;"><span class="india-tag">GST</span> <span style="font-size:6.5pt;font-weight:600;">${esc(customer.gst_no)}</span></div>` : ''}
+    ${customer.iec_no ? `<div style="margin-top:0.5mm;"><span class="india-tag">IEC</span> <span style="font-size:6.5pt;font-weight:600;">${esc(customer.iec_no)}</span></div>` : ''}
+    ${customer.pan_no ? `<div style="margin-top:0.5mm;"><span class="india-tag">PAN</span> <span style="font-size:6.5pt;font-weight:600;">${esc(customer.pan_no)}</span></div>` : ''}
+    ${customer.fssai_no ? `<div style="margin-top:0.5mm;"><span class="india-tag">FSSAI</span> <span style="font-size:6.5pt;font-weight:600;">${esc(customer.fssai_no)}</span></div>` : ''}
   ` : ''
   return `
 <div class="parties">
@@ -265,10 +276,10 @@ function partiesHTML (order, customer, showIndiaFields) {
     <div class="party-label">Buyer / Importer</div>
     <div class="party-name">${val(customer.name)}</div>
     <div class="party-detail">
-      ${[customer.address, customer.country].filter(Boolean).join(', ')}
-      ${customer.contact_name ? `<br>Contact: ${customer.contact_name}` : ''}
-      ${customer.email ? `<br>${customer.email}` : ''}
-      ${customer.phone ? `<br>${customer.phone}` : ''}
+      ${esc([customer.address, customer.country].filter(Boolean).join(', '))}
+      ${customer.contact_name ? `<br>Contact: ${esc(customer.contact_name)}` : ''}
+      ${customer.email ? `<br>${esc(customer.email)}` : ''}
+      ${customer.phone ? `<br>${esc(customer.phone)}` : ''}
     </div>
     ${showIndiaFields ? `<div>${indiaFields}</div>` : ''}
   </div>
@@ -711,16 +722,16 @@ router.post('/invoice/:id', requireAuth, async (req, res) => {
 <div class="section-header">Buyer Regulatory Details (India)</div>
 <div class="info-grid" style="margin-bottom:3mm">
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr;background:#eff6ff;">
-    <div class="info-cell"><div class="info-label" style="color:#1e40af;">GST No</div><div class="info-value" style="color:#1e3a8a;">${so.customer_gst_no || '—'}</div></div>
-    <div class="info-cell"><div class="info-label" style="color:#1e40af;">IEC No</div><div class="info-value" style="color:#1e3a8a;">${so.customer_iec_no || '—'}</div></div>
-    <div class="info-cell"><div class="info-label" style="color:#1e40af;">PAN No</div><div class="info-value" style="color:#1e3a8a;">${so.customer_pan_no || '—'}</div></div>
-    <div class="info-cell"><div class="info-label" style="color:#1e40af;">FSSAI No</div><div class="info-value" style="color:#1e3a8a;">${so.customer_fssai_no || '—'}</div></div>
+    <div class="info-cell"><div class="info-label" style="color:#1e40af;">GST No</div><div class="info-value" style="color:#1e3a8a;">${esc(so.customer_gst_no) || '—'}</div></div>
+    <div class="info-cell"><div class="info-label" style="color:#1e40af;">IEC No</div><div class="info-value" style="color:#1e3a8a;">${esc(so.customer_iec_no) || '—'}</div></div>
+    <div class="info-cell"><div class="info-label" style="color:#1e40af;">PAN No</div><div class="info-value" style="color:#1e3a8a;">${esc(so.customer_pan_no) || '—'}</div></div>
+    <div class="info-cell"><div class="info-label" style="color:#1e40af;">FSSAI No</div><div class="info-value" style="color:#1e3a8a;">${esc(so.customer_fssai_no) || '—'}</div></div>
   </div>
 </div>` : ''
 
     const qualitySection = so.quality_notes ? `
 <div class="section-header">Quality Notes</div>
-<div class="notes-box">${so.quality_notes}</div>` : ''
+<div class="notes-box">${esc(so.quality_notes)}</div>` : ''
 
     const html = wrap(`
 ${headerHTML('COMMERCIAL INVOICE', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
@@ -1187,7 +1198,7 @@ function buildPackingListPageBody (so, containerNumber, orderRows, palletCount, 
 
   const qualitySection = so.quality_notes ? `
 <div class="section-header">Quality Notes</div>
-<div class="notes-box">${so.quality_notes}</div>` : ''
+<div class="notes-box">${esc(so.quality_notes)}</div>` : ''
 
   // Page counter badge for multi-container
   const pageCounter = totalPages > 1 ? `<div style="font-size:6pt;color:rgba(255,255,255,0.75);margin-top:1mm;">PL ${pageIndex + 1} / ${totalPages}</div>` : ''
@@ -1488,7 +1499,7 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
 
     const qualitySection = so.quality_notes ? `
 <div class="section-header">Quality Notes</div>
-<div class="notes-box">${so.quality_notes}</div>` : ''
+<div class="notes-box">${esc(so.quality_notes)}</div>` : ''
 
     const html = wrap(`
 ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
@@ -1648,7 +1659,7 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
 
     const qualitySection = so.quality_notes ? `
 <div class="section-header">Quality &amp; Specifications</div>
-<div class="notes-box">${so.quality_notes}</div>` : ''
+<div class="notes-box">${esc(so.quality_notes)}</div>` : ''
 
     const notesSection = so.notes ? `
 <div class="section-header">Additional Notes</div>

@@ -1,5 +1,10 @@
 const { Pool } = require('pg')
 
+if (!process.env.DB_PASSWORD && process.env.NODE_ENV === 'production') {
+  console.error('[FATAL] DB_PASSWORD env var is not set. Refusing to start in production.')
+  process.exit(1)
+}
+
 const pool = new Pool({
   host:     process.env.DB_HOST     || 'localhost',
   port:     parseInt(process.env.DB_PORT || '5432'),
