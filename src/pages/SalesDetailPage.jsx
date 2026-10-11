@@ -1018,12 +1018,16 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
       const payload = { ...form, container_number, containers: filledContainers }
 
       // 1. Siparişe kaydet
-      await fetch(`/api/sales-orders/${order.id}/shipping`, {
+      const saveRes = await fetch(`/api/sales-orders/${order.id}/shipping`, {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+      if (!saveRes.ok) {
+        const err = await saveRes.json().catch(() => ({ error: 'Kayıt hatası' }))
+        throw new Error(err.error || 'Bilgiler kaydedilemedi')
+      }
       if (onSaved) onSaved({ ...payload, containers: filledContainers })
 
       // 2. PDF oluştur ve indir
