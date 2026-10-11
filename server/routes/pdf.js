@@ -26,7 +26,7 @@ async function htmlToPDF (html, opts = {}) {
   const browser = await launchBrowser()
   try {
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 30000 })
+    await page.setContent(html, { waitUntil: opts.waitUntil || 'domcontentloaded', timeout: 30000 })
     await page.evaluate(() => document.fonts?.ready).catch(() => {})
     const pdf = await page.pdf({
       format: 'A4',
@@ -1255,9 +1255,30 @@ html, body { height: 100%; margin: 0; }
 .page-footer-text, .page-footer-right { font-size:4.5pt; padding:1.2mm 3mm; line-height:1.7; }
 </style>`
 
-    const htmlCompact = html.replace('</style></head>', plCompact + '</style></head>')
+    // Script to stretch table rows to fill available space
+    const stretchScript = `<script>
+window.addEventListener('load', function() {
+  var page = document.querySelector('.page');
+  var tableWrapper = document.querySelector('.table-wrapper');
+  var tbody = document.querySelector('.pl-table tbody');
+  if (!page || !tableWrapper || !tbody) return;
+  var pageH = page.getBoundingClientRect().height;
+  var wrapperTop = tableWrapper.getBoundingClientRect().top - page.getBoundingClientRect().top;
+  var authH = (document.querySelector('.auth-block') || {offsetHeight:0}).offsetHeight || 0;
+  var footerH = (document.querySelector('.page-footer') || {offsetHeight:0}).offsetHeight || 0;
+  var available = pageH - wrapperTop - authH - footerH - 8;
+  var rows = tbody.querySelectorAll('tr');
+  if (rows.length > 0) {
+    var rowH = Math.floor(available / rows.length);
+    rows.forEach(function(r) { r.style.height = rowH + 'px'; });
+  }
+});
+</script>`
+    const htmlCompact = html
+      .replace('</style></head>', plCompact + '</style></head>')
+      .replace('</body></html>', stretchScript + '</body></html>')
 
-    const pdf = await htmlToPDF(htmlCompact, { margin: { top: '0', right: '0', bottom: '0', left: '0' } })
+    const pdf = await htmlToPDF(htmlCompact, { margin: { top: '0', right: '0', bottom: '0', left: '0' }, waitUntil: 'load' })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="PackingList_' + so.party_no + '.pdf"',
