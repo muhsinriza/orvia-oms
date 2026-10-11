@@ -5,17 +5,17 @@ const ExcelJS = require('exceljs')
 
 router.use(requireAuth)
 
-// ── Brand colours ─────────────────────────────────────────────────────────────
-const ORVIA_DARK   = 'FF0A2540'   // deep navy (primary brand / banner)
-const ORVIA_MID    = 'FF0F3D6B'   // mid navy (section headers)
-const ORVIA_TEAL   = 'FF0D5E7A'   // teal accent (secondary headers)
-const ORVIA_LIGHT  = 'FFE8F1F8'   // pale blue tint (label backgrounds)
-const ORVIA_ACCENT = 'FF1A6BB5'   // logo blue (totals, action rows)
-const ORVIA_STRIPE = 'FFF0F5FA'   // very light navy tint (alternating rows)
-const ORVIA_NOTE   = 'FFD6E8F5'   // soft blue (info/note rows)
-const ORVIA_NOTE_T = 'FF0A3A5C'   // dark navy text on note rows
+// ── Brand colours (Orvia green palette — matches PDF) ─────────────────────────
+const ORVIA_DARK   = 'FF0A5C3A'   // deep forest green (banner, section headers)
+const ORVIA_MID    = 'FF0D7A4E'   // mid green (secondary headers)
+const ORVIA_TEAL   = 'FF064E32'   // dark green (3rd level headers)
+const ORVIA_LIGHT  = 'FFE8F5EE'   // pale green tint (label backgrounds)
+const ORVIA_ACCENT = 'FF0A5C3A'   // green (totals row border/text)
+const ORVIA_STRIPE = 'FFF0FDF4'   // very light green (alternating rows)
+const ORVIA_NOTE   = 'FFD1FAE5'   // soft green (note rows)
+const ORVIA_NOTE_T = 'FF064E32'   // dark green text on note rows
 const WHITE        = 'FFFFFFFF'
-const BORDER_CLR   = 'FFB8CCE0'   // blue-grey border
+const BORDER_CLR   = 'FFB7D9C8'   // green-grey border
 
 // GET /api/customs-excel/:id — generate İhracat Detayları Excel
 router.get('/:id', async (req, res) => {
@@ -408,7 +408,7 @@ router.get('/:id', async (req, res) => {
     ws.mergeCells(`A${DR}:L${DR}`)
     applyCell(ws.getCell(`A${DR}`), {
       value:     'Bu belge OrviaOMS tarafından oluşturulmuştur  |  orviatropical.com',
-      font:      { name: 'Calibri', italic: true, size: 8, color: { argb: 'FF94A3B8' } },
+      font:      { name: 'Calibri', italic: true, size: 8, color: { argb: 'FF86EFAC' } },
       fill:      solidFill(ORVIA_DARK),
       alignment: ctr,
     })
