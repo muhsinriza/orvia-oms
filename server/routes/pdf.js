@@ -102,15 +102,15 @@ body { font-family:'Inter',sans-serif; font-size:7.5pt; color:#111827; backgroun
 .info-grid { display:grid; gap:0; margin-bottom:3mm; border:1px solid #e5e7eb; border-radius:2px; overflow:hidden; }
 .info-row { display:grid; border-bottom:1px solid #e5e7eb; }
 .info-row:last-child { border-bottom:none; }
-.info-cell { padding:2mm 3mm; border-right:1px solid #e5e7eb; }
+.info-cell { padding:1.5mm 2.5mm; border-right:1px solid #e5e7eb; }
 .info-cell:last-child { border-right:none; }
 .info-label { font-size:5.5pt; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:#6b7280; margin-bottom:0.5mm; }
 .info-value { font-size:7.5pt; font-weight:600; color:#111827; line-height:1.3; }
-.section-header { background:#0a5c3a; color:#fff; font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; padding:1.5mm 3mm; margin:3mm 0 0; }
+.section-header { background:#0a5c3a; color:#fff; font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; padding:1mm 3mm; margin:2.5mm 0 0; }
 
 /* PARTIES */
 .parties { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid #e5e7eb; border-radius:2px; overflow:hidden; margin-bottom:3mm; }
-.party-col { padding:3mm; }
+.party-col { padding:2.5mm; }
 .party-col:first-child { border-right:1px solid #e5e7eb; }
 .party-label { font-size:6pt; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:#6b7280; margin-bottom:1.5mm; padding-bottom:1mm; border-bottom:2px solid #0a5c3a; }
 .party-name { font-size:8.5pt; font-weight:700; color:#111827; margin-bottom:1mm; }
@@ -310,7 +310,7 @@ function shipmentInfoHTML (so) {
     <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
     <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
   </div>
-  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+  <div class="info-row" style="grid-template-columns:2fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">Payment Terms</div><div class="info-value">${val(so.payment_term)}</div></div>
     <div class="info-cell"><div class="info-label">Payment Method</div><div class="info-value">${val(so.payment_method)}</div></div>
     <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(so.currency)}</div></div>
@@ -319,8 +319,7 @@ function shipmentInfoHTML (so) {
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">ETD</div><div class="info-value">${fmtDate(so.etd)}</div></div>
     <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
-    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
-    <div class="info-cell"></div>
+    <div class="info-cell" style="grid-column:span 2"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
   </div>
 </div>`
 }
@@ -1174,6 +1173,10 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
     <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
     <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
   </div>
+  <div class="info-row" style="grid-template-columns:1fr 3fr">
+    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
+    <div class="info-cell"></div>
+  </div>
 </div>
 <div class="pkg-strip">
   <div class="pkg-item"><div class="pkg-lbl">Total Pallets</div><div class="pkg-val">${pc}</div></div>
@@ -1362,6 +1365,10 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
     <div class="info-cell"><div class="info-label">Port of Discharge</div><div class="info-value">${val(so.port_discharge)}</div></div>
     <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
     <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
+  </div>
+  <div class="info-row" style="grid-template-columns:1fr 3fr">
+    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
+    <div class="info-cell"></div>
   </div>
 </div>
 <div class="pkg-strip">
