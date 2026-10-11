@@ -367,13 +367,17 @@ function PackingListModal({ order, filename, onClose }) {
   const isMulti = containers.length > 1
   const [step, setStep] = useState(0) // current container index
   const [containerData, setContainerData] = useState(() =>
-    containers.map(c => ({ rows: null, palletCount: null, saved: false, containerId: c.id }))
+    containers.map(c => ({ rows: null, palletCount: null, saved: false, containerId: c.id, packing_list_data: c.packing_list_data || null }))
   )
   const [generating, setGenerating] = useState(false)
 
   const currentContainer = containers[step]
   const currentData = containerData[step]
   const allSaved = containerData.every(d => d.saved)
+  // Merge saved packing data: state rows take priority over DB snapshot
+  const currentSavedData = currentData.rows
+    ? { rows: currentData.rows, palletCount: currentData.palletCount }
+    : currentData.packing_list_data || currentContainer.packing_list_data || null
 
   function handleDataChange(data) {
     setContainerData(prev => prev.map((d, i) => i === step ? { ...d, ...data } : d))
@@ -392,7 +396,8 @@ function PackingListModal({ order, filename, onClose }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      setContainerData(prev => prev.map((d, i) => i === step ? { ...d, saved: true } : d))
+      // Update saved state and store packing_list_data so re-opening the modal shows the last saved data
+      setContainerData(prev => prev.map((d, i) => i === step ? { ...d, saved: true, packing_list_data: { rows: payload.rows, palletCount: payload.palletCount } } : d))
       if (step < containers.length - 1) {
         setStep(s => s + 1)
         inputRefs.current = {}
@@ -476,16 +481,21 @@ function PackingListModal({ order, filename, onClose }) {
               <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">⌥+Enter</kbd>
             </button>
 
-            {/* Save & Continue OR Generate PDF */}
+            {/* Save & Continue — shown for non-last containers; on last container show Kaydet too */}
             {isMulti && step < containers.length - 1 ? (
               <button onClick={handleSaveAndContinue} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors">
                 Kaydet &amp; Devam <ChevronRight size={15} />
               </button>
             ) : (
-              <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors disabled:opacity-50">
-                {generating ? <><Loader2 size={15} className="animate-spin" /> Generating…</> : <><Download size={15} /> <span className="hidden sm:inline">Generate PDF</span><span className="sm:hidden">PDF</span></>}
+              <button onClick={handleSaveAndContinue} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold bg-emerald-100 text-[#0a5c3a] hover:bg-emerald-200 transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Kaydet
               </button>
             )}
+            {/* Generate PDF — always visible */}
+            <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors disabled:opacity-50">
+              {generating ? <><Loader2 size={15} className="animate-spin" /> Generating…</> : <><Download size={15} /> <span className="hidden sm:inline">Generate PDF</span><span className="sm:hidden">PDF</span></>}
+            </button>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-emerald-800 transition-colors">
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4L14 14M14 4L4 14" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
             </button>
@@ -516,7 +526,7 @@ function PackingListModal({ order, filename, onClose }) {
           key={step}
           order={order}
           containerNo={currentContainer.container_number}
-          savedData={currentContainer.packing_list_data}
+          savedData={currentSavedData}
           onDataChange={handleDataChange}
           inputRefs={inputRefs}
           lastFocused={lastFocused}
