@@ -272,13 +272,13 @@ function PackingListEditor({ order, containerNo, savedData, onDataChange, inputR
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       {/* Sub-header: pallet count + totals */}
-      <div className="px-6 py-3 border-b border-gray-100 bg-gray-50 flex items-center gap-6 shrink-0">
+      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50 flex flex-wrap items-center gap-3 shrink-0">
         <div className="flex items-center gap-2">
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Total Pallets:</label>
           <input type="number" min={1} value={palletCount} onChange={e => setPalletCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-16 text-center border border-gray-300 rounded-lg px-2 py-1 text-sm font-bold text-[#0a5c3a] focus:outline-none focus:ring-2 focus:ring-emerald-400" />
         </div>
         <div className="text-xs text-gray-400">Rows: <strong className="text-gray-600">{rows.length}</strong></div>
-        <div className="ml-auto flex items-center gap-2 text-xs text-gray-400">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 sm:ml-auto">
           <span className="font-semibold text-gray-600">Total:</span>
           <span>{totals.boxes.toFixed(0)} boxes</span><span>·</span>
           <span>{totals.net.toFixed(2)} kg net</span><span>·</span>
@@ -443,10 +443,10 @@ function PackingListModal({ order, filename, onClose }) {
       <div className="flex flex-col bg-white w-full max-w-6xl mx-auto my-6 rounded-2xl shadow-2xl overflow-hidden" style={{ maxHeight: 'calc(100vh - 48px)' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#0a5c3a] text-white shrink-0">
-          <div>
-            <div className="flex items-center gap-3">
-              <Package size={20} className="text-emerald-300" />
+        <div className="flex items-start justify-between gap-3 px-4 py-4 bg-[#0a5c3a] text-white shrink-0">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Package size={20} className="text-emerald-300 shrink-0" />
               <span className="font-bold text-base tracking-tight">Edit Packing List</span>
               <span className="text-emerald-300 text-sm font-normal">{order.party_no || order.invoice_no || ''}</span>
               {isMulti && (
@@ -459,11 +459,11 @@ function PackingListModal({ order, filename, onClose }) {
               <p className="text-emerald-300 text-xs mt-0.5 font-mono">{currentContainer.container_number}</p>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            {/* Add row button */}
+          <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
+            {/* Add row button — hidden on mobile (use tap on last row) */}
             <button
               onClick={() => { /* trigger via global Alt+Enter — this is visual only */ }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
               title="⌥+Enter"
             >
               <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">⌥+Enter</kbd>
@@ -471,12 +471,12 @@ function PackingListModal({ order, filename, onClose }) {
 
             {/* Save & Continue OR Generate PDF */}
             {isMulti && step < containers.length - 1 ? (
-              <button onClick={handleSaveAndContinue} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors">
+              <button onClick={handleSaveAndContinue} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors">
                 Kaydet &amp; Devam <ChevronRight size={15} />
               </button>
             ) : (
-              <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors disabled:opacity-50">
-                {generating ? <><Loader2 size={15} className="animate-spin" /> Generating…</> : <><Download size={15} /> Generate PDF</>}
+              <button onClick={handleGenerate} disabled={generating} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold bg-white text-[#0a5c3a] hover:bg-emerald-50 transition-colors disabled:opacity-50">
+                {generating ? <><Loader2 size={15} className="animate-spin" /> Generating…</> : <><Download size={15} /> <span className="hidden sm:inline">Generate PDF</span><span className="sm:hidden">PDF</span></>}
               </button>
             )}
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-emerald-800 transition-colors">
@@ -1062,7 +1062,7 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
     <Modal open onClose={onClose} title="Commercial Invoice" size="md">
       <div className="space-y-4">
         <p className="text-sm text-gray-500">Bu bilgiler siparişe kaydedilir ve PDF'e yazılır.</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {field('invoice_no', 'Invoice No', 'text', 'INV-2026-001')}
           {field('lot_no', 'Lot / Party No', 'text', 'LOT-2026-001')}
           {field('vessel_name', 'Vessel Name', 'text', 'MSC OSCAR')}
@@ -1354,7 +1354,7 @@ function TrackingSection({ order, onSaved }) {
                 <input className="input" placeholder="34 ABC 1234" value={form.tracking_number}
                   onChange={e => setForm(f => ({ ...f, tracking_number: e.target.value }))} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Şoför Adı</label>
                   <input className="input" value={form.driver_name}
@@ -1530,7 +1530,7 @@ function EventTimeline({ orderId, orderType }) {
             <label className="label">Açıklama</label>
             <textarea className="input" rows={2} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div>
               <label className="label">Konum</label>
               <input className="input" value={form.location} onChange={e => setForm(f => ({ ...f, location: e.target.value }))} placeholder="Şehir / Liman..." />
@@ -1622,7 +1622,7 @@ export default function SalesDetailPage() {
         {/* Order Summary */}
         <div className="card p-4">
           <h2 className="font-semibold text-gray-900 mb-3">Sipariş Özeti</h2>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-sm">
             {order.lot_no && (
               <div className="col-span-2">
                 <dt className="text-gray-500 text-xs">İhracat Sonrası Parti No</dt>

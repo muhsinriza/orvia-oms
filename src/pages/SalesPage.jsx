@@ -231,7 +231,7 @@ export default function SalesPage() {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
           <input className="input pl-9" placeholder="Party No veya müşteri ara..." value={search} onChange={e=>setSearch(e.target.value)}/>
         </div>
-        <select className="select w-auto" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
+        <select className="select w-full sm:w-auto" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
           <option value="">Tüm</option>
           {STATUS_OPTS.map(s=><option key={s} value={s}>{STATUS_TR[s]}</option>)}
         </select>
@@ -328,7 +328,7 @@ export default function SalesPage() {
           {/* Satış Tipi + SA Number */}
           <div className="sm:col-span-2">
             <label className="label">Satış Tipi *</label>
-            <div className="flex gap-3">
+            <div className="flex gap-2 flex-wrap">
               {Object.entries(SALES_TYPE_TR).map(([val, label]) => (
                 <button key={val} type="button" onClick={()=>setField('sales_type', val)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${form.sales_type === val ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400'}`}
@@ -360,6 +360,7 @@ export default function SalesPage() {
               <label className="label mb-0">Ürün Satırları *</label>
               <button type="button" onClick={addItem} className="btn-secondary text-xs py-1 px-2 flex items-center gap-1"><Plus size={12}/>Satır Ekle</button>
             </div>
+            <p className="text-xs text-gray-400 mb-1 sm:hidden">← Tabloyu kaydırarak görebilirsiniz</p>
             <div className="border border-gray-200 rounded-lg overflow-x-auto">
               <table className="w-full text-sm min-w-[700px]">
                 <thead className="bg-gray-50 border-b border-gray-200">
@@ -528,9 +529,9 @@ export default function SalesPage() {
             <textarea className="input" rows={2} value={form.notes} onChange={e=>setField('notes',e.target.value)}/>
           </div>
         </div>
-        <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-6 pt-4 border-t border-gray-100">
           {editing ? (
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <button className="btn-secondary flex items-center gap-1.5 text-xs" onClick={()=>generateSalesAgreementPDF(editing)} title="Satış Sözleşmesi PDF">
                 <FileText size={13}/> SA
               </button>
@@ -542,9 +543,9 @@ export default function SalesPage() {
               </button>
             </div>
           ) : <div/>}
-          <div className="flex gap-3">
-            <button className="btn-secondary" onClick={()=>setModalOpen(false)}>İptal</button>
-            <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</button>
+          <div className="flex gap-3 sm:ml-auto">
+            <button className="btn-secondary flex-1 sm:flex-none" onClick={()=>setModalOpen(false)}>İptal</button>
+            <button className="btn-primary flex-1 sm:flex-none" onClick={handleSave} disabled={saving}>{saving ? 'Kaydediliyor...' : 'Kaydet'}</button>
           </div>
         </div>
       </Modal>
@@ -552,7 +553,7 @@ export default function SalesPage() {
       {/* Links Modal */}
       <Modal open={!!linksModal} onClose={()=>setLinksModal(null)} title={`Bağlantılar — ${linksModal?.partyNo}`} size="lg">
         <div className="space-y-4">
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <label className="label">Satın Alma Siparişi</label>
               <select className="select" value={linkForm.purchase_order_id} onChange={e=>setLinkForm(f=>({...f,purchase_order_id:e.target.value}))}>
@@ -560,16 +561,16 @@ export default function SalesPage() {
                 {purchaseOrders.map(p=><option key={p.id} value={p.id}>{p.party_no} — {p.product_name} ({p.supplier_name})</option>)}
               </select>
             </div>
-            <div className="w-36">
+            <div className="w-full sm:w-36">
               <label className="label">Bağlı Miktar (kg)</label>
               <input className="input" type="number" value={linkForm.linked_kg} onChange={e=>setLinkForm(f=>({...f,linked_kg:e.target.value}))}/>
             </div>
             <div className="flex items-end">
-              <button className="btn-primary" onClick={addLink}><Plus size={15}/>Ekle</button>
+              <button className="btn-primary w-full sm:w-auto" onClick={addLink}><Plus size={15}/>Ekle</button>
             </div>
           </div>
 
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="border border-gray-200 rounded-lg overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
