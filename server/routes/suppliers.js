@@ -1,6 +1,6 @@
 const router = require('express').Router()
 const db = require('../db')
-const { requireAuth } = require('../middleware/auth')
+const { requireAuth, requireRole } = require('../middleware/auth')
 
 router.use(requireAuth)
 
@@ -19,7 +19,7 @@ router.get('/:id', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res) => {
   const { name, country, city, address, contact_name, email, phone, tax_number, notes } = req.body
   if (!name) return res.status(400).json({ error: 'İsim zorunlu' })
   try {
@@ -32,7 +32,7 @@ router.post('/', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireRole('admin'), async (req, res) => {
   const { name, country, city, address, contact_name, email, phone, tax_number, notes } = req.body
   if (!name) return res.status(400).json({ error: 'İsim zorunlu' })
   try {
@@ -46,7 +46,7 @@ router.put('/:id', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     await db.query('DELETE FROM suppliers WHERE id=$1', [req.params.id])
     res.json({ ok: true })

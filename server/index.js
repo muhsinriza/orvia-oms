@@ -28,6 +28,17 @@ app.use('/api/auth/login', rateLimit({
   message: { error: 'Çok fazla deneme. 15 dakika sonra tekrar deneyin.' },
 }))
 
+// Rate limiting — PDF/Excel generation (CPU-intensive, abuse risk)
+const pdfRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Çok fazla istek. Lütfen bekleyin.' },
+})
+app.use('/api/pdf', pdfRateLimit)
+app.use('/api/customs-excel', pdfRateLimit)
+
 // CORS — allow dev origin and production domain
 const allowedOrigins = [
   'http://localhost:5173',

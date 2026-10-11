@@ -24,6 +24,10 @@ async function launchBrowser () {
 
 async function htmlToPDF (html, opts = {}) {
   const browser = await launchBrowser()
+  // Overall timeout guard — kill the browser if PDF takes longer than 60 s
+  const browserTimeout = setTimeout(() => {
+    browser.close().catch(() => {})
+  }, 60000)
   try {
     const page = await browser.newPage()
     await page.setContent(html, { waitUntil: opts.waitUntil || 'domcontentloaded', timeout: 30000 })
@@ -37,6 +41,7 @@ async function htmlToPDF (html, opts = {}) {
     })
     return pdf
   } finally {
+    clearTimeout(browserTimeout)
     await browser.close()
   }
 }
@@ -56,8 +61,8 @@ const CO = {
   bankBranch:  '1128 / FENER MAHALLESİ / ANTALYA',
   bankAddress: 'Çağlayan Mah. Barınaklar Bulvarı No:32, Muratpaşa / Antalya / Türkiye',
   bic:         'TGBATRISXXX',
-  usd:         process.env.BANK_IBAN_USD || 'TR72 0006 2001 1280 0009 0700 75',
-  eur:         process.env.BANK_IBAN_EUR || 'TR02 0006 2001 1280 0009 0700 74',
+  usd:         process.env.BANK_IBAN_USD || '',
+  eur:         process.env.BANK_IBAN_EUR || '',
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
@@ -1019,7 +1024,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
 
     ${so.quality_notes ? `
     <div class="sec-hdr slate">Quality Notes</div>
-    <div style="padding:4px 8px;border:1px solid #e2e8f0;font-size:6pt;color:#374151;line-height:1.6;">${so.quality_notes}</div>
+    <div style="padding:4px 8px;border:1px solid #e2e8f0;font-size:6pt;color:#374151;line-height:1.6;">${esc(so.quality_notes)}</div>
     ` : ''}
   </div>
 
@@ -1289,6 +1294,10 @@ ${sigHTML(false, true, true)}
 
 router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
   try {
+    // Guard against oversized payloads (H4 — malicious giant packing lists)
+    const rawSize = JSON.stringify(req.body).length
+    if (rawSize > 200_000) return res.status(413).json({ error: 'Yük çok büyük' })
+
     // Support both legacy single { rows, palletCount } and new multi-container { containers: [...] }
     const { rows: customRows, palletCount, containers: containersPayload } = req.body
 
@@ -1663,7 +1672,7 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
 
     const notesSection = so.notes ? `
 <div class="section-header">Additional Notes</div>
-<div class="notes-box">${so.notes}</div>` : ''
+<div class="notes-box">${esc(so.notes)}</div>` : ''
 
     const html = wrap(`
 ${headerHTML('SALES AGREEMENT', val(so.sa_number || so.party_no), fmtDate(new Date()))}
@@ -1741,7 +1750,7 @@ router.get('/purchase-order/:id', requireAuth, async (req, res) => {
 
     const notesSection = po.notes ? `
 <div class="section-header">Notes &amp; Special Instructions</div>
-<div class="notes-box">${po.notes}</div>` : ''
+<div class="notes-box">${esc(po.notes)}</div>` : ''
 
     const html = wrap(`
 ${headerHTML('PURCHASE ORDER', val(po.party_no), fmtDate(po.shipment_date || new Date()))}
