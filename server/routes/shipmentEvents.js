@@ -1,6 +1,6 @@
 const router = require('express').Router()
 const db = require('../db')
-const { requireAuth } = require('../middleware/auth')
+const { requireAuth, requireRole } = require('../middleware/auth')
 
 router.use(requireAuth)
 
@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
 })
 
 // DELETE /shipment-events/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     await db.query('DELETE FROM shipment_events WHERE id=$1', [req.params.id])
     res.json({ ok: true })

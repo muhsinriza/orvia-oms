@@ -1,6 +1,6 @@
 const router = require('express').Router()
 const db = require('../db')
-const { requireAuth } = require('../middleware/auth')
+const { requireAuth, requireRole } = require('../middleware/auth')
 
 router.use(requireAuth)
 
@@ -265,7 +265,7 @@ router.put('/:id', async (req, res) => {
 
 // PATCH /sales-orders/:id/status
 const VALID_SO_STATUSES = ['draft', 'confirmed', 'in_transit', 'completed', 'delivered', 'cancelled']
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', requireRole('admin'), async (req, res) => {
   const { status } = req.body
   if (!VALID_SO_STATUSES.includes(status)) return res.status(400).json({ error: 'Geçersiz durum değeri' })
   try {
@@ -279,7 +279,7 @@ router.patch('/:id/status', async (req, res) => {
 })
 
 // PATCH /sales-orders/:id/shipping — update invoice/logistics fields only
-router.patch('/:id/shipping', async (req, res) => {
+router.patch('/:id/shipping', requireRole('admin'), async (req, res) => {
   const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta, containers, loading_address, freight_amount } = req.body
   try {
     const { rows } = await db.query(`
@@ -324,7 +324,7 @@ router.get('/:id/containers', async (req, res) => {
 })
 
 // PATCH /sales-orders/:id/packing-list — save packing list data for a specific container
-router.patch('/:id/packing-list', async (req, res) => {
+router.patch('/:id/packing-list', requireRole('admin'), async (req, res) => {
   const { rows, palletCount, containerId } = req.body
   const data = JSON.stringify({ rows, palletCount })
   try {
@@ -348,7 +348,7 @@ router.patch('/:id/packing-list', async (req, res) => {
 })
 
 // DELETE /sales-orders/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     await db.query('DELETE FROM sales_orders WHERE id=$1', [req.params.id])
     res.json({ ok: true })

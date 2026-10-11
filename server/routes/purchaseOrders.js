@@ -1,6 +1,6 @@
 const router = require('express').Router()
 const db = require('../db')
-const { requireAuth } = require('../middleware/auth')
+const { requireAuth, requireRole } = require('../middleware/auth')
 
 router.use(requireAuth)
 
@@ -52,7 +52,7 @@ router.get('/:id', async (req, res) => {
 })
 
 // POST /purchase-orders
-router.post('/', async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res) => {
   const {
     purchase_type,
     supplier_id, product_id, variety, caliber, origin,
@@ -107,7 +107,7 @@ router.post('/', async (req, res) => {
 })
 
 // PUT /purchase-orders/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireRole('admin'), async (req, res) => {
   const {
     purchase_type,
     supplier_id, product_id, variety, caliber, origin,
@@ -165,7 +165,7 @@ router.put('/:id', async (req, res) => {
 
 // PATCH /purchase-orders/:id/status
 const VALID_PO_STATUSES = ['draft', 'confirmed', 'in_transit', 'completed', 'delivered', 'cancelled']
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', requireRole('admin'), async (req, res) => {
   const { status } = req.body
   if (!VALID_PO_STATUSES.includes(status)) return res.status(400).json({ error: 'Geçersiz durum değeri' })
   try {
@@ -179,7 +179,7 @@ router.patch('/:id/status', async (req, res) => {
 })
 
 // DELETE /purchase-orders/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     await db.query('DELETE FROM purchase_orders WHERE id=$1', [req.params.id])
     res.json({ ok: true })

@@ -1,6 +1,6 @@
 const router = require('express').Router()
 const db = require('../db')
-const { requireAuth } = require('../middleware/auth')
+const { requireAuth, requireRole } = require('../middleware/auth')
 
 router.use(requireAuth)
 
@@ -20,7 +20,7 @@ router.get('/sales/:so_id', async (req, res) => {
 })
 
 // POST /order-links
-router.post('/', async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res) => {
   const { sales_order_id, purchase_order_id, linked_kg } = req.body
   if (!sales_order_id || !purchase_order_id || !linked_kg) {
     return res.status(400).json({ error: 'sales_order_id, purchase_order_id ve linked_kg zorunlu' })
@@ -39,7 +39,7 @@ router.post('/', async (req, res) => {
 })
 
 // DELETE /order-links/:id
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     await db.query('DELETE FROM order_links WHERE id=$1', [req.params.id])
     res.json({ ok: true })
