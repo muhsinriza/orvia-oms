@@ -32,7 +32,7 @@ async function htmlToPDF (html, opts = {}) {
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: false,
-      margin: { top: '8mm', right: '8mm', bottom: '8mm', left: '8mm' },
+      margin: opts.margin || { top: '8mm', right: '8mm', bottom: '8mm', left: '8mm' },
       ...(opts.scale ? { scale: opts.scale } : {}),
     })
     return pdf
@@ -1213,7 +1213,9 @@ ${sigHTML(false, true)}
 
     // Compact CSS overrides — fits 21 pallet rows on one A4 page, stretches to fill full page
     const plCompact = `<style>
-.page { padding:4mm; min-height:277mm; display:flex; flex-direction:column; box-sizing:border-box; }
+@page { margin: 8mm; }
+html, body { height: 100%; margin: 0; }
+.page { padding:4mm; height:calc(297mm - 16mm); display:flex; flex-direction:column; box-sizing:border-box; overflow:hidden; }
 .doc-header { padding:2.5mm 0 2mm; margin-bottom:2mm; }
 .doc-header-inner { padding:0 4mm; gap:3mm; }
 .doc-title { font-size:11pt; }
@@ -1255,7 +1257,7 @@ ${sigHTML(false, true)}
 
     const htmlCompact = html.replace('</style></head>', plCompact + '</style></head>')
 
-    const pdf = await htmlToPDF(htmlCompact)
+    const pdf = await htmlToPDF(htmlCompact, { margin: { top: '0', right: '0', bottom: '0', left: '0' } })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="PackingList_' + so.party_no + '.pdf"',
