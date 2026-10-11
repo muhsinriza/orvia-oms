@@ -5,15 +5,27 @@ const ExcelJS = require('exceljs')
 
 router.use(requireAuth)
 
-// GET /api/customs-excel/:id — generate Gümrük Beyannamesi Excel
+// ── Brand colours ─────────────────────────────────────────────────────────────
+const ORVIA_DARK   = 'FF0A2540'   // deep navy
+const ORVIA_MID    = 'FF0F3D6B'   // mid navy
+const ORVIA_LIGHT  = 'FFE8F0F8'   // pale blue tint
+const ORVIA_ACCENT = 'FF1A6BB5'   // logo blue
+const WHITE        = 'FFFFFFFF'
+const GRAY_TEXT    = 'FF64748B'
+const GRAY_BG      = 'FFF8FAFC'
+const GREEN_BG     = 'FFE6F4EA'
+const GREEN_TEXT   = 'FF1A6B3C'
+const BORDER_CLR   = 'FFCBD5E0'
+
+// GET /api/customs-excel/:id — generate İhracat Detayları Excel
 router.get('/:id', async (req, res) => {
   try {
-    // Fetch sales order with customer info
     const { rows: soRows } = await db.query(`
       SELECT so.*,
-             c.name AS customer_name,
+             c.name    AS customer_name,
              c.address AS customer_address,
              c.country AS customer_country,
+             c.city    AS customer_city,
              c.gst_no, c.iec_no, c.pan_no, c.fssai_no
       FROM sales_orders so
       LEFT JOIN customers c ON c.id = so.customer_id
@@ -22,333 +34,384 @@ router.get('/:id', async (req, res) => {
     if (!soRows[0]) return res.status(404).json({ error: 'Sipariş bulunamadı' })
     const so = soRows[0]
 
-    // Fetch order items with product info
     const { rows: items } = await db.query(`
       SELECT soi.*,
-             p.name AS product_name,
-             p.category AS product_category,
+             p.name              AS product_name,
+             p.category          AS product_category,
              p.gtip_code,
-             p.box_net_kg AS p_box_net_kg,
-             p.box_gross_kg AS p_box_gross_kg,
-             p.boxes_per_pallet AS p_boxes_per_pallet
+             p.box_net_kg        AS p_box_net_kg,
+             p.box_gross_kg      AS p_box_gross_kg,
+             p.boxes_per_pallet  AS p_boxes_per_pallet
       FROM sales_order_items soi
       LEFT JOIN products p ON p.id::text = soi.product_id::text
       WHERE soi.sales_order_id = $1
       ORDER BY soi.sort_order
     `, [req.params.id])
 
-    // Fetch containers
     const { rows: containers } = await db.query(
       'SELECT * FROM sales_order_containers WHERE sales_order_id=$1 ORDER BY sort_order, id',
       [req.params.id]
     )
 
-    const wb = new ExcelJS.Workbook()
-    const ws = wb.addWorksheet('Gümrük Beyannamesi')
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function fmtDate (d) {
+      if (!d) return '—'
+      const dt = new Date(d)
+      if (isNaN(dt)) return String(d)
+      return dt.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    }
+    function fmtNum (n, dec = 2) {
+      if (n == null || isNaN(n)) return '—'
+      return Number(n).toLocaleString('tr-TR', { minimumFractionDigits: dec, maximumFractionDigits: dec })
+    }
 
-    // ── Column widths ──────────────────────────────────────────────────────────
+    // ── Workbook / sheet ───────────────────────────────────────────────────────
+    const wb = new ExcelJS.Workbook()
+    wb.creator  = 'Orvia Tropical'
+    wb.created  = new Date()
+    const ws = wb.addWorksheet('İhracat Detayları', { views: [{ showGridLines: false }] })
+
+    // ── Column definitions ─────────────────────────────────────────────────────
+    // A  B        C            D       E        F            G      H        I         J       K               L
+    // #  Palet    Koli (adet)  Cinsi   Çeşidi   Malzeme Adı  GTIP   Ambalaj  Brüt Kg   Net Kg  Birim Fiyat USD  Tutar USD
     ws.columns = [
-      { key: 'A', width: 5 },   // No
-      { key: 'B', width: 10 },  // Palet Say.
-      { key: 'C', width: 10 },  // Adedi
-      { key: 'D', width: 14 },  // Cinsi
-      { key: 'E', width: 14 },  // Çeşidi
-      { key: 'F', width: 30 },  // Malzeme Adı
-      { key: 'G', width: 14 },  // GTIP
-      { key: 'H', width: 10 },  // Ambalaj
-      { key: 'I', width: 12 },  // Brüt kg
-      { key: 'J', width: 12 },  // Net Kg
-      { key: 'K', width: 14 },  // Kutu Fiyatı USD
-      { key: 'L', width: 14 },  // Tutar USD
+      { key: 'no',    width: 5  },
+      { key: 'pal',   width: 9  },
+      { key: 'koli',  width: 11 },
+      { key: 'cins',  width: 14 },
+      { key: 'cesit', width: 14 },
+      { key: 'mal',   width: 32 },
+      { key: 'gtip',  width: 16 },
+      { key: 'amb',   width: 11 },
+      { key: 'brut',  width: 13 },
+      { key: 'net',   width: 13 },
+      { key: 'birim', width: 16 },
+      { key: 'tutar', width: 16 },
     ]
 
-    // ── Header styles ──────────────────────────────────────────────────────────
-    const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E79' } }
-    const headerFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 }
-    const borderThin = { style: 'thin', color: { argb: 'FF000000' } }
-    const allBorder = { top: borderThin, left: borderThin, bottom: borderThin, right: borderThin }
-    const centerAlign = { horizontal: 'center', vertical: 'middle', wrapText: true }
-    const leftAlign = { horizontal: 'left', vertical: 'middle', wrapText: true }
+    // ── Style factories ────────────────────────────────────────────────────────
+    const thinBorder = { style: 'thin', color: { argb: BORDER_CLR } }
+    const allBorder  = { top: thinBorder, left: thinBorder, bottom: thinBorder, right: thinBorder }
+    const boldBorder = { top: { style: 'medium', color: { argb: ORVIA_MID } }, left: thinBorder, bottom: { style: 'medium', color: { argb: ORVIA_MID } }, right: thinBorder }
 
-    function styleHeader (cell) {
-      cell.fill = headerFill
-      cell.font = headerFont
-      cell.border = allBorder
-      cell.alignment = centerAlign
+    const ctr  = { horizontal: 'center', vertical: 'middle', wrapText: true }
+    const lft  = { horizontal: 'left',   vertical: 'middle', wrapText: true }
+    const rgt  = { horizontal: 'right',  vertical: 'middle', wrapText: false }
+
+    function applyCell (cell, { value, font, fill, alignment, border, numFmt } = {}) {
+      if (value !== undefined) cell.value = value
+      if (font)      cell.font      = font
+      if (fill)      cell.fill      = fill
+      if (alignment) cell.alignment = alignment
+      if (border)    cell.border    = border
+      if (numFmt)    cell.numFmt    = numFmt
     }
 
-    function styleData (cell, align) {
-      cell.border = allBorder
-      cell.alignment = align || centerAlign
-      cell.font = { size: 10 }
-    }
+    function solidFill (argb) { return { type: 'pattern', pattern: 'solid', fgColor: { argb } } }
 
-    function styleTotal (cell) {
-      cell.border = allBorder
-      cell.alignment = centerAlign
-      cell.font = { bold: true, size: 10 }
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD6E4BC' } }
-    }
-
-    // ── Title row ──────────────────────────────────────────────────────────────
+    // ── ROW 1 — banner ────────────────────────────────────────────────────────
     ws.mergeCells('A1:L1')
-    const titleCell = ws.getCell('A1')
-    titleCell.value = 'GÜMRÜK BEYANNAMESİ BİLGİLERİ'
-    titleCell.font = { bold: true, size: 14, color: { argb: 'FF1F4E79' } }
-    titleCell.alignment = centerAlign
-    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F1' } }
-    ws.getRow(1).height = 30
-
-    // SA Number / Party No
-    ws.mergeCells('A2:F2')
-    ws.getCell('A2').value = `Sipariş No: ${so.sa_number || so.party_no || '—'}`
-    ws.getCell('A2').font = { bold: true, size: 11 }
-    ws.getCell('A2').alignment = leftAlign
-
-    ws.mergeCells('G2:L2')
-    const tareksFormatted = so.lot_no || '—'
-    ws.getCell('G2').value = `TAREKS No: ${tareksFormatted}`
-    ws.getCell('G2').font = { bold: true, size: 11 }
-    ws.getCell('G2').alignment = leftAlign
-    ws.getRow(2).height = 20
-
-    // ── Column headers row ─────────────────────────────────────────────────────
-    const headerRow = ws.getRow(3)
-    headerRow.height = 35
-    const headers = ['No', 'Palet Say.', 'Adedi (Koli)', 'Cinsi', 'Çeşidi', 'Malzeme Adı', 'GTIP', 'Ambalaj', 'Brüt Kg', 'Net Kg', 'Kutu Fiyatı (USD)', 'Tutar (USD)']
-    const cols = ['A','B','C','D','E','F','G','H','I','J','K','L']
-    headers.forEach((h, i) => {
-      const cell = ws.getCell(`${cols[i]}3`)
-      cell.value = h
-      styleHeader(cell)
+    ws.getRow(1).height = 42
+    applyCell(ws.getCell('A1'), {
+      value: '  İHRACAT DETAYLARI',
+      font:  { name: 'Calibri', bold: true, size: 16, color: { argb: WHITE } },
+      fill:  solidFill(ORVIA_DARK),
+      alignment: { horizontal: 'left', vertical: 'middle' },
     })
 
-    // ── Data rows ──────────────────────────────────────────────────────────────
-    let dataRowStart = 4
-    let totalGross = 0
-    let totalNet = 0
-    let totalBoxes = 0
-    let totalPallets = 0
-    let totalAmount = 0
+    // ── ROW 2 — company tag line & order reference ─────────────────────────────
+    ws.mergeCells('A2:F2')
+    ws.getRow(2).height = 20
+    applyCell(ws.getCell('A2'), {
+      value: 'Orvia Tropical Ltd  |  orviatropical.com',
+      font:  { name: 'Calibri', italic: true, size: 9, color: { argb: ORVIA_ACCENT } },
+      fill:  solidFill(ORVIA_LIGHT),
+      alignment: lft,
+    })
+    ws.mergeCells('G2:L2')
+    applyCell(ws.getCell('G2'), {
+      value: `Sipariş: ${so.sa_number || so.party_no || '—'}   |   TAREKS: ${so.lot_no || '—'}`,
+      font:  { name: 'Calibri', bold: true, size: 9, color: { argb: ORVIA_MID } },
+      fill:  solidFill(ORVIA_LIGHT),
+      alignment: { horizontal: 'right', vertical: 'middle' },
+    })
+
+    // ── ROW 3 — spacer ────────────────────────────────────────────────────────
+    ws.getRow(3).height = 6
+    ws.mergeCells('A3:L3')
+    ws.getCell('A3').fill = solidFill('FFF0F4F8')
+
+    // ── ROW 4 — column headers ────────────────────────────────────────────────
+    ws.getRow(4).height = 32
+    const HEADERS = ['#', 'Palet', 'Koli (Adet)', 'Cinsi', 'Çeşidi', 'Malzeme Adı', 'GTIP Kodu', 'Ambalaj', 'Brüt Kg', 'Net Kg', 'Birim Fiyat\nUSD', 'Tutar\nUSD']
+    const COLS    = ['A','B','C','D','E','F','G','H','I','J','K','L']
+    HEADERS.forEach((h, i) => {
+      applyCell(ws.getCell(`${COLS[i]}4`), {
+        value:     h,
+        font:      { name: 'Calibri', bold: true, size: 9, color: { argb: WHITE } },
+        fill:      solidFill(ORVIA_MID),
+        alignment: ctr,
+        border:    allBorder,
+      })
+    })
+
+    // ── DATA rows ─────────────────────────────────────────────────────────────
+    let DR = 5   // data row cursor
+    let totBoxes = 0, totPallets = 0, totNet = 0, totGross = 0, totAmount = 0
 
     items.forEach((item, idx) => {
-      const rowNum = dataRowStart + idx
-      const row = ws.getRow(rowNum)
-      row.height = 18
+      const isOdd = idx % 2 === 0
+      const rowFill = solidFill(isOdd ? WHITE : GRAY_BG)
 
-      // Calculate per-item values
-      const boxNetKg = parseFloat(item.box_weight_kg || item.p_box_net_kg || 0)
-      const boxGrossKg = parseFloat(item.p_box_gross_kg || (boxNetKg * 1.05))
-      const qtyKg = parseFloat(item.quantity_kg || 0)
-      const boxesPerPallet = parseInt(item.p_boxes_per_pallet || 66)
+      // ── Calculations (always use qty_kg ÷ box_weight_kg) ──────────────────
+      const boxNetKg     = parseFloat(item.box_weight_kg  || item.p_box_net_kg   || 0)
+      const boxGrossKg   = parseFloat(item.p_box_gross_kg || (boxNetKg > 0 ? boxNetKg * 1.05 : 0))
+      const qtyKg        = parseFloat(item.quantity_kg    || 0)
+      const boxesPerPal  = parseInt(item.p_boxes_per_pallet || so.pallets || 66)
+      const pricePerUnit = parseFloat(item.price_per_unit  || 0)
 
-      // Determine box count
-      let boxCount = 0
-      if (item.sell_by === 'kg' && boxNetKg > 0) {
-        boxCount = Math.round(qtyKg / boxNetKg)
-      } else {
-        boxCount = Math.round(qtyKg) // if sell_by box, quantity_kg stores box count
-      }
+      // Box count: always derived from KG ÷ box weight (sell_by='kg' path)
+      // If box weight unknown, fall back to quantity_kg as a raw box count (legacy)
+      const boxCount   = (boxNetKg > 0) ? Math.round(qtyKg / boxNetKg) : Math.round(qtyKg)
+      const palletCnt  = (boxesPerPal > 0 && boxCount > 0) ? Math.ceil(boxCount / boxesPerPal) : 0
+      const netKg      = boxCount * boxNetKg
+      const grossKg    = boxCount * boxGrossKg
+      const totalUSD   = boxCount * pricePerUnit
 
-      const palletCount = boxesPerPallet > 0 ? Math.ceil(boxCount / boxesPerPallet) : 0
-      const netKg = boxCount * boxNetKg
-      const grossKg = boxCount * boxGrossKg
-      const pricePerUnit = parseFloat(item.price_per_unit || 0)
-      const totalUSD = boxCount * pricePerUnit
+      totBoxes   += boxCount
+      totPallets += palletCnt
+      totNet     += netKg
+      totGross   += grossKg
+      totAmount  += totalUSD
 
-      totalBoxes += boxCount
-      totalPallets += palletCount
-      totalNet += netKg
-      totalGross += grossKg
-      totalAmount += totalUSD
+      // Malzeme adı: "18 Kg Gala Fresh Apple 18 KG Carton"
+      const netLbl  = boxNetKg     ? `${boxNetKg} Kg `   : ''
+      const varLbl  = item.variety ? `${item.variety} ` : ''
+      const prodLbl = item.product_name || ''
+      const ambLbl  = item.box_type || so.box_type || 'Carton'
+      const malzeme = `${netLbl}${varLbl}${prodLbl} ${ambLbl}`.replace(/\s+/g, ' ').trim()
 
-      // Compose "Malzeme Adı" like "18 Kg Gala Apple Carton"
-      const netLabel = boxNetKg ? `${boxNetKg} Kg ` : ''
-      const varietyLabel = item.variety ? `${item.variety} ` : ''
-      const productLabel = item.product_name || ''
-      const boxTypeLabel = item.box_type || so.box_type || 'Carton'
-      const malzemeAdi = `${netLabel}${varietyLabel}${productLabel} ${boxTypeLabel}`.trim()
+      ws.getRow(DR).height = 17
 
-      const vals = [
-        idx + 1,
-        palletCount || '',
-        boxCount,
-        item.product_category || '',
-        item.variety || '',
-        malzemeAdi,
-        item.gtip_code || '',
-        item.box_type || so.box_type || '',
-        grossKg.toFixed(2),
-        netKg.toFixed(2),
-        pricePerUnit.toFixed(4),
-        totalUSD.toFixed(2),
+      const rowData = [
+        { col: 'A', value: idx + 1,              align: ctr, numFmt: '0' },
+        { col: 'B', value: palletCnt || '',       align: ctr },
+        { col: 'C', value: boxCount,              align: ctr, numFmt: '#,##0' },
+        { col: 'D', value: item.product_category || '', align: lft },
+        { col: 'E', value: item.variety          || '', align: lft },
+        { col: 'F', value: malzeme,               align: lft },
+        { col: 'G', value: item.gtip_code        || '', align: ctr },
+        { col: 'H', value: ambLbl,                align: ctr },
+        { col: 'I', value: grossKg,               align: rgt, numFmt: '#,##0.00' },
+        { col: 'J', value: netKg,                 align: rgt, numFmt: '#,##0.00' },
+        { col: 'K', value: pricePerUnit,          align: rgt, numFmt: '#,##0.0000' },
+        { col: 'L', value: totalUSD,              align: rgt, numFmt: '#,##0.00' },
       ]
 
-      vals.forEach((v, i) => {
-        const cell = ws.getCell(`${cols[i]}${rowNum}`)
-        cell.value = typeof v === 'string' ? v : v
-        styleData(cell, i >= 8 ? centerAlign : (i >= 1 ? centerAlign : centerAlign))
+      rowData.forEach(({ col, value, align, numFmt }) => {
+        applyCell(ws.getCell(`${col}${DR}`), {
+          value,
+          font:      { name: 'Calibri', size: 9, color: { argb: ORVIA_DARK } },
+          fill:      rowFill,
+          alignment: align,
+          border:    allBorder,
+          numFmt,
+        })
+      })
+
+      DR++
+    })
+
+    // ── TOTALS row ────────────────────────────────────────────────────────────
+    ws.getRow(DR).height = 20
+    ws.mergeCells(`A${DR}:B${DR}`)
+    applyCell(ws.getCell(`A${DR}`), {
+      value:     'TOPLAM',
+      font:      { name: 'Calibri', bold: true, size: 10, color: { argb: WHITE } },
+      fill:      solidFill(ORVIA_ACCENT),
+      alignment: ctr,
+      border:    boldBorder,
+    })
+
+    const totData = [
+      { col: 'C', value: totBoxes,   numFmt: '#,##0'    },
+      { col: 'D', value: '' },
+      { col: 'E', value: '' },
+      { col: 'F', value: '' },
+      { col: 'G', value: '' },
+      { col: 'H', value: '' },
+      { col: 'I', value: totGross,   numFmt: '#,##0.00' },
+      { col: 'J', value: totNet,     numFmt: '#,##0.00' },
+      { col: 'K', value: '' },
+      { col: 'L', value: totAmount,  numFmt: '#,##0.00' },
+    ]
+    totData.forEach(({ col, value, numFmt }) => {
+      applyCell(ws.getCell(`${col}${DR}`), {
+        value,
+        font:      { name: 'Calibri', bold: true, size: 10, color: { argb: WHITE } },
+        fill:      solidFill(ORVIA_ACCENT),
+        alignment: ctr,
+        border:    boldBorder,
+        numFmt,
       })
     })
+    DR += 2
 
-    // ── Totals row ─────────────────────────────────────────────────────────────
-    const totalRow = dataRowStart + items.length
-    ws.getRow(totalRow).height = 20
-
-    ws.mergeCells(`A${totalRow}:B${totalRow}`)
-    const totCell = ws.getCell(`A${totalRow}`)
-    totCell.value = 'TOPLAM'
-    styleTotal(totCell)
-
-    const totVals = {
-      C: totalBoxes,
-      D: '', E: '', F: '', G: '', H: '',
-      I: totalGross.toFixed(2),
-      J: totalNet.toFixed(2),
-      K: '',
-      L: totalAmount.toFixed(2),
+    // ── SECTION builder helpers ───────────────────────────────────────────────
+    function sectionHeader (label, row) {
+      ws.getRow(row).height = 20
+      ws.mergeCells(`A${row}:L${row}`)
+      applyCell(ws.getCell(`A${row}`), {
+        value:     `  ${label}`,
+        font:      { name: 'Calibri', bold: true, size: 9, color: { argb: WHITE } },
+        fill:      solidFill(ORVIA_MID),
+        alignment: lft,
+      })
     }
-    Object.entries(totVals).forEach(([col, val]) => {
-      const cell = ws.getCell(`${col}${totalRow}`)
-      cell.value = val
-      styleTotal(cell)
-    })
 
-    // ── Summary section ────────────────────────────────────────────────────────
-    let summaryStart = totalRow + 2
-    const summaryData = [
-      ['KAP MİKTARI', `${totalBoxes} ADET`],
-      ['PALET SAYISI', `${totalPallets} ADET`],
-      ['BRÜT AĞIRLIK', `${totalGross.toFixed(2)} KG`],
-      ['NET AĞIRLIK', `${totalNet.toFixed(2)} KG`],
-      ['ÖDEME ŞEKLİ', so.payment_method || '—'],
-      ['TESLİM ŞEKLİ', so.incoterm || '—'],
-      ['TAŞIMA ŞEKLİ', so.transport_mode || '—'],
-      ['NAVLUN TUT.', so.freight_amount ? `${parseFloat(so.freight_amount).toFixed(2)} USD` : '—'],
-      ['TAREKS NO', so.lot_no || '—'],
-      ['YÜKLEME ADRESİ', so.loading_address || '—'],
+    function infoRow (label, value, row, spanLabel = 3, spanValue = 9) {
+      ws.getRow(row).height = 16
+      // label cells
+      ws.mergeCells(`A${row}:${COLS[spanLabel - 1]}${row}`)
+      applyCell(ws.getCell(`A${row}`), {
+        value:     label,
+        font:      { name: 'Calibri', bold: true, size: 9, color: { argb: ORVIA_MID } },
+        fill:      solidFill(ORVIA_LIGHT),
+        alignment: lft,
+        border:    allBorder,
+      })
+      // value cells
+      const valColStart = COLS[spanLabel]
+      const valColEnd   = COLS[spanLabel + spanValue - 1]
+      ws.mergeCells(`${valColStart}${row}:${valColEnd}${row}`)
+      applyCell(ws.getCell(`${valColStart}${row}`), {
+        value:     value || '—',
+        font:      { name: 'Calibri', size: 9, color: { argb: ORVIA_DARK } },
+        fill:      solidFill(WHITE),
+        alignment: lft,
+        border:    allBorder,
+      })
+    }
+
+    // ── SECTION 1: Sevkiyat Özeti ─────────────────────────────────────────────
+    sectionHeader('📦  SEVKİYAT ÖZETİ', DR); DR++
+    infoRow('Kap Miktarı',    `${fmtNum(totBoxes, 0)} Koli`,               DR++, 3, 3)
+    infoRow('Palet Sayısı',   `${fmtNum(totPallets, 0)} Adet`,             DR++, 3, 3)
+    infoRow('Brüt Ağırlık',   `${fmtNum(totGross)} KG`,                    DR++, 3, 3)
+    infoRow('Net Ağırlık',    `${fmtNum(totNet)} KG`,                      DR++, 3, 3)
+
+    // second column of summary (layout: two side-by-side pairs per row)
+    // re-do as a 2-column grid
+    DR -= 4
+    // overwrite rows with 2-column layout
+    const summaryPairs = [
+      ['Kap Miktarı',    `${fmtNum(totBoxes, 0)} Koli`,   'Palet Sayısı',  `${fmtNum(totPallets, 0)} Adet`],
+      ['Brüt Ağırlık',  `${fmtNum(totGross)} KG`,         'Net Ağırlık',   `${fmtNum(totNet)} KG`         ],
+      ['Ödeme Şekli',   so.payment_method || '—',         'Teslim Şekli',  so.incoterm || '—'             ],
+      ['Taşıma Şekli',  so.transport_mode || '—',         'Navlun Tutarı', so.freight_amount ? `${fmtNum(parseFloat(so.freight_amount))} USD` : '—'],
+      ['Yükleme Tarihi',fmtDate(so.shipment_date),        'ETD',           fmtDate(so.etd)                ],
+      ['ETA',           fmtDate(so.eta),                  'Yükleme Adresi',so.loading_address || '—'      ],
+      ['TAREKS No',     so.lot_no || '—',                 'Fatura No',     so.invoice_no || '—'           ],
     ]
 
-    summaryData.forEach(([label, value], i) => {
-      const rowNum = summaryStart + i
-      ws.getRow(rowNum).height = 18
+    // clear the 4 pre-written rows first (we'll rewrite)
+    for (let r = 0; r < 4; r++) {
+      const rowNum = DR + r
+      ws.unMergeCells && (() => { try { ws.unMergeCells(`A${rowNum}:D${rowNum}`) } catch(e){} })()
+    }
 
-      ws.mergeCells(`A${rowNum}:C${rowNum}`)
-      const labelCell = ws.getCell(`A${rowNum}`)
-      labelCell.value = label
-      labelCell.font = { bold: true, size: 10 }
-      labelCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F1' } }
-      labelCell.border = allBorder
-      labelCell.alignment = leftAlign
-
-      ws.mergeCells(`D${rowNum}:L${rowNum}`)
-      const valCell = ws.getCell(`D${rowNum}`)
-      valCell.value = value
-      valCell.font = { size: 10 }
-      valCell.border = allBorder
-      valCell.alignment = leftAlign
+    summaryPairs.forEach(([lbl1, val1, lbl2, val2]) => {
+      ws.getRow(DR).height = 16
+      // Left label A-C
+      ws.mergeCells(`A${DR}:C${DR}`)
+      applyCell(ws.getCell(`A${DR}`), { value: lbl1, font: { name:'Calibri', bold:true, size:9, color:{argb:ORVIA_MID} }, fill:solidFill(ORVIA_LIGHT), alignment:lft, border:allBorder })
+      // Left value D-F
+      ws.mergeCells(`D${DR}:F${DR}`)
+      applyCell(ws.getCell(`D${DR}`), { value: val1, font: { name:'Calibri', size:9, color:{argb:ORVIA_DARK} }, fill:solidFill(WHITE), alignment:lft, border:allBorder })
+      // Right label G-I
+      ws.mergeCells(`G${DR}:I${DR}`)
+      applyCell(ws.getCell(`G${DR}`), { value: lbl2, font: { name:'Calibri', bold:true, size:9, color:{argb:ORVIA_MID} }, fill:solidFill(ORVIA_LIGHT), alignment:lft, border:allBorder })
+      // Right value J-L
+      ws.mergeCells(`J${DR}:L${DR}`)
+      applyCell(ws.getCell(`J${DR}`), { value: val2, font: { name:'Calibri', size:9, color:{argb:ORVIA_DARK} }, fill:solidFill(WHITE), alignment:lft, border:allBorder })
+      DR++
     })
+    DR++
 
-    // ── Container numbers ──────────────────────────────────────────────────────
-    let contStart = summaryStart + summaryData.length + 1
-
-    if (containers.length > 0) {
-      ws.getRow(contStart).height = 18
-      ws.mergeCells(`A${contStart}:L${contStart}`)
-      const contHeader = ws.getCell(`A${contStart}`)
-      contHeader.value = 'KONTEYNER / ARAÇ BİLGİLERİ'
-      contHeader.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
-      contHeader.fill = headerFill
-      contHeader.border = allBorder
-      contHeader.alignment = centerAlign
-      contStart++
+    // ── SECTION 2: Konteyner / Araç ──────────────────────────────────────────
+    if (containers.length > 0 || so.vessel_name || so.driver_name) {
+      sectionHeader('🚢  KONTEYNER / ARAÇ BİLGİLERİ', DR); DR++
 
       containers.forEach((c, i) => {
-        ws.getRow(contStart + i).height = 16
-        ws.mergeCells(`A${contStart + i}:C${contStart + i}`)
-        const numCell = ws.getCell(`A${contStart + i}`)
-        numCell.value = `Konteyner ${i + 1}`
-        numCell.font = { bold: true, size: 10 }
-        numCell.border = allBorder
-        numCell.alignment = leftAlign
-
-        ws.mergeCells(`D${contStart + i}:L${contStart + i}`)
-        const cnCell = ws.getCell(`D${contStart + i}`)
-        cnCell.value = c.container_number || '—'
-        cnCell.border = allBorder
-        cnCell.alignment = leftAlign
+        ws.getRow(DR).height = 16
+        ws.mergeCells(`A${DR}:C${DR}`)
+        applyCell(ws.getCell(`A${DR}`), { value: `Konteyner ${i + 1}`, font:{name:'Calibri',bold:true,size:9,color:{argb:ORVIA_MID}}, fill:solidFill(ORVIA_LIGHT), alignment:lft, border:allBorder })
+        ws.mergeCells(`D${DR}:L${DR}`)
+        applyCell(ws.getCell(`D${DR}`), { value: c.container_number || '—', font:{name:'Calibri',size:9,color:{argb:ORVIA_DARK}}, fill:solidFill(WHITE), alignment:lft, border:allBorder })
+        DR++
       })
-      contStart += containers.length
 
-      // Driver info
-      if (so.driver_name || so.driver_phone) {
-        ws.getRow(contStart).height = 16
-        ws.mergeCells(`A${contStart}:C${contStart}`)
-        const driverLabel = ws.getCell(`A${contStart}`)
-        driverLabel.value = 'Şoför'
-        driverLabel.font = { bold: true, size: 10 }
-        driverLabel.border = allBorder
-        driverLabel.alignment = leftAlign
-
-        ws.mergeCells(`D${contStart}:L${contStart}`)
-        const driverVal = ws.getCell(`D${contStart}`)
-        driverVal.value = [so.driver_name, so.driver_phone].filter(Boolean).join(' — ')
-        driverVal.border = allBorder
-        driverVal.alignment = leftAlign
-        contStart++
+      if (so.vessel_name) {
+        ws.getRow(DR).height = 16
+        ws.mergeCells(`A${DR}:C${DR}`)
+        applyCell(ws.getCell(`A${DR}`), { value: 'Gemi Adı', font:{name:'Calibri',bold:true,size:9,color:{argb:ORVIA_MID}}, fill:solidFill(ORVIA_LIGHT), alignment:lft, border:allBorder })
+        ws.mergeCells(`D${DR}:L${DR}`)
+        applyCell(ws.getCell(`D${DR}`), { value: so.vessel_name, font:{name:'Calibri',size:9,color:{argb:ORVIA_DARK}}, fill:solidFill(WHITE), alignment:lft, border:allBorder })
+        DR++
       }
+      if (so.seawaybill_number) {
+        ws.getRow(DR).height = 16
+        ws.mergeCells(`A${DR}:C${DR}`)
+        applyCell(ws.getCell(`A${DR}`), { value: 'Sea Waybill No', font:{name:'Calibri',bold:true,size:9,color:{argb:ORVIA_MID}}, fill:solidFill(ORVIA_LIGHT), alignment:lft, border:allBorder })
+        ws.mergeCells(`D${DR}:L${DR}`)
+        applyCell(ws.getCell(`D${DR}`), { value: so.seawaybill_number, font:{name:'Calibri',size:9,color:{argb:ORVIA_DARK}}, fill:solidFill(WHITE), alignment:lft, border:allBorder })
+        DR++
+      }
+      if (so.driver_name || so.driver_phone) {
+        ws.getRow(DR).height = 16
+        ws.mergeCells(`A${DR}:C${DR}`)
+        applyCell(ws.getCell(`A${DR}`), { value: 'Şoför', font:{name:'Calibri',bold:true,size:9,color:{argb:ORVIA_MID}}, fill:solidFill(ORVIA_LIGHT), alignment:lft, border:allBorder })
+        ws.mergeCells(`D${DR}:L${DR}`)
+        applyCell(ws.getCell(`D${DR}`), { value: [so.driver_name, so.driver_phone].filter(Boolean).join('  |  '), font:{name:'Calibri',size:9,color:{argb:ORVIA_DARK}}, fill:solidFill(WHITE), alignment:lft, border:allBorder })
+        DR++
+      }
+      DR++
     }
 
-    // ── Buyer info ─────────────────────────────────────────────────────────────
-    let buyerStart = contStart + 1
-    ws.getRow(buyerStart).height = 18
-    ws.mergeCells(`A${buyerStart}:L${buyerStart}`)
-    const buyerHeader = ws.getCell(`A${buyerStart}`)
-    buyerHeader.value = 'ALICI BİLGİLERİ'
-    buyerHeader.font = { bold: true, size: 10, color: { argb: 'FFFFFFFF' } }
-    buyerHeader.fill = headerFill
-    buyerHeader.border = allBorder
-    buyerHeader.alignment = centerAlign
-    buyerStart++
+    // ── SECTION 3: Alıcı Bilgileri ────────────────────────────────────────────
+    sectionHeader('🏢  ALICI BİLGİLERİ', DR); DR++
 
-    const buyerData = [
-      ['Alıcı Adı', so.customer_name || '—'],
-      ['Adres', so.customer_address || '—'],
-      ['GST No', so.gst_no || '—'],
-      ['IEC No', so.iec_no || '—'],
-      ['PAN No', so.pan_no || '—'],
-      ['FSSAI No', so.fssai_no || '—'],
+    const buyerRows = [
+      ['Alıcı Adı',  so.customer_name || '—'],
+      ['Adres',      [so.customer_address, so.customer_city, so.customer_country].filter(Boolean).join(', ') || '—'],
+      ['GST No',     so.gst_no    || '—'],
+      ['IEC No',     so.iec_no    || '—'],
+      ['PAN No',     so.pan_no    || '—'],
+      ['FSSAI No',   so.fssai_no  || '—'],
     ]
-    buyerData.forEach(([label, value], i) => {
-      const rowNum = buyerStart + i
-      ws.getRow(rowNum).height = 16
-      ws.mergeCells(`A${rowNum}:C${rowNum}`)
-      const lc = ws.getCell(`A${rowNum}`)
-      lc.value = label
-      lc.font = { bold: true, size: 10 }
-      lc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDCE6F1' } }
-      lc.border = allBorder
-      lc.alignment = leftAlign
+    buyerRows.forEach(([lbl, val]) => {
+      ws.getRow(DR).height = 16
+      ws.mergeCells(`A${DR}:C${DR}`)
+      applyCell(ws.getCell(`A${DR}`), { value: lbl, font:{name:'Calibri',bold:true,size:9,color:{argb:ORVIA_MID}}, fill:solidFill(ORVIA_LIGHT), alignment:lft, border:allBorder })
+      ws.mergeCells(`D${DR}:L${DR}`)
+      applyCell(ws.getCell(`D${DR}`), { value: val, font:{name:'Calibri',size:9,color:{argb:ORVIA_DARK}}, fill:solidFill(WHITE), alignment:lft, border:allBorder })
+      DR++
+    })
+    DR++
 
-      ws.mergeCells(`D${rowNum}:L${rowNum}`)
-      const vc = ws.getCell(`D${rowNum}`)
-      vc.value = value
-      vc.font = { size: 10 }
-      vc.border = allBorder
-      vc.alignment = leftAlign
+    // ── FOOTER ────────────────────────────────────────────────────────────────
+    ws.getRow(DR).height = 22
+    ws.mergeCells(`A${DR}:L${DR}`)
+    applyCell(ws.getCell(`A${DR}`), {
+      value:     'İHRACATÇI TEDARİKÇİDİR. MALLARIMIZ TÜRK MENŞELLİDİR.',
+      font:      { name: 'Calibri', bold: true, italic: true, size: 9, color: { argb: GREEN_TEXT } },
+      fill:      solidFill(GREEN_BG),
+      alignment: ctr,
     })
 
-    // ── Footer note ────────────────────────────────────────────────────────────
-    const noteRow = buyerStart + buyerData.length + 1
-    ws.mergeCells(`A${noteRow}:L${noteRow}`)
-    const noteCell = ws.getCell(`A${noteRow}`)
-    noteCell.value = 'İHRACATÇI TEDARİKÇİDİR. MALLARIMIZ TÜRK MENŞELLİDİR.'
-    noteCell.font = { bold: true, italic: true, size: 10, color: { argb: 'FF7F0000' } }
-    noteCell.alignment = centerAlign
-    ws.getRow(noteRow).height = 20
-
-    // ── Send response ──────────────────────────────────────────────────────────
-    const filename = `Gumruk_${so.sa_number || so.party_no || req.params.id}.xlsx`
+    // ── Send ───────────────────────────────────────────────────────────────────
+    const safeRef  = (so.sa_number || so.lot_no || so.party_no || req.params.id).replace(/[^a-zA-Z0-9_\-]/g, '_')
+    const filename = `Orvia_IhracatDetaylari_${safeRef}.xlsx`
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
 
@@ -356,7 +419,7 @@ router.get('/:id', async (req, res) => {
     res.send(buffer)
   } catch (e) {
     console.error('[customsExcel]', e)
-    res.status(500).json({ error: 'Excel oluşturulamadı' })
+    res.status(500).json({ error: 'Excel oluşturulamadı: ' + e.message })
   }
 })
 
