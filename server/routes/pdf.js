@@ -1211,9 +1211,9 @@ ${qualitySection}
 ${sigHTML(false, true)}
 `)
 
-    // Compact CSS overrides — fits 21 pallet rows on one A4 page
+    // Compact CSS overrides — fits 21 pallet rows on one A4 page, stretches to fill full page
     const plCompact = `<style>
-.page { padding:4mm; }
+.page { padding:4mm; min-height:277mm; display:flex; flex-direction:column; box-sizing:border-box; }
 .doc-header { padding:2.5mm 0 2mm; margin-bottom:2mm; }
 .doc-header-inner { padding:0 4mm; gap:3mm; }
 .doc-title { font-size:11pt; }
@@ -1236,8 +1236,8 @@ ${sigHTML(false, true)}
 .pl-table thead th { padding:0.9mm 1.8mm; font-size:5.5pt; }
 .pl-table tbody td { padding:0.65mm 1.8mm; font-size:5.8pt; border-bottom:1px solid #f0f0f0; }
 .pl-table tfoot td { padding:1.1mm 1.8mm; font-size:6pt; }
-.table-wrapper { margin-bottom:1.5mm; }
-.auth-block { margin-top:1.5mm; }
+.table-wrapper { margin-bottom:1.5mm; flex-grow:1; }
+.auth-block { margin-top:auto; }
 .auth-signatory { padding:2mm 3mm; min-width:36mm; }
 .auth-sig-name { font-size:7.5pt; }
 .auth-sig-eyebrow { font-size:4.5pt; margin-bottom:1mm; }
@@ -1255,7 +1255,7 @@ ${sigHTML(false, true)}
 
     const htmlCompact = html.replace('</style></head>', plCompact + '</style></head>')
 
-    const pdf = await htmlToPDF(htmlCompact, { scale: 1.4 })
+    const pdf = await htmlToPDF(htmlCompact)
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="PackingList_' + so.party_no + '.pdf"',
