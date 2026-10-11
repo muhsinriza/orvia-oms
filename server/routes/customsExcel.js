@@ -6,16 +6,18 @@ const ExcelJS = require('exceljs')
 router.use(requireAuth)
 
 // ── Brand colours ─────────────────────────────────────────────────────────────
-const ORVIA_DARK   = 'FF0A2540'   // deep navy
-const ORVIA_MID    = 'FF0F3D6B'   // mid navy
-const ORVIA_LIGHT  = 'FFE8F0F8'   // pale blue tint
-const ORVIA_ACCENT = 'FF1A6BB5'   // logo blue
+const ORVIA_DARK   = 'FF0A2540'   // deep navy (primary brand)
+const ORVIA_MID    = 'FF0F3D6B'   // mid navy (headers)
+const ORVIA_TEAL   = 'FF0D5E7A'   // teal accent (secondary headers/highlights)
+const ORVIA_LIGHT  = 'FFE8F1F8'   // pale blue tint (label backgrounds)
+const ORVIA_ACCENT = 'FF1A6BB5'   // logo blue (totals, action rows)
 const WHITE        = 'FFFFFFFF'
-const GRAY_TEXT    = 'FF64748B'
-const GRAY_BG      = 'FFF8FAFC'
+const GRAY_BG      = 'FFF6F9FC'   // off-white alternating rows
+const GOLD_BG      = 'FFFFF3CD'   // soft amber for highlight notes
+const GOLD_TEXT    = 'FF856404'   // amber text
 const GREEN_BG     = 'FFE6F4EA'
 const GREEN_TEXT   = 'FF1A6B3C'
-const BORDER_CLR   = 'FFCBD5E0'
+const BORDER_CLR   = 'FFB8CCE0'   // slightly deeper border
 
 // GET /api/customs-excel/:id — generate İhracat Detayları Excel
 router.get('/:id', async (req, res) => {
@@ -109,12 +111,15 @@ router.get('/:id', async (req, res) => {
 
     function solidFill (argb) { return { type: 'pattern', pattern: 'solid', fgColor: { argb } } }
 
-    // ── ROW 1 — banner ────────────────────────────────────────────────────────
+    // ── ROW 1 — banner (title + customer name) ───────────────────────────────
     ws.mergeCells('A1:L1')
-    ws.getRow(1).height = 42
+    ws.getRow(1).height = 46
+    const bannerTitle = so.customer_name
+      ? `  İHRACAT DETAYLARI  —  ${so.customer_name.toUpperCase()}`
+      : '  İHRACAT DETAYLARI'
     applyCell(ws.getCell('A1'), {
-      value: '  İHRACAT DETAYLARI',
-      font:  { name: 'Calibri', bold: true, size: 16, color: { argb: WHITE } },
+      value: bannerTitle,
+      font:  { name: 'Calibri', bold: true, size: 15, color: { argb: WHITE } },
       fill:  solidFill(ORVIA_DARK),
       alignment: { horizontal: 'left', vertical: 'middle' },
     })
@@ -123,7 +128,7 @@ router.get('/:id', async (req, res) => {
     ws.mergeCells('A2:F2')
     ws.getRow(2).height = 20
     applyCell(ws.getCell('A2'), {
-      value: 'Orvia Tropical Ltd  |  orviatropical.com',
+      value: 'Orvia Tropical Ltd  |  orviatropical.com  |  OrviaOMS',
       font:  { name: 'Calibri', italic: true, size: 9, color: { argb: ORVIA_ACCENT } },
       fill:  solidFill(ORVIA_LIGHT),
       alignment: lft,
@@ -137,9 +142,9 @@ router.get('/:id', async (req, res) => {
     })
 
     // ── ROW 3 — spacer ────────────────────────────────────────────────────────
-    ws.getRow(3).height = 6
+    ws.getRow(3).height = 5
     ws.mergeCells('A3:L3')
-    ws.getCell('A3').fill = solidFill('FFF0F4F8')
+    ws.getCell('A3').fill = solidFill(ORVIA_DARK)
 
     // ── ROW 4 — column headers ────────────────────────────────────────────────
     ws.getRow(4).height = 32
@@ -240,17 +245,17 @@ router.get('/:id', async (req, res) => {
       { col: 'F', value: '' },
       { col: 'G', value: '' },
       { col: 'H', value: '' },
-      { col: 'I', value: totGross,   numFmt: '#,##0.00' },
-      { col: 'J', value: totNet,     numFmt: '#,##0.00' },
+      { col: 'I', value: totGross,   numFmt: '#,##0.00', align: rgt },
+      { col: 'J', value: totNet,     numFmt: '#,##0.00', align: rgt },
       { col: 'K', value: '' },
-      { col: 'L', value: totAmount,  numFmt: '#,##0.00' },
+      { col: 'L', value: totAmount,  numFmt: '#,##0.00', align: rgt },
     ]
-    totData.forEach(({ col, value, numFmt }) => {
+    totData.forEach(({ col, value, numFmt, align }) => {
       applyCell(ws.getCell(`${col}${DR}`), {
         value,
         font:      { name: 'Calibri', bold: true, size: 10, color: { argb: WHITE } },
         fill:      solidFill(ORVIA_ACCENT),
-        alignment: ctr,
+        alignment: align || ctr,
         border:    boldBorder,
         numFmt,
       })
@@ -258,13 +263,13 @@ router.get('/:id', async (req, res) => {
     DR += 2
 
     // ── SECTION builder helpers ───────────────────────────────────────────────
-    function sectionHeader (label, row) {
+    function sectionHeader (label, row, color = ORVIA_TEAL) {
       ws.getRow(row).height = 20
       ws.mergeCells(`A${row}:L${row}`)
       applyCell(ws.getCell(`A${row}`), {
         value:     `  ${label}`,
         font:      { name: 'Calibri', bold: true, size: 9, color: { argb: WHITE } },
-        fill:      solidFill(ORVIA_MID),
+        fill:      solidFill(color),
         alignment: lft,
       })
     }
@@ -295,33 +300,25 @@ router.get('/:id', async (req, res) => {
 
     // ── SECTION 1: Sevkiyat Özeti ─────────────────────────────────────────────
     sectionHeader('📦  SEVKİYAT ÖZETİ', DR); DR++
-    infoRow('Kap Miktarı',    `${fmtNum(totBoxes, 0)} Koli`,               DR++, 3, 3)
-    infoRow('Palet Sayısı',   `${fmtNum(totPallets, 0)} Adet`,             DR++, 3, 3)
-    infoRow('Brüt Ağırlık',   `${fmtNum(totGross)} KG`,                    DR++, 3, 3)
-    infoRow('Net Ağırlık',    `${fmtNum(totNet)} KG`,                      DR++, 3, 3)
 
-    // second column of summary (layout: two side-by-side pairs per row)
-    // re-do as a 2-column grid
-    DR -= 4
-    // overwrite rows with 2-column layout
+    // Format payment method: show "Mal Mukabili" style as-is, or fall back
+    const paymentDisplay = so.payment_method || '—'
+    const freightDisplay = so.freight_amount
+      ? `${fmtNum(parseFloat(so.freight_amount))} USD`
+      : '—'
+
     const summaryPairs = [
       ['Kap Miktarı',    `${fmtNum(totBoxes, 0)} Koli`,   'Palet Sayısı',  `${fmtNum(totPallets, 0)} Adet`],
       ['Brüt Ağırlık',  `${fmtNum(totGross)} KG`,         'Net Ağırlık',   `${fmtNum(totNet)} KG`         ],
-      ['Ödeme Şekli',   so.payment_method || '—',         'Teslim Şekli',  so.incoterm || '—'             ],
-      ['Taşıma Şekli',  so.transport_mode || '—',         'Navlun Tutarı', so.freight_amount ? `${fmtNum(parseFloat(so.freight_amount))} USD` : '—'],
+      ['Ödeme Şekli',   paymentDisplay,                   'Teslim Şekli',  so.incoterm || '—'             ],
+      ['Taşıma Şekli',  so.transport_mode || '—',         'Navlun Tutarı', freightDisplay                 ],
       ['Yükleme Tarihi',fmtDate(so.shipment_date),        'ETD',           fmtDate(so.etd)                ],
-      ['ETA',           fmtDate(so.eta),                  'Yükleme Adresi',so.loading_address || '—'      ],
-      ['TAREKS No',     so.lot_no || '—',                 'Fatura No',     so.invoice_no || '—'           ],
+      ['ETA',           fmtDate(so.eta),                  'TAREKS No',     so.lot_no || '—'               ],
+      ['Fatura No',     so.invoice_no || '—',             'Yükleme Adresi',so.loading_address || '—'      ],
     ]
 
-    // clear the 4 pre-written rows first (we'll rewrite)
-    for (let r = 0; r < 4; r++) {
-      const rowNum = DR + r
-      ws.unMergeCells && (() => { try { ws.unMergeCells(`A${rowNum}:D${rowNum}`) } catch(e){} })()
-    }
-
     summaryPairs.forEach(([lbl1, val1, lbl2, val2]) => {
-      ws.getRow(DR).height = 16
+      ws.getRow(DR).height = 17
       // Left label A-C
       ws.mergeCells(`A${DR}:C${DR}`)
       applyCell(ws.getCell(`A${DR}`), { value: lbl1, font: { name:'Calibri', bold:true, size:9, color:{argb:ORVIA_MID} }, fill:solidFill(ORVIA_LIGHT), alignment:lft, border:allBorder })
@@ -339,8 +336,8 @@ router.get('/:id', async (req, res) => {
     DR++
 
     // ── SECTION 2: Konteyner / Araç ──────────────────────────────────────────
-    if (containers.length > 0 || so.vessel_name || so.driver_name) {
-      sectionHeader('🚢  KONTEYNER / ARAÇ BİLGİLERİ', DR); DR++
+    if (containers.length > 0 || so.vessel_name || so.seawaybill_number || so.driver_name) {
+      sectionHeader('🚢  KONTEYNER / ARAÇ BİLGİLERİ', DR, ORVIA_MID); DR++
 
       containers.forEach((c, i) => {
         ws.getRow(DR).height = 16
@@ -379,7 +376,7 @@ router.get('/:id', async (req, res) => {
     }
 
     // ── SECTION 3: Alıcı Bilgileri ────────────────────────────────────────────
-    sectionHeader('🏢  ALICI BİLGİLERİ', DR); DR++
+    sectionHeader('🏢  ALICI BİLGİLERİ', DR, ORVIA_DARK); DR++
 
     const buyerRows = [
       ['Alıcı Adı',  so.customer_name || '—'],
@@ -408,10 +405,22 @@ router.get('/:id', async (req, res) => {
       fill:      solidFill(GREEN_BG),
       alignment: ctr,
     })
+    DR++
+    ws.getRow(DR).height = 14
+    ws.mergeCells(`A${DR}:L${DR}`)
+    applyCell(ws.getCell(`A${DR}`), {
+      value:     'Bu belge OrviaOMS tarafından oluşturulmuştur  |  orviatropical.com',
+      font:      { name: 'Calibri', italic: true, size: 8, color: { argb: 'FF94A3B8' } },
+      fill:      solidFill(ORVIA_DARK),
+      alignment: ctr,
+    })
 
     // ── Send ───────────────────────────────────────────────────────────────────
-    const safeRef  = (so.sa_number || so.lot_no || so.party_no || req.params.id).replace(/[^a-zA-Z0-9_\-]/g, '_')
-    const filename = `Orvia_IhracatDetaylari_${safeRef}.xlsx`
+    const safeCustomer = so.customer_name ? so.customer_name.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 30) : ''
+    const safeRef   = (so.sa_number || so.lot_no || so.party_no || req.params.id).replace(/[^a-zA-Z0-9_\-]/g, '_')
+    const filename  = safeCustomer
+      ? `Orvia_IhracatDetaylari_${safeCustomer}_${safeRef}.xlsx`
+      : `Orvia_IhracatDetaylari_${safeRef}.xlsx`
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
 
