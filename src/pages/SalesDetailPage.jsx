@@ -173,9 +173,15 @@ function PackingListModal({ order, filename, onClose }) {
       grossBox: order.box_gross_kg || '',
     }))]
   })
-  const [palletCount, setPalletCount] = useState(
-    (order.packing_list_data && order.packing_list_data.palletCount) || order.pallets || 1
-  )
+  const [palletCount, setPalletCount] = useState(() => {
+    // Saved DB value takes priority
+    if (order.packing_list_data && order.packing_list_data.palletCount) {
+      return order.packing_list_data.palletCount
+    }
+    // Otherwise: count seeded rows (items.length if items exist, else 1)
+    const items = Array.isArray(order.items) && order.items.length > 0 ? order.items : null
+    return items ? items.length : (order.pallets || 1)
+  })
   const [generating, setGenerating] = useState(false)
   const inputRefs = React.useRef({})
   const lastFocused = React.useRef({ rowIdx: -1, fieldIdx: -1 })
