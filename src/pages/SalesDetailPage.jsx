@@ -1582,7 +1582,13 @@ export default function SalesDetailPage() {
 
   const totalKg = Number(order.quantity_kg) || 0
   const unitPrice = Number(order.price_per_unit) || 0
-  const total = totalKg * unitPrice
+  const firstItem = Array.isArray(order.items) && order.items.length > 0 ? order.items[0] : null
+  const sellBy = firstItem?.sell_by || order.sell_by || 'box'
+  const boxWeightKg = Number(firstItem?.box_weight_kg || order.box_weight_kg) || 0
+  const totalBoxes = boxWeightKg > 0 ? Math.round(totalKg / boxWeightKg) : 0
+  const total = sellBy === 'kg'
+    ? totalKg * unitPrice
+    : (totalBoxes > 0 ? totalBoxes * unitPrice : totalKg * unitPrice)
 
   return (
     <div className="p-3 md:p-6 max-w-3xl mx-auto">
@@ -1635,8 +1641,14 @@ export default function SalesDetailPage() {
             </div>
             <div>
               <dt className="text-gray-500 text-xs">Birim Fiyat</dt>
-              <dd className="font-medium">{unitPrice.toFixed(2)} {order.currency}</dd>
+              <dd className="font-medium">{unitPrice.toFixed(2)} {order.currency}{sellBy === 'box' ? <span className="text-xs text-gray-400 ml-1">/ kutu</span> : <span className="text-xs text-gray-400 ml-1">/ kg</span>}</dd>
             </div>
+            {sellBy === 'box' && totalBoxes > 0 && (
+              <div>
+                <dt className="text-gray-500 text-xs">Kutu Adedi</dt>
+                <dd className="font-medium">{totalBoxes.toLocaleString('tr-TR')} kutu</dd>
+              </div>
+            )}
             <div>
               <dt className="text-gray-500 text-xs">Toplam Tutar</dt>
               <dd className="font-semibold text-primary-700">{total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {order.currency}</dd>
