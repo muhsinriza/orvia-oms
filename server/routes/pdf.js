@@ -1215,7 +1215,7 @@ ${sigHTML(false, true)}
     const plCompact = `<style>
 @page { margin: 8mm; }
 html, body { height: 100%; margin: 0; }
-.page { padding:4mm; height:calc(297mm - 16mm); display:flex; flex-direction:column; box-sizing:border-box; overflow:hidden; }
+.page { padding:4mm; height:calc(297mm - 16mm); display:flex; flex-direction:column; box-sizing:border-box; }
 .doc-header { padding:2.5mm 0 2mm; margin-bottom:2mm; }
 .doc-header-inner { padding:0 4mm; gap:3mm; }
 .doc-title { font-size:11pt; }
