@@ -115,6 +115,7 @@ router.post('/', async (req, res) => {
     quality_notes, required_docs, notes, status,
     tracking_number, container_number, seawaybill_number, vessel_name,
     flight_number, driver_name, driver_phone,
+    loading_address, freight_amount,
     items,
   } = req.body
   const client = await db.connect()
@@ -156,8 +157,9 @@ router.post('/', async (req, res) => {
          transport_mode, box_type, box_weight_kg, pallets,
          quality_notes, required_docs, notes, status, created_by,
          tracking_number, container_number, seawaybill_number, vessel_name,
-         flight_number, driver_name, driver_phone)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40)
+         flight_number, driver_name, driver_phone,
+         loading_address, freight_amount)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)
       RETURNING *
     `, [
       sales_type || 'ihracat', finalSaNumber, invoice_no || null, lot_no || null,
@@ -172,6 +174,7 @@ router.post('/', async (req, res) => {
       status || 'draft', req.session.userId,
       tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
       flight_number || null, driver_name || null, driver_phone || null,
+      loading_address || null, freight_amount || null,
     ])
 
     await upsertItems(client, rows[0].id, items)
@@ -199,6 +202,7 @@ router.put('/:id', async (req, res) => {
     quality_notes, required_docs, notes, status,
     tracking_number, container_number, seawaybill_number, vessel_name,
     flight_number, driver_name, driver_phone,
+    loading_address, freight_amount,
     items,
   } = req.body
   const client = await db.connect()
@@ -227,7 +231,8 @@ router.put('/:id', async (req, res) => {
         transport_mode=$25, box_type=$26, box_weight_kg=$27, pallets=$28,
         quality_notes=$29, required_docs=$30, notes=$31, status=$32,
         tracking_number=$34, container_number=$35, seawaybill_number=$36, vessel_name=$37,
-        flight_number=$38, driver_name=$39, driver_phone=$40
+        flight_number=$38, driver_name=$39, driver_phone=$40,
+        loading_address=$41, freight_amount=$42
       WHERE id=$33
       RETURNING *
     `, [
@@ -243,6 +248,7 @@ router.put('/:id', async (req, res) => {
       req.params.id,
       tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
       flight_number || null, driver_name || null, driver_phone || null,
+      loading_address || null, freight_amount || null,
     ])
     if (!rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Bulunamadı' }) }
 
@@ -274,16 +280,17 @@ router.patch('/:id/status', async (req, res) => {
 
 // PATCH /sales-orders/:id/shipping — update invoice/logistics fields only
 router.patch('/:id/shipping', async (req, res) => {
-  const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta, containers } = req.body
-  const client = await db.getClient ? db.getClient() : null
+  const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta, containers, loading_address, freight_amount } = req.body
   try {
     const { rows } = await db.query(`
       UPDATE sales_orders SET
-        invoice_no=$1, lot_no=$2, vessel_name=$3, container_number=$4, seawaybill_number=$5, etd=$6, eta=$7
-      WHERE id=$8 RETURNING *
+        invoice_no=$1, lot_no=$2, vessel_name=$3, container_number=$4, seawaybill_number=$5, etd=$6, eta=$7,
+        loading_address=$8, freight_amount=$9
+      WHERE id=$10 RETURNING *
     `, [
       invoice_no || null, lot_no || null, vessel_name || null,
       container_number || null, seawaybill_number || null, etd || null, eta || null,
+      loading_address || null, freight_amount || null,
       req.params.id,
     ])
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })

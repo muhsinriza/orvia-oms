@@ -6,7 +6,7 @@ import Modal from '../components/ui/Modal'
 import {
   ArrowLeft, Truck, Ship, Plane, Plus, Trash2, MapPin, Clock,
   FileText, Edit2, Package, FileSignature, ChevronRight, CheckCircle2,
-  Download, Loader2, X, ChevronLeft
+  Download, Loader2, X, ChevronLeft, FileSpreadsheet
 } from 'lucide-react'
 
 const STATUS_FLOW = ['draft', 'confirmed', 'in_transit', 'arrived', 'completed']
@@ -1013,6 +1013,8 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
     seawaybill_number: order.seawaybill_number || '',
     etd: order.etd ? order.etd.slice(0, 10) : '',
     eta: order.eta ? order.eta.slice(0, 10) : '',
+    loading_address:   order.loading_address   || '',
+    freight_amount:    order.freight_amount    || '',
   })
   const [containers, setContainers] = useState(seedContainers)
 
@@ -1090,6 +1092,17 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
           {field('seawaybill_number', 'Sea Waybill No (SWB)', 'text', 'SWB123456789')}
           {field('etd', 'ETD (Gerçek Kalkış)', 'date')}
           {field('eta', 'ETA (Gerçek Varış)', 'date')}
+          {field('freight_amount', 'Navlun Tutarı (USD)', 'number', '0.00')}
+          <div className="sm:col-span-2">
+            <label className="label">Yükleme Adresi (Mal Muhabili)</label>
+            <textarea
+              className="input"
+              rows={2}
+              placeholder="Örn: Ankara Organizasyon Sanayi Bölgesi, No: 5 Sincan / Ankara"
+              value={form.loading_address}
+              onChange={e => setForm(f => ({ ...f, loading_address: e.target.value }))}
+            />
+          </div>
         </div>
 
         {/* Multi-container section */}
@@ -1208,6 +1221,16 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
       endpoint: `/api/pdf/packing-list/${order.id}`,
       always: false,
     },
+    {
+      key: 'customs',
+      icon: <FileSpreadsheet size={22} className="text-green-600" />,
+      label: 'Gümrük Beyannamesi',
+      sublabel: 'Excel dosyası',
+      filename: `Gumruk_${order.lot_no || order.party_no || order.id}.xlsx`,
+      endpoint: `/api/customs-excel/${order.id}`,
+      always: false,
+      isExcel: true,
+    },
   ]
 
   return (
@@ -1231,6 +1254,7 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
                 if (doc.key === 'inv') { setInvModal(true); return }
                 downloadPDF(doc.endpoint, doc.filename)
               }}
+
             >
               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${active ? 'bg-gray-50' : 'bg-gray-100'}`}>
                 {isLoading ? <Loader2 size={22} className="animate-spin text-gray-400" /> : doc.icon}
@@ -1242,7 +1266,7 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
               {active ? (
                 <span className="flex items-center gap-1 text-xs text-primary-600 font-medium">
                   {(doc.key === 'pl' || doc.key === 'inv') ? <Edit2 size={12} /> : <Download size={12} />}
-                  {(doc.key === 'pl' || doc.key === 'inv') ? 'Fill & Download' : 'Download PDF'}
+                  {doc.key === 'pl' || doc.key === 'inv' ? 'Fill & Download' : doc.isExcel ? 'Excel İndir' : 'Download PDF'}
                 </span>
               ) : (
                 <span className="text-xs text-gray-400">Sevk sonrası aktif</span>

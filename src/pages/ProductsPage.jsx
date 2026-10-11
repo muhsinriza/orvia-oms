@@ -10,7 +10,7 @@ const UNIT_TR = { kg:'kg', kutu:'Kutu', adet:'Adet', palet:'Palet' }
 
 const EMPTY = {
   name:'', variety:'', category:'', unit:'kg',
-  default_origin:'', box_type:'',
+  default_origin:'', box_type:'', gtip_code:'',
   box_net_kg:'', box_gross_kg:'', units_per_box:'', boxes_per_pallet:'',
   is_active:true, notes:''
 }
@@ -157,7 +157,7 @@ export default function ProductsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    {['Ürün Adı','Çeşit','Kategori','Birim','Kutu (net/brüt kg)','Palet/Kutu','Durum',...(isAdmin?['İşlemler']:[])].map(h=>(
+                    {['Ürün Adı','Çeşit','Kategori','Birim','GTIP','Kutu (net/brüt kg)','Palet/Kutu','Durum',...(isAdmin?['İşlemler']:[])].map(h=>(
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -169,6 +169,7 @@ export default function ProductsPage() {
                       <td className="px-4 py-3 text-gray-600">{item.variety || '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{item.category || '—'}</td>
                       <td className="px-4 py-3">{UNIT_TR[item.unit] || item.unit}</td>
+                      <td className="px-4 py-3 text-gray-500 font-mono text-xs">{item.gtip_code || '—'}</td>
                       <td className="px-4 py-3 text-gray-600">
                         {item.box_net_kg ? `${item.box_net_kg} / ${item.box_gross_kg ?? '?'}` : '—'}
                       </td>
@@ -221,6 +222,10 @@ export default function ProductsPage() {
               <div>
                 <label className="label">Kutu Tipi</label>
                 <input className="input" value={form.box_type} onChange={e=>setField('box_type',e.target.value)} placeholder="Örn: Karton 10kg"/>
+              </div>
+              <div>
+                <label className="label">GTIP Kodu</label>
+                <input className="input" value={form.gtip_code || ''} onChange={e=>setField('gtip_code',e.target.value)} placeholder="Örn: 0808.10.80.00.00"/>
               </div>
               <div>
                 <label className="label">Birim</label>

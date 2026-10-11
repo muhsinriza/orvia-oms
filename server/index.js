@@ -262,6 +262,10 @@ async function runMigrations () {
           SELECT 1 FROM sales_order_containers c WHERE c.sales_order_id = s.id
         )
     `)
+    // migration 007: gtip_code on products, loading_address + freight_amount on sales_orders
+    await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS gtip_code TEXT`)
+    await db.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS loading_address TEXT`)
+    await db.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS freight_amount NUMERIC`)
     console.log('[migrate] All migrations applied successfully')
   } catch (e) {
     console.error('[migrate] Migration error:', e.message)
@@ -280,6 +284,7 @@ app.use('/api/products',        require('./routes/products'))
 app.use('/api/order-links',     require('./routes/orderLinks'))
 app.use('/api/shipment-events', require('./routes/shipmentEvents'))
 app.use('/api/pdf',             require('./routes/pdf'))
+app.use('/api/customs-excel',   require('./routes/customsExcel'))
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ ok: true }))
