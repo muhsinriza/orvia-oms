@@ -371,6 +371,7 @@ export default function SalesPage() {
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Kutu Tipi</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-20">Kutu (kg)</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Miktar (kg)*</th>
+                    <th className="px-2 py-2 text-right text-xs font-semibold text-gray-500 w-16">Kutu Adedi</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-20">Birim*</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-28">Birim Fiyat*</th>
                     <th className="px-2 py-2 w-8"></th>
@@ -391,6 +392,16 @@ export default function SalesPage() {
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" value={it.box_type} onChange={e=>setItemField(idx,'box_type',e.target.value)} placeholder="10kg karton"/></td>
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" step="0.01" value={it.box_weight_kg} onChange={e=>setItemField(idx,'box_weight_kg',e.target.value)} placeholder="10"/></td>
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" value={it.quantity_kg} onChange={e=>setItemField(idx,'quantity_kg',e.target.value)} placeholder="5000"/></td>
+                      <td className="px-2 py-1.5 text-right">
+                        {(() => {
+                          const bw = Number(it.box_weight_kg||0)
+                          const qty = Number(it.quantity_kg||0)
+                          if (bw > 0 && qty > 0) {
+                            return <span className="text-xs font-semibold text-emerald-700 font-mono bg-emerald-50 px-1.5 py-0.5 rounded">{Math.round(qty/bw).toLocaleString()}</span>
+                          }
+                          return <span className="text-xs text-gray-300">—</span>
+                        })()}
+                      </td>
                       <td className="px-2 py-1.5">
                         <select className="select text-xs py-1" value={it.sell_by||'box'} onChange={e=>setItemField(idx,'sell_by',e.target.value)}>
                           <option value="box">Kutu</option>
@@ -408,6 +419,10 @@ export default function SalesPage() {
             </div>
             {form.items.length > 0 && (() => {
               const totKg = form.items.reduce((s,it) => s + Number(it.quantity_kg||0), 0)
+              const totBoxes = form.items.reduce((s,it) => {
+                const bw = Number(it.box_weight_kg||0)
+                return s + (bw > 0 ? Math.round(Number(it.quantity_kg||0)/bw) : 0)
+              }, 0)
               const totVal = form.items.reduce((s,it) => {
                 const bw = Number(it.box_weight_kg||0)
                 const boxes = bw > 0 ? Math.round(Number(it.quantity_kg||0)/bw) : 0
@@ -418,7 +433,8 @@ export default function SalesPage() {
               return totKg > 0 ? (
                 <div className="flex gap-4 mt-1.5 text-xs text-gray-500 px-1">
                   <span>Toplam: <strong className="text-gray-800">{totKg.toLocaleString()} kg</strong></span>
-                  {totVal > 0 && <span>Tahmini Değer: <strong className="text-gray-800">{form.currency} {totVal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></span>}
+                  {totBoxes > 0 && <span>· <strong className="text-emerald-700">{totBoxes.toLocaleString()} kutu</strong></span>}
+                  {totVal > 0 && <span>· Tahmini Değer: <strong className="text-gray-800">{form.currency} {totVal.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></span>}
                 </div>
               ) : null
             })()}
