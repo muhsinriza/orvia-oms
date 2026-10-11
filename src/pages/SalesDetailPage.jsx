@@ -230,20 +230,6 @@ function PackingListModal({ order, filename, onClose }) {
           getRef(rowIdx - 1, PALLET_FIELDS.findIndex(f => f.key === lastKey))?.focus()
         }
       }
-    } else if (e.key === 'Enter' && e.altKey) {
-      e.preventDefault()
-      addRow()
-      setTimeout(() => getRef(rows.length, 0)?.focus(), 50)
-    } else if (e.key === 'Backspace' && e.altKey) {
-      e.preventDefault()
-      removeRow(rowIdx)
-    } else if (e.key === 'd' && e.altKey && e.shiftKey) {
-      e.preventDefault()
-      duplicateRow(rowIdx)
-      setTimeout(() => getRef(rowIdx + 1, fieldIdx)?.focus(), 50)
-    } else if (e.key === 'f' && e.altKey && e.shiftKey) {
-      e.preventDefault()
-      fillColumnDown(rowIdx, fieldIdx)
     }
   }
 
@@ -258,7 +244,7 @@ function PackingListModal({ order, filename, onClose }) {
     })
   }
 
-  function addRow() {
+  const addRow = useCallback(() => {
     setRows(prev => {
       const last = prev[prev.length - 1] || {}
       return [...prev, makeRow(prev.length, {
@@ -271,15 +257,17 @@ function PackingListModal({ order, filename, onClose }) {
       })]
     })
     setPalletCount(c => c + 1)
-  }
+  }, [])
 
-  function removeRow(idx) {
-    if (rows.length === 1) return
-    setRows(prev => prev.filter((_, i) => i !== idx))
+  const removeRow = useCallback((idx) => {
+    setRows(prev => {
+      if (prev.length === 1) return prev
+      return prev.filter((_, i) => i !== idx)
+    })
     setPalletCount(c => Math.max(1, c - 1))
-  }
+  }, [])
 
-  function duplicateRow(idx) {
+  const duplicateRow = useCallback((idx) => {
     setRows(prev => {
       const copy = { ...prev[idx], label: `Pallet ${prev.length + 1}` }
       const next = [...prev]
@@ -287,14 +275,56 @@ function PackingListModal({ order, filename, onClose }) {
       return next
     })
     setPalletCount(c => c + 1)
-  }
+  }, [])
 
-  function fillColumnDown(fromRow, fieldIdx) {
+  const fillColumnDown = useCallback((fromRow, fieldIdx) => {
     const field = PALLET_FIELDS[fieldIdx]
     if (!field || field.auto) return
-    const value = rows[fromRow][field.key]
-    setRows(prev => prev.map((r, i) => i <= fromRow ? r : { ...r, [field.key]: value }))
-  }
+    setRows(prev => {
+      const value = prev[fromRow][field.key]
+      return prev.map((r, i) => i <= fromRow ? r : { ...r, [field.key]: value })
+    })
+  }, [])
+
+  // Global keydown listener for Alt/Option shortcuts
+  // Mac Option+key produces special chars, so we use e.code (physical key) + e.altKey
+  // Attached to window so browser-level shortcuts don't intercept
+  useEffect(() => {
+    function onWindowKey(e) {
+      if (!e.altKey) return
+      // Find which packing list cell is focused
+      let activeRowIdx = -1
+      let activeFieldIdx = -1
+      for (const key of Object.keys(inputRefs.current)) {
+        if (inputRefs.current[key] === document.activeElement) {
+          const [r, f] = key.split('_').map(Number)
+          activeRowIdx = r
+          activeFieldIdx = f
+          break
+        }
+      }
+      if (activeRowIdx === -1) return  // no packing list cell focused
+
+      if (!e.shiftKey && e.code === 'Enter') {
+        e.preventDefault()
+        addRow()
+        setTimeout(() => getRef(rows.length, 0)?.focus(), 50)
+      } else if (!e.shiftKey && e.code === 'Backspace') {
+        e.preventDefault()
+        removeRow(activeRowIdx)
+        setTimeout(() => getRef(Math.max(0, Math.min(activeRowIdx, rows.length - 2)), activeFieldIdx)?.focus(), 50)
+      } else if (e.shiftKey && e.code === 'KeyD') {
+        e.preventDefault()
+        duplicateRow(activeRowIdx)
+        setTimeout(() => getRef(activeRowIdx + 1, activeFieldIdx)?.focus(), 50)
+      } else if (e.shiftKey && e.code === 'KeyF') {
+        e.preventDefault()
+        fillColumnDown(activeRowIdx, activeFieldIdx)
+      }
+    }
+    window.addEventListener('keydown', onWindowKey)
+    return () => window.removeEventListener('keydown', onWindowKey)
+  }, [rows, addRow, removeRow, duplicateRow, fillColumnDown])
 
   async function generate() {
     setGenerating(true)
