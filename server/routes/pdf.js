@@ -1331,23 +1331,26 @@ html, body { margin: 0; padding: 0; }
 </style>`
 
     let pagesHTML = ''
+    let dynamicRowCSS = ''
 
     if (Array.isArray(containersPayload) && containersPayload.length > 0) {
       // Multi-container mode: one page per container
       const total = containersPayload.length
+      const cssRules = []
       pagesHTML = containersPayload.map((c, idx) => {
         const rowCount = (c.rows || []).length || c.palletCount || 1
         const rowHeightMm = Math.min(10, Math.max(4, Math.floor(159 / rowCount * 10) / 10))
-        const dynamicRowCSS = `<style>.page:nth-child(${idx + 1}) .pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
-        return buildPackingListPageBody(so, c.containerNumber, c.rows || [], c.palletCount, idx, total) + dynamicRowCSS
+        cssRules.push(`.page:nth-child(${idx + 1}) .pl-table tbody tr { height: ${rowHeightMm}mm; }`)
+        return buildPackingListPageBody(so, c.containerNumber, c.rows || [], c.palletCount, idx, total)
       }).join('\n')
+      dynamicRowCSS = `<style>${cssRules.join('\n')}</style>`
     } else {
       // Legacy single-container mode
       const orderRows = customRows || []
       const rowCount = orderRows.length || Number(palletCount) || 1
       const rowHeightMm = Math.min(10, Math.max(4, Math.floor(159 / rowCount * 10) / 10))
-      const dynamicRowCSS = `<style>.pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
-      pagesHTML = buildPackingListPageBody(so, so.container_number, orderRows, palletCount, 0, 1) + dynamicRowCSS
+      dynamicRowCSS = `<style>.pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
+      pagesHTML = buildPackingListPageBody(so, so.container_number, orderRows, palletCount, 0, 1)
     }
 
     // Full HTML document wrapping all pages
@@ -1357,6 +1360,7 @@ html, body { margin: 0; padding: 0; }
 ${CSS}
 </style>
 ${plCompact}
+${dynamicRowCSS}
 </head><body>
 ${pagesHTML}
 </body></html>`
