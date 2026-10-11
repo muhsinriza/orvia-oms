@@ -488,10 +488,11 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    invoice_no:       order.invoice_no       || '',
-    lot_no:           order.lot_no           || '',
-    vessel_name:      order.vessel_name      || '',
-    container_number: order.container_number || '',
+    invoice_no:        order.invoice_no        || '',
+    lot_no:            order.lot_no            || '',
+    vessel_name:       order.vessel_name       || '',
+    container_number:  order.container_number  || '',
+    seawaybill_number: order.seawaybill_number || '',
     etd: order.etd ? order.etd.slice(0, 10) : '',
     eta: order.eta ? order.eta.slice(0, 10) : '',
   })
@@ -556,6 +557,7 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
           {field('lot_no', 'Lot / Party No', 'text', 'LOT-2026-001')}
           {field('vessel_name', 'Vessel Name', 'text', 'MSC OSCAR')}
           {field('container_number', 'Container No', 'text', 'MSCU1234567')}
+          {field('seawaybill_number', 'Sea Waybill No (SWB)', 'text', 'SWB123456789')}
           {field('etd', 'ETD (Gerçek Kalkış)', 'date')}
           {field('eta', 'ETA (Gerçek Varış)', 'date')}
         </div>
@@ -1151,6 +1153,12 @@ export default function SalesDetailPage() {
               <div>
                 <dt className="text-gray-500 text-xs">Container No</dt>
                 <dd className="font-mono font-medium">{order.container_number}</dd>
+              </div>
+            )}
+            {order.seawaybill_number && (
+              <div>
+                <dt className="text-gray-500 text-xs">Sea Waybill No</dt>
+                <dd className="font-mono font-medium">{order.seawaybill_number}</dd>
               </div>
             )}
           </dl>

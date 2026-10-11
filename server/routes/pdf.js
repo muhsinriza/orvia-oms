@@ -316,6 +316,12 @@ function shipmentInfoHTML (so) {
     <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(so.currency)}</div></div>
     <div class="info-cell"><div class="info-label">Container No</div><div class="info-value">${val(so.container_number)}</div></div>
   </div>
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">ETD</div><div class="info-value">${fmtDate(so.etd)}</div></div>
+    <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
+    <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
+    <div class="info-cell"></div>
+  </div>
 </div>`
 }
 
@@ -583,16 +589,17 @@ router.post('/invoice/:id', requireAuth, async (req, res) => {
     `, [req.params.id])
 
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
-    // Merge modal fields (invoice_no, lot_no, vessel_name, container_number, etd, eta) over DB data
-    const { invoice_no, lot_no, vessel_name, container_number, etd, eta } = req.body || {}
+    // Merge modal fields over DB data
+    const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta } = req.body || {}
     const so = {
       ...rows[0],
-      ...(invoice_no      !== undefined && { invoice_no }),
-      ...(lot_no          !== undefined && { lot_no }),
-      ...(vessel_name     !== undefined && { vessel_name }),
-      ...(container_number !== undefined && { container_number }),
-      ...(etd             !== undefined && { etd }),
-      ...(eta             !== undefined && { eta }),
+      ...(invoice_no        !== undefined && { invoice_no }),
+      ...(lot_no            !== undefined && { lot_no }),
+      ...(vessel_name       !== undefined && { vessel_name }),
+      ...(container_number  !== undefined && { container_number }),
+      ...(seawaybill_number !== undefined && { seawaybill_number }),
+      ...(etd               !== undefined && { etd }),
+      ...(eta               !== undefined && { eta }),
     }
 
     // Load multi-line items (fall back to legacy single-row if none)

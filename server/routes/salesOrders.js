@@ -259,15 +259,15 @@ router.patch('/:id/status', async (req, res) => {
 
 // PATCH /sales-orders/:id/shipping — update invoice/logistics fields only
 router.patch('/:id/shipping', async (req, res) => {
-  const { invoice_no, lot_no, vessel_name, container_number, etd, eta } = req.body
+  const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta } = req.body
   try {
     const { rows } = await db.query(`
       UPDATE sales_orders SET
-        invoice_no=$1, lot_no=$2, vessel_name=$3, container_number=$4, etd=$5, eta=$6
-      WHERE id=$7 RETURNING *
+        invoice_no=$1, lot_no=$2, vessel_name=$3, container_number=$4, seawaybill_number=$5, etd=$6, eta=$7
+      WHERE id=$8 RETURNING *
     `, [
       invoice_no || null, lot_no || null, vessel_name || null,
-      container_number || null, etd || null, eta || null,
+      container_number || null, seawaybill_number || null, etd || null, eta || null,
       req.params.id,
     ])
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })
