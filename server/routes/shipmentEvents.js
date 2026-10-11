@@ -23,7 +23,7 @@ router.get('/:orderType/:orderId', async (req, res) => {
 })
 
 // POST /shipment-events
-router.post('/', async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res) => {
   const { order_type, order_id, event_date, event_type, title, description, location } = req.body
   if (!['purchase', 'sales'].includes(order_type)) {
     return res.status(400).json({ error: 'Geçersiz sipariş tipi' })

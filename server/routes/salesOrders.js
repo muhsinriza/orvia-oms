@@ -102,7 +102,7 @@ async function upsertItems(client, salesOrderId, items) {
 }
 
 // POST /sales-orders
-router.post('/', async (req, res) => {
+router.post('/', requireRole('admin'), async (req, res) => {
   const {
     sales_type, sa_number, invoice_no, lot_no,
     customer_id, product_id, variety, caliber, origin,
@@ -189,7 +189,7 @@ router.post('/', async (req, res) => {
 })
 
 // PUT /sales-orders/:id
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireRole('admin'), async (req, res) => {
   const {
     sales_type, sa_number, invoice_no, lot_no,
     customer_id, product_id, variety, caliber, origin,

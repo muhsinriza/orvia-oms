@@ -428,7 +428,7 @@ router.get('/:id', async (req, res) => {
     res.send(buffer)
   } catch (e) {
     console.error('[customsExcel]', e)
-    res.status(500).json({ error: 'Excel oluşturulamadı: ' + e.message })
+    res.status(500).json({ error: 'Excel oluşturulamadı' })
   }
 })
 

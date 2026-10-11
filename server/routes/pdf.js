@@ -308,7 +308,7 @@ function partiesPOHTML (po) {
     <div class="party-label">Supplier / Exporter</div>
     <div class="party-name">${val(po.supplier_name)}</div>
     <div class="party-detail">
-      ${[po.supplier_address, po.supplier_country].filter(Boolean).join(', ')}
+      ${esc([po.supplier_address, po.supplier_country].filter(Boolean).join(', '))}
     </div>
   </div>
 </div>`
@@ -812,13 +812,17 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
 
     const useItemRows = orderItems.length > 1
     let rowsInitJS = ''
+    // Safe JSON-in-script embed: escape </script> to prevent injection
+    function safeJsonStr (obj) {
+      return JSON.stringify(obj).replace(/<\/script>/gi, '<\\/script>')
+    }
     if (useItemRows) {
       rowsInitJS = orderItems.map((it, idx) => {
         const bw    = Number(it.box_weight_kg || 0)
         const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
         const net   = Number(it.quantity_kg || 0)
         const gross = b * bw * 1.05
-        return JSON.stringify({ label: `Item ${idx + 1}`, product: it.product_name || '—', variety: [it.variety, it.caliber].filter(Boolean).join(' / ') || '—', origin: it.origin || '—', boxType: it.box_type || '—', boxes: b, netBox: bw, net, gross })
+        return safeJsonStr({ label: `Item ${idx + 1}`, product: it.product_name || '—', variety: [it.variety, it.caliber].filter(Boolean).join(' / ') || '—', origin: it.origin || '—', boxType: it.box_type || '—', boxes: b, netBox: bw, net, gross })
       }).join(',\n')
     } else {
       const boxesPerPallet = Math.floor(totalBoxes / palletCount)
@@ -826,7 +830,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
       const bw = Number(orderItems[0]?.box_weight_kg || 0)
       rowsInitJS = Array.from({ length: palletCount }, (_, i) => {
         const pb = i < rem ? boxesPerPallet + 1 : boxesPerPallet
-        return JSON.stringify({ label: `Pallet ${i+1}`, product: orderItems[0]?.product_name || '—', variety: [orderItems[0]?.variety, orderItems[0]?.caliber].filter(Boolean).join(' / ') || '—', origin: orderItems[0]?.origin || '—', boxType: orderItems[0]?.box_type || '—', boxes: pb, netBox: bw, net: pb * bw, gross: pb * bw * 1.05 })
+        return safeJsonStr({ label: `Pallet ${i+1}`, product: orderItems[0]?.product_name || '—', variety: [orderItems[0]?.variety, orderItems[0]?.caliber].filter(Boolean).join(' / ') || '—', origin: orderItems[0]?.origin || '—', boxType: orderItems[0]?.box_type || '—', boxes: pb, netBox: bw, net: pb * bw, gross: pb * bw * 1.05 })
       }).join(',\n')
     }
 
