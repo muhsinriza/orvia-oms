@@ -190,7 +190,7 @@ function PackingListModal({ order, filename, onClose }) {
           getRef(rowIdx - 1, lastFieldIdx)?.focus()
         }
       }
-    } else if (e.key === 'Enter') {
+    } else if (e.key === 'Enter' && !e.altKey) {
       e.preventDefault()
       if (rowIdx < rows.length - 1) {
         getRef(rowIdx + 1, fieldIdx)?.focus()
@@ -299,16 +299,42 @@ function PackingListModal({ order, filename, onClose }) {
 
       if (!e.shiftKey && e.code === 'Enter') {
         e.preventDefault()
-        addRow()
-        setTimeout(() => getRef(rows.length, 0)?.focus(), 50)
+        // Use functional update to get current length after add
+        setRows(prev => {
+          const last = prev[prev.length - 1] || {}
+          const newRow = makeRow(prev.length, {
+            product: last.product || '',
+            variety: last.variety || '',
+            origin:  last.origin  || '',
+            boxType: last.boxType || '',
+            netBox:  last.netBox  || '',
+            label:   `Pallet ${prev.length + 1}`,
+          })
+          setTimeout(() => getRef(prev.length, 0)?.focus(), 50)
+          return [...prev, newRow]
+        })
+        setPalletCount(c => c + 1)
       } else if (!e.shiftKey && e.code === 'Backspace') {
         e.preventDefault()
-        removeRow(activeRowIdx)
-        setTimeout(() => getRef(Math.max(0, Math.min(activeRowIdx, rows.length - 2)), activeFieldIdx)?.focus(), 50)
+        setRows(prev => {
+          if (prev.length === 1) return prev
+          const newRows = prev.filter((_, i) => i !== activeRowIdx)
+          const focusIdx = Math.max(0, Math.min(activeRowIdx, newRows.length - 1))
+          setTimeout(() => getRef(focusIdx, activeFieldIdx)?.focus(), 50)
+          return newRows
+        })
+        setPalletCount(c => Math.max(1, c - 1))
       } else if (e.shiftKey && e.code === 'KeyD') {
         e.preventDefault()
-        duplicateRow(activeRowIdx)
-        setTimeout(() => getRef(activeRowIdx + 1, activeFieldIdx)?.focus(), 50)
+        setRows(prev => {
+          if (activeRowIdx < 0 || activeRowIdx >= prev.length) return prev
+          const copy = { ...prev[activeRowIdx], label: `Pallet ${prev.length + 1}` }
+          const next = [...prev]
+          next.splice(activeRowIdx + 1, 0, copy)
+          setTimeout(() => getRef(activeRowIdx + 1, activeFieldIdx)?.focus(), 50)
+          return next
+        })
+        setPalletCount(c => c + 1)
       } else if (e.shiftKey && e.code === 'KeyF') {
         e.preventDefault()
         fillColumnDown(activeRowIdx, activeFieldIdx)
@@ -316,7 +342,7 @@ function PackingListModal({ order, filename, onClose }) {
     }
     window.addEventListener('keydown', onWindowKey)
     return () => window.removeEventListener('keydown', onWindowKey)
-  }, [rows, addRow, removeRow, duplicateRow, fillColumnDown])
+  }, [fillColumnDown])
 
   async function generate() {
     setGenerating(true)
