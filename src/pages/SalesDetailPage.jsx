@@ -230,23 +230,19 @@ function PackingListModal({ order, filename, onClose }) {
           getRef(rowIdx - 1, PALLET_FIELDS.findIndex(f => f.key === lastKey))?.focus()
         }
       }
-    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    } else if (e.key === 'Enter' && e.altKey) {
       e.preventDefault()
-      e.stopPropagation()
       addRow()
       setTimeout(() => getRef(rows.length, 0)?.focus(), 50)
-    } else if (e.key === 'Delete' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+    } else if (e.key === 'Backspace' && e.altKey) {
       e.preventDefault()
-      e.stopPropagation()
       removeRow(rowIdx)
-    } else if (e.key === 'd' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+    } else if (e.key === 'd' && e.altKey && e.shiftKey) {
       e.preventDefault()
-      e.stopPropagation()
       duplicateRow(rowIdx)
       setTimeout(() => getRef(rowIdx + 1, fieldIdx)?.focus(), 50)
-    } else if (e.key === 'f' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
+    } else if (e.key === 'f' && e.altKey && e.shiftKey) {
       e.preventDefault()
-      e.stopPropagation()
       fillColumnDown(rowIdx, fieldIdx)
     }
   }
@@ -350,10 +346,10 @@ function PackingListModal({ order, filename, onClose }) {
     ['Tab / Shift+Tab', 'next column'],
     ['Enter', 'next row'],
     ['↑ ↓ ← →', 'navigate cells'],
-    [`${mod}+Enter`, 'new row'],
-    [`${mod}+Shift+D`, 'duplicate row'],
-    [`${mod}+Shift+F`, 'fill column'],
-    [`${mod}+Shift+Del`, 'delete row'],
+    ['⌥+Enter', 'new row'],
+    ['⌥+Shift+D', 'duplicate row'],
+    ['⌥+Shift+F', 'fill column'],
+    ['⌥+Backspace', 'delete row'],
     ['Esc', 'close'],
   ]
 
@@ -381,7 +377,7 @@ function PackingListModal({ order, filename, onClose }) {
               onClick={addRow}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white transition-colors"
             >
-              <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">{mod}+Enter</kbd>
+              <Plus size={13} /> Add Row <kbd className="ml-1 opacity-60 text-xs">⌥+Enter</kbd>
             </button>
             <button
               onClick={generate}
