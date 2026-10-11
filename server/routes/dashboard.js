@@ -23,51 +23,81 @@ router.get('/', async (req, res) => {
           (SELECT COUNT(*) FROM sales_orders     WHERE status = 'arrived') AS so_arrived
       `),
 
-      // Finansal özet
+      // Finansal özet — packing list'teki gerçek kutu sayısı × birim fiyat
       db.query(`
+        WITH so_box_totals AS (
+          -- Her satış siparişinin toplam kutu adedini packing list'ten topla
+          SELECT
+            so.id,
+            so.created_at,
+            so.status,
+            so.price_per_unit,
+            so.currency,
+            so.quantity_kg,
+            COALESCE(
+              (SELECT SUM((row_val->>'boxes')::numeric)
+               FROM sales_order_containers soc,
+                    jsonb_array_elements(soc.packing_list_data->'rows') AS row_val
+               WHERE soc.sales_order_id = so.id),
+              0
+            ) AS total_boxes
+          FROM sales_orders so
+          WHERE so.price_per_unit IS NOT NULL
+        ),
+        po_totals AS (
+          SELECT
+            po.id,
+            po.created_at,
+            po.status,
+            po.quantity_kg,
+            po.price_per_unit,
+            po.currency
+          FROM purchase_orders po
+          WHERE po.quantity_kg IS NOT NULL AND po.price_per_unit IS NOT NULL
+        )
         SELECT
-          -- Bu ay satış tutarı
-          COALESCE((SELECT SUM(quantity_kg * price_per_unit)
-            FROM sales_orders
+          -- Bu ay satış tutarı (kutu × birim fiyat, yoksa kg × birim fiyat)
+          COALESCE((SELECT SUM(
+              CASE WHEN total_boxes > 0 THEN total_boxes * price_per_unit
+                   ELSE quantity_kg * price_per_unit END)
+            FROM so_box_totals
             WHERE created_at >= date_trunc('month', now())
-              AND status NOT IN ('cancelled')
-              AND quantity_kg IS NOT NULL AND price_per_unit IS NOT NULL), 0) AS so_value_this_month,
+              AND status NOT IN ('cancelled')), 0) AS so_value_this_month,
 
           -- Geçen ay satış tutarı
-          COALESCE((SELECT SUM(quantity_kg * price_per_unit)
-            FROM sales_orders
+          COALESCE((SELECT SUM(
+              CASE WHEN total_boxes > 0 THEN total_boxes * price_per_unit
+                   ELSE quantity_kg * price_per_unit END)
+            FROM so_box_totals
             WHERE created_at >= date_trunc('month', now()) - INTERVAL '1 month'
               AND created_at <  date_trunc('month', now())
-              AND status NOT IN ('cancelled')
-              AND quantity_kg IS NOT NULL AND price_per_unit IS NOT NULL), 0) AS so_value_last_month,
+              AND status NOT IN ('cancelled')), 0) AS so_value_last_month,
 
-          -- Bu ay alım tutarı
+          -- Bu ay alım tutarı (kg × birim fiyat — satın almada kg kullanılır)
           COALESCE((SELECT SUM(quantity_kg * price_per_unit)
-            FROM purchase_orders
+            FROM po_totals
             WHERE created_at >= date_trunc('month', now())
-              AND status NOT IN ('cancelled')
-              AND quantity_kg IS NOT NULL AND price_per_unit IS NOT NULL), 0) AS po_value_this_month,
+              AND status NOT IN ('cancelled')), 0) AS po_value_this_month,
 
           -- Geçen ay alım tutarı
           COALESCE((SELECT SUM(quantity_kg * price_per_unit)
-            FROM purchase_orders
+            FROM po_totals
             WHERE created_at >= date_trunc('month', now()) - INTERVAL '1 month'
               AND created_at <  date_trunc('month', now())
-              AND status NOT IN ('cancelled')
-              AND quantity_kg IS NOT NULL AND price_per_unit IS NOT NULL), 0) AS po_value_last_month,
+              AND status NOT IN ('cancelled')), 0) AS po_value_last_month,
 
-          -- Toplam aktif sipariş değeri (devam eden işler)
+          -- Açık pipeline: aktif satışların gerçek tutarı
+          COALESCE((SELECT SUM(
+              CASE WHEN total_boxes > 0 THEN total_boxes * price_per_unit
+                   ELSE quantity_kg * price_per_unit END)
+            FROM so_box_totals
+            WHERE status NOT IN ('completed','delivered','cancelled')), 0) AS so_pipeline_value,
+
           COALESCE((SELECT SUM(quantity_kg * price_per_unit)
-            FROM sales_orders
-            WHERE status NOT IN ('completed','delivered','cancelled')
-              AND quantity_kg IS NOT NULL AND price_per_unit IS NOT NULL), 0) AS so_pipeline_value,
+            FROM po_totals
+            WHERE status NOT IN ('completed','cancelled')), 0) AS po_pipeline_value,
 
-          COALESCE((SELECT SUM(quantity_kg * price_per_unit)
-            FROM purchase_orders
-            WHERE status NOT IN ('completed','cancelled')
-              AND quantity_kg IS NOT NULL AND price_per_unit IS NOT NULL), 0) AS po_pipeline_value,
-
-          -- Bu yılki toplam kg
+          -- Bu yılki toplam kg (gerçek ağırlık, hem satış hem alımda kg aynı)
           COALESCE((SELECT SUM(quantity_kg)
             FROM sales_orders
             WHERE created_at >= date_trunc('year', now())
@@ -80,7 +110,6 @@ router.get('/', async (req, res) => {
               AND status NOT IN ('cancelled')
               AND quantity_kg IS NOT NULL), 0) AS po_kg_ytd,
 
-          -- Ortalama satış fiyatı (bu ay)
           COALESCE((SELECT AVG(price_per_unit)
             FROM sales_orders
             WHERE created_at >= date_trunc('month', now())
@@ -139,12 +168,24 @@ router.get('/', async (req, res) => {
         ORDER BY eta ASC
       `),
 
-      // Top ürünler bu ay
+      // Top ürünler bu ay — gerçek kutu × fiyat
       db.query(`
         SELECT p.name AS product_name,
                COUNT(*) AS order_count,
                SUM(so.quantity_kg) AS total_kg,
-               SUM(so.quantity_kg * so.price_per_unit) AS total_value
+               SUM(
+                 CASE
+                   WHEN COALESCE((SELECT SUM((rv->>'boxes')::numeric)
+                        FROM sales_order_containers soc2,
+                             jsonb_array_elements(soc2.packing_list_data->'rows') rv
+                        WHERE soc2.sales_order_id = so.id), 0) > 0
+                   THEN COALESCE((SELECT SUM((rv->>'boxes')::numeric)
+                        FROM sales_order_containers soc2,
+                             jsonb_array_elements(soc2.packing_list_data->'rows') rv
+                        WHERE soc2.sales_order_id = so.id), 0) * so.price_per_unit
+                   ELSE so.quantity_kg * so.price_per_unit
+                 END
+               ) AS total_value
         FROM sales_orders so
         LEFT JOIN products p ON p.id = so.product_id
         WHERE so.created_at >= date_trunc('month', now())
