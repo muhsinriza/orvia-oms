@@ -169,7 +169,7 @@ function PackingListModal({ order, filename, onClose }) {
       grossBox: order.box_gross_kg || '',
     }))]
   })
-  const [palletCount, setPalletCount] = useState(order.pallets || rows.length || 1)
+  const [palletCount, setPalletCount] = useState(order.pallets || 1)
   const [generating, setGenerating] = useState(false)
   const inputRefs = React.useRef({})
   const lastFocused = React.useRef({ rowIdx: -1, fieldIdx: -1 })

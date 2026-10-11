@@ -106,7 +106,7 @@ body { font-family:'Inter',sans-serif; font-size:7.5pt; color:#111827; backgroun
 .info-cell:last-child { border-right:none; }
 .info-label { font-size:5.5pt; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; color:#6b7280; margin-bottom:0.5mm; }
 .info-value { font-size:7.5pt; font-weight:600; color:#111827; line-height:1.3; }
-.section-header { background:#0a5c3a; color:#fff; font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; padding:1mm 3mm; margin:2.5mm 0 0; }
+.section-header { background:#0a5c3a; color:#fff; font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; padding:1mm 3mm; margin:2.5mm 0 0; break-after:avoid; page-break-after:avoid; }
 
 /* PARTIES */
 .parties { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid #e5e7eb; border-radius:2px; overflow:hidden; margin-bottom:3mm; }
@@ -184,6 +184,7 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 
 /* PACKING LIST TABLE (static) */
 .pl-table { width:100%; border-collapse:collapse; }
+.pl-table thead { display:table-header-group; }
 .pl-table thead th { background:#0a5c3a; color:#fff; padding:2mm 2.5mm; text-align:left; font-size:6.5pt; font-weight:700; text-transform:uppercase; letter-spacing:0.3px; }
 .pl-table thead th.r { text-align:right; }
 .pl-table tbody td { padding:2mm 2.5mm; font-size:7pt; border-bottom:1px solid #f3f4f6; vertical-align:top; }
@@ -1122,7 +1123,7 @@ router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
     const totalBoxes = orderRows.reduce((s, r) => s + (parseFloat(r.boxes) || 0), 0)
     const totalNet   = orderRows.reduce((s, r) => s + (parseFloat(r.net) || 0), 0)
     const totalGross = orderRows.reduce((s, r) => s + (parseFloat(r.gross) || 0), 0)
-    const pc = palletCount || orderRows.length || 1
+    const pc = Number(palletCount) || 1
 
     const palletRowsHTML = orderRows.map(r => `
     <tr>
