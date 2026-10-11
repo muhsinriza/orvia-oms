@@ -6,18 +6,16 @@ const ExcelJS = require('exceljs')
 router.use(requireAuth)
 
 // ── Brand colours ─────────────────────────────────────────────────────────────
-const ORVIA_DARK   = 'FF0A2540'   // deep navy (primary brand)
-const ORVIA_MID    = 'FF0F3D6B'   // mid navy (headers)
-const ORVIA_TEAL   = 'FF0D5E7A'   // teal accent (secondary headers/highlights)
+const ORVIA_DARK   = 'FF0A2540'   // deep navy (primary brand / banner)
+const ORVIA_MID    = 'FF0F3D6B'   // mid navy (section headers)
+const ORVIA_TEAL   = 'FF0D5E7A'   // teal accent (secondary headers)
 const ORVIA_LIGHT  = 'FFE8F1F8'   // pale blue tint (label backgrounds)
 const ORVIA_ACCENT = 'FF1A6BB5'   // logo blue (totals, action rows)
+const ORVIA_STRIPE = 'FFF0F5FA'   // very light navy tint (alternating rows)
+const ORVIA_NOTE   = 'FFD6E8F5'   // soft blue (info/note rows)
+const ORVIA_NOTE_T = 'FF0A3A5C'   // dark navy text on note rows
 const WHITE        = 'FFFFFFFF'
-const GRAY_BG      = 'FFF6F9FC'   // off-white alternating rows
-const GOLD_BG      = 'FFFFF3CD'   // soft amber for highlight notes
-const GOLD_TEXT    = 'FF856404'   // amber text
-const GREEN_BG     = 'FFE6F4EA'
-const GREEN_TEXT   = 'FF1A6B3C'
-const BORDER_CLR   = 'FFB8CCE0'   // slightly deeper border
+const BORDER_CLR   = 'FFB8CCE0'   // blue-grey border
 
 // GET /api/customs-excel/:id — generate İhracat Detayları Excel
 router.get('/:id', async (req, res) => {
@@ -166,7 +164,7 @@ router.get('/:id', async (req, res) => {
 
     items.forEach((item, idx) => {
       const isOdd = idx % 2 === 0
-      const rowFill = solidFill(isOdd ? WHITE : GRAY_BG)
+      const rowFill = solidFill(isOdd ? WHITE : ORVIA_STRIPE)
 
       // ── Calculations (always use qty_kg ÷ box_weight_kg) ──────────────────
       const boxNetKg     = parseFloat(item.box_weight_kg  || item.p_box_net_kg   || 0)
@@ -401,8 +399,8 @@ router.get('/:id', async (req, res) => {
     ws.mergeCells(`A${DR}:L${DR}`)
     applyCell(ws.getCell(`A${DR}`), {
       value:     'İHRACATÇI TEDARİKÇİDİR. MALLARIMIZ TÜRK MENŞELLİDİR.',
-      font:      { name: 'Calibri', bold: true, italic: true, size: 9, color: { argb: GREEN_TEXT } },
-      fill:      solidFill(GREEN_BG),
+      font:      { name: 'Calibri', bold: true, italic: true, size: 9, color: { argb: ORVIA_NOTE_T } },
+      fill:      solidFill(ORVIA_NOTE),
       alignment: ctr,
     })
     DR++
