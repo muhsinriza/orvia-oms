@@ -472,9 +472,10 @@ function bankHTML () {
 </div>`
 }
 
-function sigHTML (showBuyer, electronic) {
+function sigHTML (showBuyer, electronic, compact) {
   showBuyer = showBuyer || false
   electronic = electronic || false
+  compact = compact || false
 
   // Non-electronic (standard sig boxes for other docs)
   if (!electronic) {
@@ -501,6 +502,33 @@ function sigHTML (showBuyer, electronic) {
   const sigId = 'ORV-' + now.getFullYear() + '-' + Math.random().toString(36).toUpperCase().slice(2, 8)
   const issuedAt = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) +
     ', ' + now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', timeZone:'Europe/Istanbul' }) + ' UTC+3'
+
+  if (compact) {
+    // Compact version: single-row layout, minimal height (~10mm) for packing list
+    return `
+<div style="background:linear-gradient(135deg,#f0f7f4 0%,#ffffff 60%);border:1px solid #d1e7dc;border-radius:3px;padding:2mm 3.5mm;margin-top:2mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+  <div style="display:flex;align-items:center;gap:2.5mm;">
+    <div style="flex-shrink:0;width:6.5mm;height:6.5mm;background:#0a5c3a;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+      <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:5pt;font-weight:700;color:#0a5c3a;letter-spacing:1.5px;text-transform:uppercase;">Electronically Authorized · ${CO.name} · Tax: ${CO.tax}</div>
+      <div style="display:flex;align-items:center;gap:3mm;margin-top:0.8mm;">
+        <svg width="7" height="7" viewBox="0 0 8 8" fill="none"><rect x="0.5" y="0.5" width="7" height="7" rx="1" stroke="#0a5c3a" stroke-width="0.7"/><path d="M1.8 4L3.2 5.5L6.2 2.5" stroke="#0a5c3a" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font-size:4.5pt;font-weight:700;color:#0a5c3a;">Signature ID: ${sigId}</span>
+        <span style="font-size:4.5pt;color:#9ca3af;">Issued: ${issuedAt}</span>
+        <span style="font-size:4.5pt;color:#9ca3af;">Valid without handwritten signature · orviaoms.com</span>
+      </div>
+    </div>
+    <div style="flex-shrink:0;text-align:right;border-left:1px solid #d1e7dc;padding-left:2.5mm;">
+      <div style="font-size:4.5pt;color:#9ca3af;text-transform:uppercase;letter-spacing:0.8px;">Authorized by</div>
+      <div style="font-size:6.5pt;font-weight:700;color:#111827;white-space:nowrap;">${CO.rep}</div>
+      <div style="font-size:4.5pt;color:#6b7280;white-space:nowrap;">${CO.title}</div>
+    </div>
+  </div>
+</div>`
+  }
+
   return `
 <div style="background:linear-gradient(135deg,#f0f7f4 0%,#ffffff 60%);border:1px solid #d1e7dc;border-radius:3px;padding:4.5mm 5.5mm;margin-top:4mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
   <div style="display:flex;align-items:flex-start;gap:3.5mm;">
@@ -528,7 +556,7 @@ function sigHTML (showBuyer, electronic) {
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;background:#f8faf9;border:1px solid #d1e7dc;border-radius:2px;padding:1.5mm 3mm;">
       <div style="display:flex;align-items:center;gap:2mm;">
-        <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><rect x="0.5" y="0.5" width="7" height="7" rx="1" stroke="#0a5c3a" stroke-width="0.7"/><path d="M1.8 4L3.2 5.5L6.2 2.5" stroke="#0a5c3a" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><rect x="0.5" y="0.5" width="7" height="7" rx="1" stroke="#0a5c3a" stroke-width="0.7"/><path d="M1.8 4L3.2 5.5L6.2 2.5" stroke="#0a5c3a" stroke-width="0.8" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <span style="font-size:5.5pt;font-weight:700;color:#0a5c3a;letter-spacing:0.5px;">Signature ID: ${sigId}</span>
       </div>
       <span style="font-size:5pt;color:#9ca3af;">Issued: ${issuedAt}</span>
@@ -1210,24 +1238,8 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
 </table>
 </div>
 ${qualitySection}
-<div class="auth-block">
-  <div style="display:flex;align-items:center;gap:3mm;background:linear-gradient(135deg,#f0f7f4 0%,#ffffff 60%);border:1px solid #d1e7dc;border-radius:2px;padding:2mm 3mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
-    <div style="flex-shrink:0;width:6mm;height:6mm;background:#0a5c3a;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-      <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <div style="flex:1;">
-      <div style="font-size:4.5pt;font-weight:700;color:#0a5c3a;letter-spacing:1.5px;text-transform:uppercase;">Electronically Authorized &nbsp;·&nbsp; ${CO.name} &nbsp;·&nbsp; Tax No: ${CO.tax}</div>
-      <div style="font-size:4pt;color:#9ca3af;margin-top:0.5mm;">This document has been electronically generated and authorized by the Orvia OMS platform. Valid without handwritten signature.</div>
-    </div>
-    <div style="flex-shrink:0;text-align:right;">
-      <div style="font-size:4pt;color:#9ca3af;text-transform:uppercase;letter-spacing:0.5px;">Authorized by</div>
-      <div style="font-size:6pt;font-weight:700;color:#111827;white-space:nowrap;">${CO.rep}</div>
-      <div style="font-size:4pt;color:#6b7280;white-space:nowrap;">${CO.title}</div>
-      <div style="font-size:4pt;font-weight:700;color:#0a5c3a;margin-top:0.5mm;">orviaoms.com &nbsp;·&nbsp; orviatropical.com</div>
-    </div>
-  </div>
-</div>
-`, { noFooter: true })
+${sigHTML(false, true, true)}
+`)
 
     // Compact CSS overrides — fits 21 pallet rows on one A4 page, stretches to fill full page
     const plCompact = `<style>
@@ -1256,18 +1268,7 @@ html, body { height: 100%; margin: 0; }
 .pl-table thead th { padding:0.9mm 1.8mm; font-size:5.5pt; }
 .pl-table tbody td { padding:0.65mm 1.8mm; font-size:5.8pt; border-bottom:1px solid #f0f0f0; }
 .pl-table tfoot td { padding:1.1mm 1.8mm; font-size:6pt; }
-.table-wrapper { margin-bottom:1.5mm; flex-grow:1; }
-.auth-block { margin-top:auto; }
-.auth-signatory { padding:2mm 3mm; min-width:36mm; }
-.auth-sig-name { font-size:7.5pt; }
-.auth-sig-eyebrow { font-size:4.5pt; margin-bottom:1mm; }
-.auth-sig-line { width:26mm; margin:1.5mm 0 1mm; }
-.auth-sig-role { font-size:5.5pt; line-height:1.4; }
-.auth-declaration { padding:2mm 3mm; }
-.auth-decl-title { font-size:4.5pt; margin-bottom:1.5mm; }
-.auth-decl-text { font-size:5pt; line-height:1.6; }
-.auth-stamp { padding:1.5mm 3mm; min-width:28mm; }
-.auth-stamp-year { font-size:4.5pt; }
+.table-wrapper { margin-bottom:1mm; flex-grow:1; }
 .page-footer { margin-top:1.5mm; }
 .page-footer-logo { padding:1.2mm 3mm; font-size:7.5pt; letter-spacing:3px; }
 .page-footer-text, .page-footer-right { font-size:4.5pt; padding:1.2mm 3mm; line-height:1.7; }
