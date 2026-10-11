@@ -351,7 +351,14 @@ function PackingListModal({ order, filename, onClose }) {
 
   // Get containers from order (new multi-container) or fallback to legacy
   const getContainers = () => {
-    if (order.containers && order.containers.length > 0) return order.containers
+    if (order.containers && order.containers.length > 0) {
+      // Normalise: containers may be objects {id, container_number} or plain strings (after an onSaved merge)
+      return order.containers.map(c =>
+        typeof c === 'string'
+          ? { id: null, container_number: c, packing_list_data: null }
+          : c
+      )
+    }
     // Legacy: single container or no container
     return [{ id: null, container_number: order.container_number || '', packing_list_data: order.packing_list_data || null }]
   }
@@ -1120,7 +1127,7 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
 }
 
 // ── DOCUMENTS SECTION ─────────────────────────────────────────────────────────
-function DocumentsSection({ order, onOrderUpdate }) {
+function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
   const [loading, setLoading] = useState({})
   const [plModal, setPlModal] = useState(false)
   const [invModal, setInvModal] = useState(false)
@@ -1242,7 +1249,7 @@ function DocumentsSection({ order, onOrderUpdate }) {
           order={order}
           filename={docFilename('CommercialInvoice')}
           onClose={() => setInvModal(false)}
-          onSaved={updates => onOrderUpdate && onOrderUpdate(updates)}
+          onSaved={updates => { onOrderUpdate && onOrderUpdate(updates); onRefresh && onRefresh() }}
         />
       )}
     </div>
@@ -1617,7 +1624,7 @@ export default function SalesDetailPage() {
         <StatusBar status={order.status} onStatusChange={handleStatusChange} />
 
         {/* Documents */}
-        <DocumentsSection order={order} onOrderUpdate={updates => setOrder(o => ({ ...o, ...updates }))} />
+        <DocumentsSection order={order} onOrderUpdate={updates => setOrder(o => ({ ...o, ...updates }))} onRefresh={load} />
 
         {/* Order Summary */}
         <div className="card p-4">
