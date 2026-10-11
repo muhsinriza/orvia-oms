@@ -330,10 +330,11 @@ function invoiceGoodsTableHTML (orderItems, so) {
   let totalNet = 0, totalGross = 0, totalAmt = 0, totalBoxes = 0
 
   const rows = orderItems.map((it, i) => {
-    const bw    = Number(it.box_weight_kg || 0)
+    const bw      = Number(it.box_weight_kg || it.p_box_net_kg || 0)
+    const grossBw = Number(it.p_box_gross_kg || 0)
     const qty   = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
     const net   = Number(it.quantity_kg || 0)
-    const gross = qty * bw * 1.05
+    const gross = grossBw > 0 ? qty * grossBw : qty * bw * 1.05
     const price = Number(it.price_per_unit || 0)
     const amount = (it.sell_by || 'box') === 'kg' ? price * net : price * qty
     const unitLabel = (it.sell_by || 'box') === 'kg' ? '/kg' : '/box'
@@ -387,10 +388,11 @@ function saGoodsTableHTML (orderItems, so) {
   let totalNet = 0, totalGross = 0, totalAmt = 0, totalBoxes = 0
 
   const rows = orderItems.map((it, i) => {
-    const bw      = Number(it.box_weight_kg || so.box_weight_kg || 0)
+    const bw      = Number(it.box_weight_kg || it.p_box_net_kg || so.box_weight_kg || 0)
+    const grossBw = Number(it.p_box_gross_kg || 0)
     const itBoxes = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
     const itNet   = Number(it.quantity_kg || 0)
-    const itGross = itBoxes * bw * 1.05
+    const itGross = grossBw > 0 ? itBoxes * grossBw : itBoxes * bw * 1.05
     const itValue = itBoxes * Number(it.price_per_unit || 0)
     const prodName = it.product_name || so.product_name
     totalNet += itNet; totalGross += itGross; totalAmt += itValue; totalBoxes += itBoxes
@@ -605,7 +607,7 @@ router.post('/invoice/:id', requireAuth, async (req, res) => {
     let orderItems = []
     try {
       const itemsRes = await db.query(`
-        SELECT soi.*, p.name AS product_name
+        SELECT soi.*, p.name AS product_name, p.box_gross_kg AS p_box_gross_kg
         FROM sales_order_items soi
         LEFT JOIN products p ON p.id::text = soi.product_id::text
         WHERE soi.sales_order_id = $1
@@ -699,7 +701,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
     let orderItems = []
     try {
       const itemsRes = await db.query(`
-        SELECT soi.*, p.name AS product_name
+        SELECT soi.*, p.name AS product_name, p.box_gross_kg AS p_box_gross_kg
         FROM sales_order_items soi
         LEFT JOIN products p ON p.id::text = soi.product_id::text
         WHERE soi.sales_order_id = $1
@@ -1242,7 +1244,7 @@ router.get('/packing-list/:id', requireAuth, async (req, res) => {
     let orderItems = []
     try {
       const itemsRes = await db.query(`
-        SELECT soi.*, p.name AS product_name
+        SELECT soi.*, p.name AS product_name, p.box_gross_kg AS p_box_gross_kg
         FROM sales_order_items soi
         LEFT JOIN products p ON p.id::text = soi.product_id::text
         WHERE soi.sales_order_id = $1
@@ -1442,7 +1444,7 @@ router.get('/sales-agreement/:id', requireAuth, async (req, res) => {
     let orderItems = []
     try {
       const itemsRes = await db.query(`
-        SELECT soi.*, p.name AS product_name
+        SELECT soi.*, p.name AS product_name, p.box_gross_kg AS p_box_gross_kg
         FROM sales_order_items soi
         LEFT JOIN products p ON p.id::text = soi.product_id::text
         WHERE soi.sales_order_id = $1
