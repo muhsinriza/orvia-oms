@@ -1212,39 +1212,44 @@ ${sigHTML(false, true)}
 
     // Compact CSS overrides — fits 21 pallet rows on one A4 page
     const plCompact = `<style>
-.page { padding:5mm; }
-.doc-header { padding:3mm 0 2.5mm; margin-bottom:2.5mm; }
-.doc-title { font-size:12pt; }
-.doc-meta, .co-sub { font-size:5.5pt; }
-.co-name { font-size:7.5pt; }
-.parties { margin-bottom:2mm; }
-.party-col { padding:1.5mm 2mm; }
-.party-name { font-size:7.5pt; margin-bottom:0.5mm; }
-.party-detail { font-size:5.5pt; line-height:1.5; }
-.info-cell { padding:1mm 2mm; }
-.info-label { font-size:5pt; margin-bottom:0.3mm; }
-.info-value { font-size:6.5pt; }
-.info-grid { margin-bottom:2mm; }
-.section-header { padding:0.8mm 2.5mm; margin:1.5mm 0 0; font-size:6pt; }
-.pkg-strip { margin-bottom:2mm; }
-.pkg-item { padding:1.5mm 2.5mm; }
-.pkg-item .pkg-lbl { font-size:4.5pt; margin-bottom:0.5mm; }
-.pkg-item .pkg-val { font-size:6.5pt; }
-.pl-table thead th { padding:1.2mm 2mm; font-size:5.8pt; }
-.pl-table tbody td { padding:1.1mm 2mm; font-size:6.2pt; }
-.pl-table tfoot td { padding:1.5mm 2mm; font-size:6.5pt; }
-.table-wrapper { margin-bottom:2mm; }
-.auth-block { margin-top:2mm; }
-.auth-signatory { padding:2.5mm 3.5mm; min-width:40mm; }
-.auth-sig-name { font-size:8pt; }
-.auth-sig-eyebrow { margin-bottom:1.5mm; }
-.auth-sig-line { margin:2mm 0 1mm; }
-.auth-declaration { padding:2.5mm 3.5mm; }
-.auth-decl-text { font-size:5.5pt; }
-.auth-stamp { padding:2mm 3.5mm; min-width:32mm; }
-.page-footer { margin-top:2mm; }
-.page-footer-logo { padding:1.5mm 3mm; font-size:8pt; }
-.page-footer-text, .page-footer-right { font-size:5pt; padding:1.5mm 3mm; }
+.page { padding:4mm; }
+.doc-header { padding:2.5mm 0 2mm; margin-bottom:2mm; }
+.doc-header-inner { padding:0 4mm; gap:3mm; }
+.doc-title { font-size:11pt; }
+.doc-meta, .co-sub { font-size:5pt; line-height:1.5; }
+.co-name { font-size:7pt; }
+.parties { margin-bottom:1.5mm; }
+.party-col { padding:1.2mm 2mm; }
+.party-label { font-size:5pt; margin-bottom:1mm; }
+.party-name { font-size:7pt; margin-bottom:0.3mm; }
+.party-detail { font-size:5pt; line-height:1.4; }
+.info-cell { padding:0.8mm 2mm; }
+.info-label { font-size:4.5pt; margin-bottom:0.2mm; }
+.info-value { font-size:6pt; }
+.info-grid { margin-bottom:1.5mm; }
+.section-header { padding:0.6mm 2mm; margin:1mm 0 0; font-size:5.5pt; letter-spacing:0.5px; }
+.pkg-strip { margin-bottom:1.5mm; }
+.pkg-item { padding:1.2mm 2mm; }
+.pkg-item .pkg-lbl { font-size:4pt; margin-bottom:0.3mm; }
+.pkg-item .pkg-val { font-size:6pt; }
+.pl-table thead th { padding:0.9mm 1.8mm; font-size:5.5pt; }
+.pl-table tbody td { padding:0.65mm 1.8mm; font-size:5.8pt; border-bottom:1px solid #f0f0f0; }
+.pl-table tfoot td { padding:1.1mm 1.8mm; font-size:6pt; }
+.table-wrapper { margin-bottom:1.5mm; }
+.auth-block { margin-top:1.5mm; }
+.auth-signatory { padding:2mm 3mm; min-width:36mm; }
+.auth-sig-name { font-size:7.5pt; }
+.auth-sig-eyebrow { font-size:4.5pt; margin-bottom:1mm; }
+.auth-sig-line { width:26mm; margin:1.5mm 0 1mm; }
+.auth-sig-role { font-size:5.5pt; line-height:1.4; }
+.auth-declaration { padding:2mm 3mm; }
+.auth-decl-title { font-size:4.5pt; margin-bottom:1.5mm; }
+.auth-decl-text { font-size:5pt; line-height:1.6; }
+.auth-stamp { padding:1.5mm 3mm; min-width:28mm; }
+.auth-stamp-year { font-size:4.5pt; }
+.page-footer { margin-top:1.5mm; }
+.page-footer-logo { padding:1.2mm 3mm; font-size:7.5pt; letter-spacing:3px; }
+.page-footer-text, .page-footer-right { font-size:4.5pt; padding:1.2mm 3mm; line-height:1.7; }
 </style>`
 
     const htmlCompact = html.replace('</style></head>', plCompact + '</style></head>')
