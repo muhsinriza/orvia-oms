@@ -197,6 +197,8 @@ async function runMigrations () {
         ADD COLUMN IF NOT EXISTS driver_name          TEXT,
         ADD COLUMN IF NOT EXISTS driver_phone         TEXT
     `)
+    // packing list data column
+    await db.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS packing_list_data JSONB`)
     console.log('[migrate] All migrations applied successfully')
   } catch (e) {
     console.error('[migrate] Migration error:', e.message)

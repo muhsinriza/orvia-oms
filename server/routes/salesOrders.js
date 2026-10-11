@@ -279,6 +279,19 @@ router.patch('/:id/shipping', async (req, res) => {
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
+// PATCH /sales-orders/:id/packing-list
+router.patch('/:id/packing-list', async (req, res) => {
+  const { rows, palletCount } = req.body
+  try {
+    const { rows: dbRows } = await db.query(
+      'UPDATE sales_orders SET packing_list_data=$1 WHERE id=$2 RETURNING id',
+      [JSON.stringify({ rows, palletCount }), req.params.id]
+    )
+    if (!dbRows[0]) return res.status(404).json({ error: 'Bulunamadı' })
+    res.json({ ok: true })
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
+})
+
 // DELETE /sales-orders/:id
 router.delete('/:id', async (req, res) => {
   try {

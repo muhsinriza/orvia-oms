@@ -148,6 +148,10 @@ function computeRow(row) {
 function PackingListModal({ order, filename, onClose }) {
   const { showToast } = useToast()
   const [rows, setRows] = useState(() => {
+    // First: load from saved packing_list_data if available
+    if (order.packing_list_data && Array.isArray(order.packing_list_data.rows) && order.packing_list_data.rows.length > 0) {
+      return order.packing_list_data.rows
+    }
     // Seed from items array if available, otherwise from order top-level fields
     const items = Array.isArray(order.items) && order.items.length > 0 ? order.items : null
     if (items) {
@@ -169,7 +173,9 @@ function PackingListModal({ order, filename, onClose }) {
       grossBox: order.box_gross_kg || '',
     }))]
   })
-  const [palletCount, setPalletCount] = useState(order.pallets || 1)
+  const [palletCount, setPalletCount] = useState(
+    (order.packing_list_data && order.packing_list_data.palletCount) || order.pallets || 1
+  )
   const [generating, setGenerating] = useState(false)
   const inputRefs = React.useRef({})
   const lastFocused = React.useRef({ rowIdx: -1, fieldIdx: -1 })
@@ -375,6 +381,14 @@ function PackingListModal({ order, filename, onClose }) {
         })),
         palletCount,
       }
+      // Save packing list data to DB before generating PDF
+      await fetch(`/api/sales-orders/${order.id}/packing-list`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows: payload.rows, palletCount }),
+      }).catch(() => {}) // non-blocking, don't fail PDF on save error
+
       const res = await fetch(`/api/pdf/packing-list-custom/${order.id}`, {
         method: 'POST',
         credentials: 'include',
