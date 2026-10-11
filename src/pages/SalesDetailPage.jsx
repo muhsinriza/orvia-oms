@@ -484,14 +484,14 @@ function PackingListModal({ order, filename, onClose }) {
 }
 
 // ── INVOICE MODAL ─────────────────────────────────────────────────────────────
-function InvoiceModal({ order, filename, onClose }) {
+function InvoiceModal({ order, filename, onClose, onSaved }) {
   const { showToast } = useToast()
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    invoice_no: '',
-    lot_no: '',
-    vessel_name: '',
-    container_number: '',
+    invoice_no:       order.invoice_no       || '',
+    lot_no:           order.lot_no           || '',
+    vessel_name:      order.vessel_name      || '',
+    container_number: order.container_number || '',
     etd: order.etd ? order.etd.slice(0, 10) : '',
     eta: order.eta ? order.eta.slice(0, 10) : '',
   })
@@ -499,6 +499,16 @@ function InvoiceModal({ order, filename, onClose }) {
   async function handleDownload() {
     setLoading(true)
     try {
+      // 1. Siparişe kaydet
+      await fetch(`/api/sales-orders/${order.id}/shipping`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      if (onSaved) onSaved(form)
+
+      // 2. PDF oluştur ve indir
       const res = await fetch(`/api/pdf/invoice/${order.id}`, {
         method: 'POST',
         credentials: 'include',
@@ -540,7 +550,7 @@ function InvoiceModal({ order, filename, onClose }) {
   return (
     <Modal open onClose={onClose} title="Commercial Invoice" size="md">
       <div className="space-y-4">
-        <p className="text-sm text-gray-500">Bu bilgiler PDF'e yazılır, sisteme kaydedilmez.</p>
+        <p className="text-sm text-gray-500">Bu bilgiler siparişe kaydedilir ve PDF'e yazılır.</p>
         <div className="grid grid-cols-2 gap-3">
           {field('invoice_no', 'Invoice No', 'text', 'INV-2026-001')}
           {field('lot_no', 'Lot / Party No', 'text', 'LOT-2026-001')}
@@ -553,7 +563,7 @@ function InvoiceModal({ order, filename, onClose }) {
           <button className="btn-secondary" onClick={onClose}>İptal</button>
           <button className="btn-primary flex items-center gap-2" onClick={handleDownload} disabled={loading}>
             {loading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-            PDF İndir
+            Kaydet &amp; PDF İndir
           </button>
         </div>
       </div>
@@ -562,7 +572,7 @@ function InvoiceModal({ order, filename, onClose }) {
 }
 
 // ── DOCUMENTS SECTION ─────────────────────────────────────────────────────────
-function DocumentsSection({ order }) {
+function DocumentsSection({ order, onOrderUpdate }) {
   const [loading, setLoading] = useState({})
   const [plModal, setPlModal] = useState(false)
   const [invModal, setInvModal] = useState(false)
@@ -684,6 +694,7 @@ function DocumentsSection({ order }) {
           order={order}
           filename={docFilename('CommercialInvoice')}
           onClose={() => setInvModal(false)}
+          onSaved={updates => onOrderUpdate && onOrderUpdate(updates)}
         />
       )}
     </div>
@@ -1052,7 +1063,7 @@ export default function SalesDetailPage() {
         <StatusBar status={order.status} onStatusChange={handleStatusChange} />
 
         {/* Documents */}
-        <DocumentsSection order={order} />
+        <DocumentsSection order={order} onOrderUpdate={updates => setOrder(o => ({ ...o, ...updates }))} />
 
         {/* Order Summary */}
         <div className="card p-4">
@@ -1116,6 +1127,30 @@ export default function SalesDetailPage() {
               <div>
                 <dt className="text-gray-500 text-xs">Ödeme Vadesi</dt>
                 <dd className="font-medium">{order.payment_term}</dd>
+              </div>
+            )}
+            {order.invoice_no && (
+              <div>
+                <dt className="text-gray-500 text-xs">Invoice No</dt>
+                <dd className="font-medium">{order.invoice_no}</dd>
+              </div>
+            )}
+            {order.lot_no && (
+              <div>
+                <dt className="text-gray-500 text-xs">Lot / Party No</dt>
+                <dd className="font-medium">{order.lot_no}</dd>
+              </div>
+            )}
+            {order.vessel_name && (
+              <div>
+                <dt className="text-gray-500 text-xs">Vessel Name</dt>
+                <dd className="font-medium">{order.vessel_name}</dd>
+              </div>
+            )}
+            {order.container_number && (
+              <div>
+                <dt className="text-gray-500 text-xs">Container No</dt>
+                <dd className="font-mono font-medium">{order.container_number}</dd>
               </div>
             )}
           </dl>
