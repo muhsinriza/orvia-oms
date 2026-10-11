@@ -197,14 +197,9 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 
 // ─── Shared template helpers ──────────────────────────────────────────────────
 
-function wrap (body) {
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-${CSS}
-</style></head><body>
-<div class="page">
-  <div class="page-body">${body}</div>
+function wrap (body, opts) {
+  opts = opts || {}
+  const footer = opts.noFooter ? '' : `
   <div class="page-footer">
     <div class="page-footer-inner">
       <div class="page-footer-logo">ORVIA</div>
@@ -214,7 +209,14 @@ ${CSS}
       </div>
       <div class="page-footer-right">WhatsApp: +90 530 552 83 06<br>Direct: +90 532 703 55 07<br>orviatropical.com &nbsp;·&nbsp; orviaoms.com</div>
     </div>
-  </div>
+  </div>`
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+${CSS}
+</style></head><body>
+<div class="page">
+  <div class="page-body">${body}</div>${footer}
 </div>
 </body></html>`
 }
@@ -1209,7 +1211,7 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
 </div>
 ${qualitySection}
 ${sigHTML(false, true)}
-`)
+`, { noFooter: true })
 
     // Compact CSS overrides — fits 21 pallet rows on one A4 page, stretches to fill full page
     const plCompact = `<style>
@@ -1462,7 +1464,7 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
 </div>
 ${qualitySection}
 ${sigHTML(false, true)}
-`)
+`, { noFooter: true })
 
     const pdf = await htmlToPDF(html)
     res.set({
