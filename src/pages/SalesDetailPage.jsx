@@ -148,15 +148,26 @@ function computeRow(row) {
 function PackingListModal({ order, filename, onClose }) {
   const { showToast } = useToast()
   const [rows, setRows] = useState(() => {
-    // Seed one row from order data
-    return [makeRow(0, {
+    // Seed from items array if available, otherwise from order top-level fields
+    const items = Array.isArray(order.items) && order.items.length > 0 ? order.items : null
+    if (items) {
+      return items.map((it, idx) => computeRow(makeRow(idx, {
+        product:  it.product_name || order.product_name || '',
+        variety:  [it.variety, it.caliber].filter(Boolean).join(' / ') || '',
+        origin:   it.origin   || order.origin   || '',
+        boxType:  it.box_type || order.box_type || '',
+        netBox:   it.p_box_net_kg   || it.box_weight_kg || order.box_net_kg || order.box_weight_kg || '',
+        grossBox: it.p_box_gross_kg || order.box_gross_kg || '',
+      })))
+    }
+    return [computeRow(makeRow(0, {
       product:  order.product_name || '',
       variety:  [order.variety, order.caliber].filter(Boolean).join(' / ') || '',
       origin:   order.origin || '',
       boxType:  order.box_type || '',
       netBox:   order.box_net_kg || order.box_weight_kg || '',
       grossBox: order.box_gross_kg || '',
-    })]
+    }))]
   })
   const [palletCount, setPalletCount] = useState(order.pallets || rows.length || 1)
   const [generating, setGenerating] = useState(false)

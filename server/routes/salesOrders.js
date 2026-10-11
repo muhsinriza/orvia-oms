@@ -51,8 +51,11 @@ router.get('/:id', async (req, res) => {
     let itemRows = []
     try {
       const itemsRes = await db.query(`
-        SELECT soi.*
+        SELECT soi.*,
+               p.box_net_kg   AS p_box_net_kg,
+               p.box_gross_kg AS p_box_gross_kg
         FROM sales_order_items soi
+        LEFT JOIN products p ON p.id::text = soi.product_id::text
         WHERE soi.sales_order_id = $1
         ORDER BY soi.sort_order
       `, [req.params.id])
