@@ -203,7 +203,7 @@ async function runMigrations () {
     await db.query(`
       CREATE TABLE IF NOT EXISTS sales_order_containers (
         id                SERIAL PRIMARY KEY,
-        sales_order_id    INTEGER NOT NULL,
+        sales_order_id    UUID NOT NULL,
         container_number  TEXT    NOT NULL DEFAULT '',
         sort_order        INTEGER NOT NULL DEFAULT 0,
         packing_list_data JSONB,
@@ -211,15 +211,38 @@ async function runMigrations () {
         updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     `)
+    // migration 006: fix sales_order_id column type from INTEGER to UUID (idempotent)
+    await db.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name='sales_order_containers'
+            AND column_name='sales_order_id'
+            AND data_type='integer'
+        ) THEN
+          DROP TABLE IF EXISTS sales_order_containers;
+          CREATE TABLE sales_order_containers (
+            id                SERIAL PRIMARY KEY,
+            sales_order_id    UUID NOT NULL,
+            container_number  TEXT NOT NULL DEFAULT '',
+            sort_order        INTEGER NOT NULL DEFAULT 0,
+            packing_list_data JSONB,
+            created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          );
+        END IF;
+      END $$;
+    `)
     await db.query(`CREATE INDEX IF NOT EXISTS idx_soc_sales_order_id ON sales_order_containers(sales_order_id, sort_order)`)
     // migrate existing single container values (idempotent via WHERE NOT EXISTS)
     await db.query(`
       INSERT INTO sales_order_containers (sales_order_id, container_number, sort_order, packing_list_data)
-      SELECT s.id::integer, s.container_number, 0, s.packing_list_data
+      SELECT s.id, s.container_number, 0, s.packing_list_data
       FROM sales_orders s
       WHERE s.container_number IS NOT NULL AND s.container_number <> ''
         AND NOT EXISTS (
-          SELECT 1 FROM sales_order_containers c WHERE c.sales_order_id = s.id::integer
+          SELECT 1 FROM sales_order_containers c WHERE c.sales_order_id = s.id
         )
     `)
     console.log('[migrate] All migrations applied successfully')
