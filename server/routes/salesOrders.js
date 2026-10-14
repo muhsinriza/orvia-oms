@@ -37,8 +37,7 @@ router.get('/', async (req, res) => {
         const itemTotals = await db.query(`
           SELECT sales_order_id,
                  SUM(quantity_kg) AS total_kg,
-                 MIN(price_per_unit) AS first_price,
-                 MIN(currency) AS first_currency
+                 MIN(price_per_unit) AS first_price
           FROM sales_order_items
           WHERE sales_order_id = ANY($1)
           GROUP BY sales_order_id
@@ -52,7 +51,6 @@ router.get('/', async (req, res) => {
             ...r,
             quantity_kg: t.total_kg ?? r.quantity_kg,
             price_per_unit: t.first_price ?? r.price_per_unit,
-            currency: t.first_currency ?? r.currency,
           }
         })
       }
