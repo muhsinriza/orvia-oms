@@ -26,9 +26,11 @@ const EMPTY_FORM = {
   customer_id:'', currency:'USD',
   payment_method:'', payment_term:'', incoterm:'FOB',
   port_loading:'', port_discharge:'',
+  loading_address:'',
   dest_country:'', transit_entry:'', transit_exit:'',
   etd:'', eta:'',
   transport_mode:'Sea', pallets:'',
+  lot_no:'',
   quality_notes:'', notes:'', status:'draft',
   required_docs: { invoice:false, packing_list:false, health_certificate:false, phytosanitary:false, certificate_of_origin:false },
   items: [{ ...EMPTY_ITEM }]
@@ -117,9 +119,11 @@ export default function SalesPage() {
       currency: o.currency||'USD', payment_method: o.payment_method||'',
       payment_term: o.payment_term||'', incoterm: o.incoterm||'FOB',
       port_loading: o.port_loading||'', port_discharge: o.port_discharge||'',
+      loading_address: o.loading_address||'',
       etd: o.etd ? o.etd.slice(0,10) : '',
       eta: o.eta ? o.eta.slice(0,10) : '',
       transport_mode: o.transport_mode||'Sea', pallets: o.pallets||'',
+      lot_no: o.lot_no||'',
       quality_notes: o.quality_notes||'', notes: o.notes||'',
       status: o.status||'draft',
       required_docs: { invoice:false, packing_list:false, health_certificate:false, phytosanitary:false, certificate_of_origin:false, ...(o.required_docs||{}) },
@@ -467,6 +471,14 @@ export default function SalesPage() {
           <div>
             <label className="label">Varış Limanı</label>
             <input className="input" value={form.port_discharge} onChange={e=>setField('port_discharge',e.target.value)} placeholder="Örn: Rotterdam"/>
+          </div>
+          <div>
+            <label className="label">Yükleme Adresi <span className="text-gray-400 font-normal text-xs">(gümrük beyannamesi)</span></label>
+            <input className="input" value={form.loading_address} onChange={e=>setField('loading_address',e.target.value)} placeholder="Örn: Mersin Soğuk Hava Deposu"/>
+          </div>
+          <div>
+            <label className="label">TAREKS No</label>
+            <input className="input" value={form.lot_no} onChange={e=>setField('lot_no',e.target.value)} placeholder="Örn: 2026-TRK-001"/>
           </div>
 
           {/* İhracat ek alanları */}
