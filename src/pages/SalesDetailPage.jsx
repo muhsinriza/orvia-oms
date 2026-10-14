@@ -1632,15 +1632,38 @@ export default function SalesDetailPage() {
   if (loading) return <div className="p-6 text-center text-gray-400">Yükleniyor...</div>
   if (!order) return null
 
-  const totalKg = Number(order.quantity_kg) || 0
-  const unitPrice = Number(order.price_per_unit) || 0
-  const firstItem = Array.isArray(order.items) && order.items.length > 0 ? order.items[0] : null
+  const hasItems = Array.isArray(order.items) && order.items.length > 0
+  // Compute totals from items if available, otherwise fall back to order-level fields
+  const totalKg = hasItems
+    ? order.items.reduce((s, it) => s + (Number(it.quantity_kg) || 0), 0)
+    : (Number(order.quantity_kg) || 0)
+  const totalBoxes = hasItems
+    ? order.items.reduce((s, it) => {
+        const bw = Number(it.box_weight_kg) || 0
+        return s + (bw > 0 ? Math.round((Number(it.quantity_kg) || 0) / bw) : 0)
+      }, 0)
+    : (() => {
+        const bw = Number(order.box_weight_kg) || 0
+        return bw > 0 ? Math.round((Number(order.quantity_kg) || 0) / bw) : 0
+      })()
+  const total = hasItems
+    ? order.items.reduce((s, it) => {
+        const bw = Number(it.box_weight_kg) || 0
+        const qty = Number(it.quantity_kg) || 0
+        const price = Number(it.price_per_unit) || 0
+        const boxes = bw > 0 ? Math.round(qty / bw) : 0
+        return s + ((it.sell_by || 'box') === 'kg' ? qty * price : boxes * price)
+      }, 0)
+    : (() => {
+        const unitPrice = Number(order.price_per_unit) || 0
+        return totalBoxes > 0 ? totalBoxes * unitPrice : totalKg * unitPrice
+      })()
+  // For display: single unit price only makes sense for single-item orders
+  const firstItem = hasItems ? order.items[0] : null
   const sellBy = firstItem?.sell_by || order.sell_by || 'box'
-  const boxWeightKg = Number(firstItem?.box_weight_kg || order.box_weight_kg) || 0
-  const totalBoxes = boxWeightKg > 0 ? Math.round(totalKg / boxWeightKg) : 0
-  const total = sellBy === 'kg'
-    ? totalKg * unitPrice
-    : (totalBoxes > 0 ? totalBoxes * unitPrice : totalKg * unitPrice)
+  const unitPrice = hasItems && order.items.length === 1
+    ? (Number(firstItem?.price_per_unit) || 0)
+    : null // null = multi-item, show per-line breakdown instead
 
   return (
     <div className="p-3 md:p-6 max-w-3xl mx-auto">
@@ -1687,24 +1710,79 @@ export default function SalesDetailPage() {
                 <dd className="font-semibold font-mono text-gray-800">{order.invoice_no}</dd>
               </div>
             )}
-            <div>
-              <dt className="text-gray-500 text-xs">Miktar</dt>
-              <dd className="font-medium">{totalKg.toLocaleString('tr-TR')} kg</dd>
-            </div>
-            <div>
-              <dt className="text-gray-500 text-xs">Birim Fiyat</dt>
-              <dd className="font-medium">{unitPrice.toFixed(2)} {order.currency}{sellBy === 'box' ? <span className="text-xs text-gray-400 ml-1">/ kutu</span> : <span className="text-xs text-gray-400 ml-1">/ kg</span>}</dd>
-            </div>
-            {sellBy === 'box' && totalBoxes > 0 && (
-              <div>
-                <dt className="text-gray-500 text-xs">Kutu Adedi</dt>
-                <dd className="font-medium">{totalBoxes.toLocaleString('tr-TR')} kutu</dd>
+            {/* Multi-item breakdown */}
+            {hasItems && order.items.length > 1 ? (
+              <div className="col-span-2">
+                <dt className="text-gray-500 text-xs mb-1.5">Ürün Kalemleri</dt>
+                <dd>
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="text-left px-2 py-1 text-gray-500 font-medium">Çeşit / Kalibr</th>
+                        <th className="text-right px-2 py-1 text-gray-500 font-medium">Miktar</th>
+                        <th className="text-right px-2 py-1 text-gray-500 font-medium">Kutu</th>
+                        <th className="text-right px-2 py-1 text-gray-500 font-medium">Birim Fiyat</th>
+                        <th className="text-right px-2 py-1 text-gray-500 font-medium">Tutar</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {order.items.map((it, i) => {
+                        const bw = Number(it.box_weight_kg) || 0
+                        const qty = Number(it.quantity_kg) || 0
+                        const price = Number(it.price_per_unit) || 0
+                        const boxes = bw > 0 ? Math.round(qty / bw) : 0
+                        const lineTotal = (it.sell_by || 'box') === 'kg' ? qty * price : boxes * price
+                        return (
+                          <tr key={i} className="hover:bg-gray-50">
+                            <td className="px-2 py-1.5 font-medium text-gray-800">
+                              {it.variety || '—'}{it.caliber ? ` · ${it.caliber}` : ''}
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-gray-700">{qty.toLocaleString('tr-TR')} kg</td>
+                            <td className="px-2 py-1.5 text-right text-gray-700">{boxes > 0 ? boxes.toLocaleString('tr-TR') : '—'}</td>
+                            <td className="px-2 py-1.5 text-right text-gray-700">
+                              {price > 0 ? `${price.toFixed(2)} ${order.currency}/${(it.sell_by || 'box') === 'kg' ? 'kg' : 'kutu'}` : '—'}
+                            </td>
+                            <td className="px-2 py-1.5 text-right font-semibold text-primary-700">
+                              {lineTotal > 0 ? `${lineTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} ${order.currency}` : '—'}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-gray-50 font-semibold">
+                        <td className="px-2 py-1.5 text-gray-700">Toplam</td>
+                        <td className="px-2 py-1.5 text-right text-gray-800">{totalKg.toLocaleString('tr-TR')} kg</td>
+                        <td className="px-2 py-1.5 text-right text-gray-800">{totalBoxes > 0 ? `${totalBoxes.toLocaleString('tr-TR')} kutu` : '—'}</td>
+                        <td></td>
+                        <td className="px-2 py-1.5 text-right text-primary-700">{total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {order.currency}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </dd>
               </div>
+            ) : (
+              <>
+                <div>
+                  <dt className="text-gray-500 text-xs">Miktar</dt>
+                  <dd className="font-medium">{totalKg.toLocaleString('tr-TR')} kg</dd>
+                </div>
+                <div>
+                  <dt className="text-gray-500 text-xs">Birim Fiyat</dt>
+                  <dd className="font-medium">{(unitPrice || 0).toFixed(2)} {order.currency}{sellBy === 'box' ? <span className="text-xs text-gray-400 ml-1">/ kutu</span> : <span className="text-xs text-gray-400 ml-1">/ kg</span>}</dd>
+                </div>
+                {sellBy === 'box' && totalBoxes > 0 && (
+                  <div>
+                    <dt className="text-gray-500 text-xs">Kutu Adedi</dt>
+                    <dd className="font-medium">{totalBoxes.toLocaleString('tr-TR')} kutu</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-gray-500 text-xs">Toplam Tutar</dt>
+                  <dd className="font-semibold text-primary-700">{total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {order.currency}</dd>
+                </div>
+              </>
             )}
-            <div>
-              <dt className="text-gray-500 text-xs">Toplam Tutar</dt>
-              <dd className="font-semibold text-primary-700">{total.toLocaleString('tr-TR', { minimumFractionDigits: 2 })} {order.currency}</dd>
-            </div>
             <div>
               <dt className="text-gray-500 text-xs">Incoterm</dt>
               <dd className="font-medium">{order.incoterm || '—'}</dd>
