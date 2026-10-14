@@ -9,21 +9,7 @@ router.get('/', async (req, res) => {
   const { status, search } = req.query
   try {
     let q = `
-      SELECT so.*,
-             c.name AS customer_name,
-             p.name AS product_name,
-             COALESCE(
-               (SELECT SUM(soi.quantity_kg) FROM sales_order_items soi WHERE soi.sales_order_id = so.id),
-               so.quantity_kg
-             ) AS effective_quantity_kg,
-             COALESCE(
-               (SELECT soi.price_per_unit FROM sales_order_items soi WHERE soi.sales_order_id = so.id ORDER BY soi.sort_order LIMIT 1),
-               so.price_per_unit
-             ) AS effective_price_per_unit,
-             COALESCE(
-               (SELECT soi.currency FROM sales_order_items soi WHERE soi.sales_order_id = so.id ORDER BY soi.sort_order LIMIT 1),
-               so.currency
-             ) AS effective_currency
+      SELECT so.*, c.name AS customer_name, p.name AS product_name
       FROM sales_orders so
       LEFT JOIN customers c ON c.id = so.customer_id
       LEFT JOIN products  p ON p.id = so.product_id
@@ -37,14 +23,41 @@ router.get('/', async (req, res) => {
     }
     q += ' ORDER BY so.created_at DESC'
     const { rows } = await db.query(q, params)
-    // Normalize: use effective_* fields as the main fields for display
-    const normalized = rows.map(r => ({
-      ...r,
-      quantity_kg: r.effective_quantity_kg ?? r.quantity_kg,
-      price_per_unit: r.effective_price_per_unit ?? r.price_per_unit,
-      currency: r.effective_currency ?? r.currency,
-    }))
-    res.json(normalized)
+
+    // Enrich each order with items totals if the table exists
+    let itemsTableExists = true
+    try {
+      await db.query(`SELECT 1 FROM sales_order_items LIMIT 0`)
+    } catch (_) { itemsTableExists = false }
+
+    let enriched = rows
+    if (itemsTableExists) {
+      const ids = rows.map(r => r.id)
+      if (ids.length > 0) {
+        const itemTotals = await db.query(`
+          SELECT sales_order_id,
+                 SUM(quantity_kg) AS total_kg,
+                 MIN(price_per_unit) AS first_price,
+                 MIN(currency) AS first_currency
+          FROM sales_order_items
+          WHERE sales_order_id = ANY($1)
+          GROUP BY sales_order_id
+        `, [ids])
+        const totMap = {}
+        for (const t of itemTotals.rows) totMap[t.sales_order_id] = t
+        enriched = rows.map(r => {
+          const t = totMap[r.id]
+          if (!t) return r
+          return {
+            ...r,
+            quantity_kg: t.total_kg ?? r.quantity_kg,
+            price_per_unit: t.first_price ?? r.price_per_unit,
+            currency: t.first_currency ?? r.currency,
+          }
+        })
+      }
+    }
+    res.json(enriched)
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
