@@ -136,6 +136,7 @@ async function upsertItems(client, salesOrderId, items) {
 // POST /sales-orders
 router.post('/', requireRole('admin'), async (req, res) => {
   const {
+    party_no,
     sales_type, sa_number, invoice_no, lot_no,
     customer_id, product_id, variety, caliber, origin,
     quantity_kg, price_per_unit, currency,
@@ -190,8 +191,8 @@ router.post('/', requireRole('admin'), async (req, res) => {
          quality_notes, required_docs, notes, status, created_by,
          tracking_number, container_number, seawaybill_number, vessel_name,
          flight_number, driver_name, driver_phone,
-         loading_address, freight_amount)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42)
+         loading_address, freight_amount, party_no)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43)
       RETURNING *
     `, [
       sales_type || 'ihracat', finalSaNumber, invoice_no || null, lot_no || null,
@@ -207,6 +208,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
       tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
       flight_number || null, driver_name || null, driver_phone || null,
       loading_address || null, freight_amount || null,
+      (party_no && party_no.trim()) ? party_no.trim() : null,
     ])
 
     await upsertItems(client, rows[0].id, items)
@@ -223,6 +225,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
 // PUT /sales-orders/:id
 router.put('/:id', requireRole('admin'), async (req, res) => {
   const {
+    party_no,
     sales_type, sa_number, invoice_no, lot_no,
     customer_id, product_id, variety, caliber, origin,
     quantity_kg, price_per_unit, currency,
@@ -264,7 +267,8 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
         quality_notes=$29, required_docs=$30, notes=$31, status=$32,
         tracking_number=$34, container_number=$35, seawaybill_number=$36, vessel_name=$37,
         flight_number=$38, driver_name=$39, driver_phone=$40,
-        loading_address=$41, freight_amount=$42
+        loading_address=$41, freight_amount=$42,
+        party_no=COALESCE(NULLIF($43,''), party_no)
       WHERE id=$33
       RETURNING *
     `, [
@@ -281,6 +285,7 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
       tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
       flight_number || null, driver_name || null, driver_phone || null,
       loading_address || null, freight_amount || null,
+      party_no || null,
     ])
     if (!rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Bulunamadı' }) }
 

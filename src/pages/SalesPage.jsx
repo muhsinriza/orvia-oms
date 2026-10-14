@@ -21,6 +21,7 @@ const EMPTY_ITEM = { product_id:'', variety:'', caliber:'', origin:'', quantity_
 
 const EMPTY_FORM = {
   sales_type:'ihracat',
+  party_no:'',
   sa_number:'',
   customer_id:'', currency:'USD',
   payment_method:'', payment_term:'', incoterm:'FOB',
@@ -108,6 +109,7 @@ export default function SalesPage() {
     }
     setForm({
       sales_type: o.sales_type||'ihracat',
+      party_no: o.party_no||'',
       sa_number: o.sa_number||'',
 
       customer_id: o.customer_id||'',
@@ -335,6 +337,10 @@ export default function SalesPage() {
                 >{label}</button>
               ))}
             </div>
+          </div>
+          <div>
+            <label className="label">Parti No <span className="text-gray-400 font-normal text-xs">(boş bırakılırsa otomatik — örn: SO-2026-0009)</span></label>
+            <input className="input" value={form.party_no} onChange={e=>setField('party_no',e.target.value)} placeholder="Otomatik"/>
           </div>
           <div>
             <label className="label">SA Numarası <span className="text-gray-400 font-normal text-xs">(boş bırakılırsa otomatik)</span></label>
