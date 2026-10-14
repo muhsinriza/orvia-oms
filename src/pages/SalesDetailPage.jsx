@@ -1165,6 +1165,7 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
 
   const shippedStatuses = ['in_transit', 'arrived', 'completed', 'delivered']
   const isShipped = shippedStatuses.includes(order.status)
+  const isConfirmedOrMore = ['confirmed', 'in_transit', 'arrived', 'completed', 'delivered'].includes(order.status)
 
   async function downloadPDF(endpoint, filename) {
     setLoading(l => ({ ...l, [filename]: true }))
@@ -1233,6 +1234,7 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
       endpoint: `/api/customs-excel/${order.id}`,
       always: false,
       isExcel: true,
+      customActive: isConfirmedOrMore,
     },
   ]
 
@@ -1241,7 +1243,7 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
       <h2 className="font-semibold text-gray-900 mb-3">Dokümanlar</h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {docs.map(doc => {
-          const active = doc.always || isShipped
+          const active = doc.always || (doc.customActive !== undefined ? doc.customActive : isShipped)
           const isLoading = loading[doc.filename]
           return (
             <div
@@ -1272,7 +1274,9 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
                   {doc.key === 'pl' || doc.key === 'inv' ? 'Fill & Download' : doc.isExcel ? 'Excel İndir' : 'Download PDF'}
                 </span>
               ) : (
-                <span className="text-xs text-gray-400">Sevk sonrası aktif</span>
+                <span className="text-xs text-gray-400">
+                  {doc.key === 'customs' ? 'Onay sonrası aktif' : 'Sevk sonrası aktif'}
+                </span>
               )}
             </div>
           )

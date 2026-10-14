@@ -9,7 +9,21 @@ router.get('/', async (req, res) => {
   const { status, search } = req.query
   try {
     let q = `
-      SELECT so.*, c.name AS customer_name, p.name AS product_name
+      SELECT so.*,
+             c.name AS customer_name,
+             p.name AS product_name,
+             COALESCE(
+               (SELECT SUM(soi.quantity_kg) FROM sales_order_items soi WHERE soi.sales_order_id = so.id),
+               so.quantity_kg
+             ) AS effective_quantity_kg,
+             COALESCE(
+               (SELECT soi.price_per_unit FROM sales_order_items soi WHERE soi.sales_order_id = so.id ORDER BY soi.sort_order LIMIT 1),
+               so.price_per_unit
+             ) AS effective_price_per_unit,
+             COALESCE(
+               (SELECT soi.currency FROM sales_order_items soi WHERE soi.sales_order_id = so.id ORDER BY soi.sort_order LIMIT 1),
+               so.currency
+             ) AS effective_currency
       FROM sales_orders so
       LEFT JOIN customers c ON c.id = so.customer_id
       LEFT JOIN products  p ON p.id = so.product_id
@@ -23,7 +37,14 @@ router.get('/', async (req, res) => {
     }
     q += ' ORDER BY so.created_at DESC'
     const { rows } = await db.query(q, params)
-    res.json(rows)
+    // Normalize: use effective_* fields as the main fields for display
+    const normalized = rows.map(r => ({
+      ...r,
+      quantity_kg: r.effective_quantity_kg ?? r.quantity_kg,
+      price_per_unit: r.effective_price_per_unit ?? r.price_per_unit,
+      currency: r.effective_currency ?? r.currency,
+    }))
+    res.json(normalized)
   } catch (e) { console.error(e); res.status(500).json({ error: 'Sunucu hatası' }) }
 })
 
