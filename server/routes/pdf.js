@@ -315,18 +315,28 @@ function partiesPOHTML (po) {
 }
 
 function shipmentInfoHTML (so, extraContainers) {
-  // Build container display: use extraContainers array if provided, else fall back to so.container_number
-  let containerDisplay = val(so.container_number)
+  // Resolve container list
+  let containers = []
   if (Array.isArray(extraContainers) && extraContainers.length > 0) {
-    const filled = extraContainers.filter(c => c && c.trim())
-    if (filled.length > 1) {
-      // Multiple containers: stack them with small font, comma-labeled
-      const fontSz = filled.length <= 3 ? '7pt' : filled.length <= 5 ? '6pt' : '5.5pt'
-      containerDisplay = `<span style="font-size:${fontSz};line-height:1.6;font-family:monospace;">${filled.join('<br>')}</span>`
-    } else if (filled.length === 1) {
-      containerDisplay = filled[0]
-    }
+    containers = extraContainers.filter(c => c && c.trim())
+  } else if (so.container_number) {
+    containers = [so.container_number]
   }
+
+  // Container row: single → inline in payment row; multiple → own full-width row
+  const singleContainer = containers.length <= 1
+  const singleContainerDisplay = containers.length === 1 ? containers[0] : '—'
+
+  // Multi-container: chips laid out in a flex row, wrapping if needed
+  const multiContainerRow = containers.length > 1 ? `
+  <div class="info-row" style="grid-template-columns:1fr">
+    <div class="info-cell">
+      <div class="info-label">Container No (${containers.length})</div>
+      <div class="info-value" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:1px;">
+        ${containers.map(c => `<span style="font-family:monospace;font-size:7pt;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:3px;padding:1px 5px;white-space:nowrap;">${c}</span>`).join('')}
+      </div>
+    </div>
+  </div>` : ''
 
   return `
 <div class="section-header">Shipment Details</div>
@@ -343,12 +353,13 @@ function shipmentInfoHTML (so, extraContainers) {
     <div class="info-cell"><div class="info-label">Incoterm</div><div class="info-value">${val(so.incoterm)}</div></div>
     <div class="info-cell"><div class="info-label">Transport Mode</div><div class="info-value">${val(so.transport_mode)}</div></div>
   </div>
-  <div class="info-row" style="grid-template-columns:2fr 1fr 1fr 1fr">
+  <div class="info-row" style="grid-template-columns:2fr 1fr 1fr${singleContainer ? ' 1fr' : ''}">
     <div class="info-cell"><div class="info-label">Payment Terms</div><div class="info-value">${val(so.payment_term)}</div></div>
     <div class="info-cell"><div class="info-label">Payment Method</div><div class="info-value">${val(so.payment_method)}</div></div>
     <div class="info-cell"><div class="info-label">Currency</div><div class="info-value">${val(so.currency)}</div></div>
-    <div class="info-cell"><div class="info-label">Container No</div><div class="info-value" style="line-height:1.5">${containerDisplay}</div></div>
+    ${singleContainer ? `<div class="info-cell"><div class="info-label">Container No</div><div class="info-value" style="font-family:monospace;">${singleContainerDisplay}</div></div>` : ''}
   </div>
+  ${multiContainerRow}
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
     <div class="info-cell"><div class="info-label">ETD</div><div class="info-value">${fmtDate(so.etd)}</div></div>
     <div class="info-cell"><div class="info-label">ETA</div><div class="info-value">${fmtDate(so.eta)}</div></div>
