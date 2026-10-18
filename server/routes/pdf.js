@@ -36,7 +36,7 @@ async function htmlToPDF (html, opts = {}) {
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: false,
-      margin: opts.margin || { top: '8mm', right: '8mm', bottom: '20mm', left: '8mm' },
+      margin: opts.margin || { top: '8mm', right: '8mm', bottom: '8mm', left: '8mm' },
       ...(opts.scale ? { scale: opts.scale } : {}),
     })
     return pdf
@@ -215,16 +215,19 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 
 function wrap (body, opts) {
   opts = opts || {}
+  const greenBar = `
+  <div class="page-footer-inner">
+    <div class="page-footer-logo">ORVIA</div>
+    <div class="page-footer-text">
+      ${CO.name}<br>
+      ${CO.address}
+    </div>
+    <div class="page-footer-right">WhatsApp: +90 530 552 83 06<br>Direct: +90 532 703 55 07<br>orviatropical.com &nbsp;·&nbsp; orviaoms.com</div>
+  </div>`
   const footer = opts.noFooter ? '' : `
   <div class="page-footer">
-    <div class="page-footer-inner">
-      <div class="page-footer-logo">ORVIA</div>
-      <div class="page-footer-text">
-        ${CO.name}<br>
-        ${CO.address}
-      </div>
-      <div class="page-footer-right">WhatsApp: +90 530 552 83 06<br>Direct: +90 532 703 55 07<br>orviatropical.com &nbsp;·&nbsp; orviaoms.com</div>
-    </div>
+    ${opts.footerTop ? opts.footerTop : ''}
+    ${greenBar}
   </div>`
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
@@ -757,10 +760,9 @@ ${shipmentInfoHTML(so, allContainers)}
 ${invoiceGoodsTableHTML(orderItems, so)}
 ${qualitySection}
 ${bankHTML()}
-${sigHTML(false, true)}
-`)
+`, { footerTop: `<div style="margin-bottom:2mm;">${sigHTML(false, true).replace('margin-top:4mm', 'margin-top:0')}</div>` })
 
-    const pdf = await htmlToPDF(html)
+    const pdf = await htmlToPDF(html, { margin: { top: '8mm', right: '8mm', bottom: '38mm', left: '8mm' } })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="Invoice_${so.party_no}.pdf"`,
