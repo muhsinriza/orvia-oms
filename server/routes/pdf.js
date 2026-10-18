@@ -36,7 +36,7 @@ async function htmlToPDF (html, opts = {}) {
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: false,
-      margin: opts.margin || { top: '8mm', right: '8mm', bottom: '8mm', left: '8mm' },
+      margin: opts.margin || { top: '8mm', right: '8mm', bottom: '20mm', left: '8mm' },
       ...(opts.scale ? { scale: opts.scale } : {}),
     })
     return pdf
@@ -179,7 +179,7 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .tc-num { font-weight:700; color:#0a5c3a; }
 
 /* PAGE FOOTER */
-.page-footer { margin-top:3mm; }
+.page-footer { position:fixed; bottom:0; left:8mm; right:8mm; padding-bottom:0; }
 .page-footer-inner { background:#0a5c3a; border-radius:2px; display:grid; grid-template-columns:auto 1fr auto; align-items:center; overflow:hidden; }
 .page-footer-logo { padding:2.5mm 5mm; font-size:10pt; font-weight:800; color:#fff; letter-spacing:4px; border-right:1px solid rgba(255,255,255,0.2); white-space:nowrap; }
 .page-footer-text { padding:2.5mm 4mm; font-size:5.5pt; color:rgba(255,255,255,0.65); text-align:center; line-height:1.8; }
