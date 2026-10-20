@@ -1636,10 +1636,10 @@ html, body { margin: 0; padding: 0; }
     let pagesHTML = ''
     let dynamicRowCSS = ''
 
-    // Available body height for table rows ≈ 178mm (A4 297mm minus fixed chrome + safety margin)
-    // Conservative estimate prevents last row being clipped at page boundary
-    // We clamp between 4mm (min readable) and 8.5mm (max before it looks sparse)
-    const AVAILABLE_MM = 178
+    // Available body height for table rows (A4=297mm, padding=8mm, header=28mm, parties=18mm,
+    // shipment=22mm, pkg-strip=8mm, section-header=4mm, thead=6mm, tfoot=7mm, auth=12mm, footer=10mm)
+    // Total fixed chrome ≈ 123mm → available = 297-123 = 174mm, use 168mm with safety margin
+    const AVAILABLE_MM = 168
 
     // Determine yerli mode: body flag takes precedence, falls back to DB value
     const isYerliMode = bodyIsYerli !== undefined ? !!bodyIsYerli : (so.sales_type === 'yerli')
