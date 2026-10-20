@@ -1302,6 +1302,128 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
 }
 
 // ── TRACKING SECTION ──────────────────────────────────────────────────────────
+const SHIPPING_LINES = [
+  { value: 'cma-cgm',  label: 'CMA CGM' },
+  { value: 'arkas',    label: 'Arkas Line' },
+  { value: 'wan-hai',  label: 'Wan Hai Lines' },
+  { value: 'other',    label: 'Diğer' },
+]
+
+function AutoTrackingCard({ order, onRefreshed }) {
+  const { showToast } = useToast()
+  const [refreshing, setRefreshing] = useState(false)
+
+  const hasTracking = order.seawaybill_number || order.tracking_number
+  const hasShippingLine = order.shipping_line && order.shipping_line !== 'other'
+
+  async function refresh() {
+    setRefreshing(true)
+    try {
+      const res = await api.post(`/tracking/refresh/sales/${order.id}`)
+      if (res.success) {
+        showToast('Tracking güncellendi ✓', 'success')
+        onRefreshed()
+      } else {
+        showToast('Güncellenemedi: ' + (res.error || 'Bilinmeyen hata'), 'error')
+      }
+    } catch (e) { showToast(e.message, 'error') }
+    finally { setRefreshing(false) }
+  }
+
+  if (!hasTracking || !hasShippingLine) return null
+
+  const lineLabel = SHIPPING_LINES.find(l => l.value === order.shipping_line)?.label || order.shipping_line
+  const lastTracked = order.last_tracked_at
+    ? new Date(order.last_tracked_at).toLocaleString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+    : null
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%)',
+      border: '1px solid #c7d2fe',
+      borderRadius: 10,
+      padding: '12px 16px',
+      marginTop: 12,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 16 }}>🛰️</span>
+          <span style={{ fontWeight: 600, fontSize: 13, color: '#4338ca' }}>Otomatik Tracking</span>
+          <span style={{ fontSize: 11, color: '#6366f1', background: '#e0e7ff', padding: '1px 7px', borderRadius: 20 }}>{lineLabel}</span>
+        </div>
+        <button
+          onClick={refresh}
+          disabled={refreshing}
+          style={{
+            background: refreshing ? '#e0e7ff' : '#6366f1',
+            color: refreshing ? '#6366f1' : '#fff',
+            border: 'none',
+            borderRadius: 6,
+            padding: '4px 12px',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+          }}
+        >
+          {refreshing ? '⟳ Sorgulanıyor...' : '↻ Şimdi Güncelle'}
+        </button>
+      </div>
+
+      {order.tracking_status || order.current_port ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
+          {order.tracking_status && (
+            <div>
+              <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2 }}>Durum</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>{order.tracking_status}</div>
+            </div>
+          )}
+          {order.current_port && (
+            <div>
+              <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2 }}>Mevcut Konum</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>📍 {order.current_port}</div>
+            </div>
+          )}
+          {order.eta && (
+            <div>
+              <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2 }}>ETA</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#059669' }}>
+                {new Date(order.eta).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' })}
+              </div>
+            </div>
+          )}
+          {order.pol && (
+            <div>
+              <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2 }}>POL</div>
+              <div style={{ fontSize: 12, color: '#374151' }}>{order.pol}</div>
+            </div>
+          )}
+          {order.pod && (
+            <div>
+              <div style={{ fontSize: 10, color: '#6b7280', marginBottom: 2 }}>POD</div>
+              <div style={{ fontSize: 12, color: '#374151' }}>{order.pod}</div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <p style={{ fontSize: 12, color: '#6b7280', margin: 0 }}>
+          {order.tracking_error
+            ? `⚠️ Son hata: ${order.tracking_error}`
+            : 'Henüz sorgulanmadı — "Şimdi Güncelle" ile başlatın'}
+        </p>
+      )}
+
+      {lastTracked && (
+        <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 8 }}>
+          Son güncelleme: {lastTracked}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TrackingSection({ order, onSaved }) {
   const { showToast } = useToast()
   const [editing, setEditing] = useState(false)
@@ -1313,6 +1435,7 @@ function TrackingSection({ order, onSaved }) {
     flight_number: order.flight_number || '',
     driver_name: order.driver_name || '',
     driver_phone: order.driver_phone || '',
+    shipping_line: order.shipping_line || '',
   })
   const [saving, setSaving] = useState(false)
   const mode = order.transport_type || order.transport_mode || 'Road'
@@ -1347,6 +1470,8 @@ function TrackingSection({ order, onSaved }) {
           <Edit2 size={13} /> Düzenle
         </button>
       </div>
+
+      <AutoTrackingCard order={order} onRefreshed={onSaved} />
 
       {!editing ? (
         hasInfo ? (
@@ -1422,6 +1547,14 @@ function TrackingSection({ order, onSaved }) {
           )}
           {isSea && (
             <>
+              <div>
+                <label className="label">Shipping Line</label>
+                <select className="input" value={form.shipping_line}
+                  onChange={e => setForm(f => ({ ...f, shipping_line: e.target.value }))}>
+                  <option value="">— Seçiniz —</option>
+                  {SHIPPING_LINES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                </select>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Konteyner No</label>
