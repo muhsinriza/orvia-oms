@@ -901,6 +901,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
     }
 
     const singleContainerId = (dbContainers.length === 1) ? dbContainers[0].id : null
+    const isYerli = so.sales_type === 'yerli'
 
     const editorHTML = `<!DOCTYPE html>
 <html lang="tr">
@@ -1057,6 +1058,18 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
       </div>
     </div>
 
+    ${isYerli ? `
+    <!-- Yerli satış: sadece temel bilgiler -->
+    <div class="sec-hdr">Sevk Bilgileri</div>
+    <div class="meta-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+      <div class="meta-cell"><div class="ml">Sipariş No</div><div class="mv">${val(so.sa_number || so.party_no)}</div></div>
+      <div class="meta-cell"><div class="ml">Sevk Tarihi</div><div class="mv">${fmtDate(so.shipment_date || so.etd)}</div></div>
+      <div class="meta-cell"><div class="ml">Ödeme Şekli</div><div class="mv">${val(so.payment_term)}</div></div>
+      <div class="meta-cell">
+        <div class="ml">Konteyner No</div>
+        <input type="text" id="container-no-input" class="ef" style="font-size:7pt;font-weight:600;width:100%;margin-top:2px;" placeholder="Konteyner no girin..." value="${val(dbContainers[0]?.container_number || so.container_number || '')}" oninput="containerNoChanged(this.value)">
+      </div>
+    </div>` : `
     <div class="sec-hdr">Shipment Details</div>
     <div class="meta-grid">
       <div class="meta-cell"><div class="ml">SA Number</div><div class="mv">${val(so.sa_number || so.party_no)}</div></div>
@@ -1068,7 +1081,7 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
       <div class="meta-cell"><div class="ml">Est. ETA</div><div class="mv">${fmtDate(so.eta)}</div></div>
       <div class="meta-cell"><div class="ml">Payment Terms</div><div class="mv">${val(so.payment_term)}</div></div>
       ${so.seawaybill_number ? `<div class="meta-cell"><div class="ml">Sea Waybill No</div><div class="mv">${val(so.seawaybill_number)}</div></div>` : ''}
-    </div>
+    </div>`}
 
     <!-- Summary strip (auto-calculated) -->
     <div class="pkg-strip" id="summary-strip">
@@ -1127,10 +1140,15 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
 <script>
 const USE_ITEM_ROWS = ${useItemRows};
 const IS_MULTI = ${isMultiContainer ? 'true' : 'false'};
+const IS_YERLI = ${isYerli ? 'true' : 'false'};
 const CONTAINERS = ${containersJS};
 const SINGLE_CONTAINER_ID = ${singleContainerId ? JSON.stringify(singleContainerId) : 'null'};
 const ORDER_ID = '${req.params.id}';
 const palletCountInit = ${palletCount};
+
+// Yerli satış: konteyner no runtime'da değiştirilebilir
+let yerliContainerNo = ${JSON.stringify(dbContainers[0]?.container_number || so.container_number || '')};
+function containerNoChanged(v) { yerliContainerNo = v; }
 
 // Single-container mode state
 let rows = IS_MULTI ? [] : [
@@ -1357,9 +1375,9 @@ function downloadPDF() {
   showToast('PDF hazırlanıyor…');
   let body;
   if (IS_MULTI) {
-    body = JSON.stringify({ containers: CONTAINERS.map(c => ({ containerNumber: c.containerNumber, rows: c.rows, palletCount: c.palletCount || c.rows.length })) });
+    body = JSON.stringify({ containers: CONTAINERS.map(c => ({ containerNumber: c.containerNumber, rows: c.rows, palletCount: c.palletCount || c.rows.length })), isYerli: IS_YERLI });
   } else {
-    body = JSON.stringify({ rows, palletCount: USE_ITEM_ROWS ? palletCountInit : rows.length });
+    body = JSON.stringify({ rows, palletCount: USE_ITEM_ROWS ? palletCountInit : rows.length, isYerli: IS_YERLI, containerNo: IS_YERLI ? yerliContainerNo : undefined });
   }
   fetch('/api/pdf/packing-list-custom/${req.params.id}', {
     method: 'POST',
@@ -1394,7 +1412,8 @@ render();
 // ─── Route: Packing List Custom PDF (from editor POST) ───────────────────────
 
 // Helper: build one packing list page's HTML body (no wrap, no doctype)
-function buildPackingListPageBody (so, containerNumber, orderRows, palletCount, pageIndex, totalPages) {
+function buildPackingListPageBody (so, containerNumber, orderRows, palletCount, pageIndex, totalPages, isYerli) {
+  isYerli = isYerli || (so.sales_type === 'yerli')
   const totalBoxes = orderRows.reduce((s, r) => s + (parseFloat(r.boxes) || 0), 0)
   const totalNet   = orderRows.reduce((s, r) => s + (parseFloat(r.net) || 0), 0)
   const totalGross = orderRows.reduce((s, r) => s + (parseFloat(r.gross) || 0), 0)
@@ -1426,6 +1445,28 @@ function buildPackingListPageBody (so, containerNumber, orderRows, palletCount, 
 <div class="page" ${pageBreak}>
   <div class="page-body">
 ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()), pageCounter)}
+${isYerli ? `
+<div class="parties">
+  <div class="party-col">
+    <div class="party-label">Gönderen</div>
+    <div class="party-name">${CO.name}</div>
+    <div class="party-detail">${CO.address}<br>Vergi No: ${CO.tax}<br>Tel: ${CO.tel} · ${CO.web}</div>
+  </div>
+  <div class="party-col">
+    <div class="party-label">Alıcı</div>
+    <div class="party-name">${val(so.customer_name)}</div>
+    <div class="party-detail">${val(so.customer_address)}${so.customer_country ? '<br>' + esc(so.customer_country) : ''}</div>
+  </div>
+</div>
+<div class="section-header">Sevk Bilgileri</div>
+<div class="info-grid" style="margin-bottom:3mm">
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="info-cell"><div class="info-label">Sipariş No</div><div class="info-value">${val(so.sa_number || so.party_no)}</div></div>
+    <div class="info-cell"><div class="info-label">Sevk Tarihi</div><div class="info-value">${fmtDate(so.shipment_date || so.etd)}</div></div>
+    <div class="info-cell"><div class="info-label">Ödeme Şekli</div><div class="info-value">${val(so.payment_term)}</div></div>
+    <div class="info-cell"><div class="info-label">Konteyner No</div><div class="info-value" style="font-family:monospace;font-size:7pt;">${val(containerNumber || so.container_number)}</div></div>
+  </div>
+</div>` : `
 <div class="parties">
   <div class="party-col">
     <div class="party-label">Shipper / Exporter</div>
@@ -1462,26 +1503,28 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
     <div class="info-cell"><div class="info-label">Sea Waybill No</div><div class="info-value">${val(so.seawaybill_number)}</div></div>
     <div class="info-cell"></div>
   </div>
-</div>
+</div>`}
 <div class="pkg-strip">
-  <div class="pkg-item"><div class="pkg-lbl">Total Pallets</div><div class="pkg-val">${pc}</div></div>
-  <div class="pkg-item"><div class="pkg-lbl">Total Boxes</div><div class="pkg-val">${fmtNum(totalBoxes, 0)}</div></div>
-  <div class="pkg-item"><div class="pkg-lbl">Net Weight</div><div class="pkg-val">${fmtNum(totalNet)} kg</div></div>
-  <div class="pkg-item"><div class="pkg-lbl">Gross Weight</div><div class="pkg-val">${fmtNum(totalGross)} kg</div></div>
-  <div class="pkg-item"><div class="pkg-lbl">Box Type</div><div class="pkg-val">${val(orderRows[0] ? orderRows[0].boxType : '')}</div></div>
-  <div class="pkg-item"><div class="pkg-lbl">Net / Box</div><div class="pkg-val">${fmtNum(parseFloat(orderRows[0] ? orderRows[0].netBox : 0) || 0)} kg</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">${isYerli ? 'Top. Palet' : 'Total Pallets'}</div><div class="pkg-val">${pc}</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">${isYerli ? 'Top. Koli' : 'Total Boxes'}</div><div class="pkg-val">${fmtNum(totalBoxes, 0)}</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">${isYerli ? 'Net Ağırlık' : 'Net Weight'}</div><div class="pkg-val">${fmtNum(totalNet)} kg</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">${isYerli ? 'Brüt Ağırlık' : 'Gross Weight'}</div><div class="pkg-val">${fmtNum(totalGross)} kg</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">${isYerli ? 'Koli Tipi' : 'Box Type'}</div><div class="pkg-val">${val(orderRows[0] ? orderRows[0].boxType : '')}</div></div>
+  <div class="pkg-item"><div class="pkg-lbl">${isYerli ? 'Net / Koli' : 'Net / Box'}</div><div class="pkg-val">${fmtNum(parseFloat(orderRows[0] ? orderRows[0].netBox : 0) || 0)} kg</div></div>
 </div>
-<div class="section-header">Pallet / Item Breakdown</div>
+<div class="section-header">${isYerli ? 'Palet / Ürün Dökümü' : 'Pallet / Item Breakdown'}</div>
 <div class="table-wrapper">
 <table class="pl-table">
   <thead><tr>
-    <th>Pallet / Item</th><th>Product</th><th>Variety / Caliber</th><th>Origin</th><th>Box Type</th>
-    <th class="r">Boxes</th><th class="r">Net / Box</th><th class="r">Net Wt (kg)</th><th class="r">Gross Wt (kg)</th>
+    ${isYerli
+      ? '<th>Palet / Kalem</th><th>Ürün</th><th>Çeşit / Kalibraj</th><th>Menşei</th><th>Koli Tipi</th>'
+      : '<th>Pallet / Item</th><th>Product</th><th>Variety / Caliber</th><th>Origin</th><th>Box Type</th>'}
+    <th class="r">${isYerli ? 'Koli' : 'Boxes'}</th><th class="r">${isYerli ? 'Net / Koli' : 'Net / Box'}</th><th class="r">${isYerli ? 'Net Ağ. (kg)' : 'Net Wt (kg)'}</th><th class="r">${isYerli ? 'Brüt Ağ. (kg)' : 'Gross Wt (kg)'}</th>
   </tr></thead>
   <tbody>${palletRowsHTML}</tbody>
   <tr class="tfoot-row">
-    <td colspan="5"><strong>TOTALS — ${pc} Pallet(s)</strong></td>
-    <td class="r">${fmtNum(totalBoxes, 0)} boxes</td>
+    <td colspan="5"><strong>${isYerli ? `TOPLAM — ${pc} Palet` : `TOTALS — ${pc} Pallet(s)`}</strong></td>
+    <td class="r">${fmtNum(totalBoxes, 0)} ${isYerli ? 'koli' : 'boxes'}</td>
     <td class="r">—</td>
     <td class="r">${fmtNum(totalNet)} kg</td>
     <td class="r">${fmtNum(totalGross)} kg</td>
@@ -1524,7 +1567,7 @@ router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
     if (rawSize > 200_000) return res.status(413).json({ error: 'Yük çok büyük' })
 
     // Support both legacy single { rows, palletCount } and new multi-container { containers: [...] }
-    const { rows: customRows, palletCount, containers: containersPayload } = req.body
+    const { rows: customRows, palletCount, containers: containersPayload, isYerli: bodyIsYerli, containerNo: bodyContainerNo } = req.body
 
     const { rows } = await db.query(`
       SELECT so.*,
@@ -1597,6 +1640,9 @@ html, body { margin: 0; padding: 0; }
     // We clamp between 4mm (min readable) and 9mm (max before it looks sparse)
     const AVAILABLE_MM = 190
 
+    // Determine yerli mode: body flag takes precedence, falls back to DB value
+    const isYerliMode = bodyIsYerli !== undefined ? !!bodyIsYerli : (so.sales_type === 'yerli')
+
     if (Array.isArray(containersPayload) && containersPayload.length > 0) {
       // Multi-container mode: one page per container
       const total = containersPayload.length
@@ -1605,7 +1651,7 @@ html, body { margin: 0; padding: 0; }
         const rowCount = Math.max(1, (c.rows || []).length || c.palletCount || 1)
         const rowHeightMm = Math.min(9, Math.max(4, Math.floor((AVAILABLE_MM / rowCount) * 10) / 10))
         cssRules.push(`.page:nth-child(${idx + 1}) .pl-table tbody tr { height: ${rowHeightMm}mm; }`)
-        return buildPackingListPageBody(so, c.containerNumber, c.rows || [], c.palletCount, idx, total)
+        return buildPackingListPageBody(so, c.containerNumber, c.rows || [], c.palletCount, idx, total, isYerliMode)
       }).join('\n')
       dynamicRowCSS = `<style>${cssRules.join('\n')}</style>`
     } else {
@@ -1614,7 +1660,9 @@ html, body { margin: 0; padding: 0; }
       const rowCount = Math.max(1, orderRows.length || Number(palletCount) || 1)
       const rowHeightMm = Math.min(9, Math.max(4, Math.floor((AVAILABLE_MM / rowCount) * 10) / 10))
       dynamicRowCSS = `<style>.pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
-      pagesHTML = buildPackingListPageBody(so, so.container_number, orderRows, palletCount, 0, 1)
+      // For yerli mode, use the container number from the body if provided
+      const effectiveContainerNo = isYerliMode && bodyContainerNo ? bodyContainerNo : so.container_number
+      pagesHTML = buildPackingListPageBody(so, effectiveContainerNo, orderRows, palletCount, 0, 1, isYerliMode)
     }
 
     // Full HTML document wrapping all pages
