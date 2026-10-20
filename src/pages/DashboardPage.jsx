@@ -50,12 +50,11 @@ function statusColor(s) {
 }
 
 function etaUrgency(days) {
-  if (days <= 1) return { color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', label: days <= 0 ? 'Bugün' : 'Yarın' }
+  if (days <= 1) return { color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', label: days <= 0 ? 'Bugün!' : 'Yarın' }
   if (days <= 3) return { color: '#d97706', bg: '#fffbeb', border: '#fcd34d', label: `${days} gün` }
   return             { color: '#2563eb',  bg: '#eff6ff',  border: '#93c5fd', label: `${days} gün` }
 }
 
-// Transport icon SVG
 function TransportIcon({ mode, size = 16 }) {
   if (!mode) return <BoxIcon size={size} />
   const m = mode.toLowerCase()
@@ -116,6 +115,9 @@ function BuildingIcon({ size = 16, color = 'currentColor' }) {
 function ScaleIcon({ size = 16, color = 'currentColor' }) {
   return <svg style={iconStyle(size)} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
 }
+function GlobeIcon({ size = 16, color = 'currentColor' }) {
+  return <svg style={iconStyle(size)} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+}
 
 // ─── Bar Chart Component ───────────────────────────────────────────────────────
 
@@ -142,22 +144,20 @@ function TrendBarChart({ data, currency = 'USD' }) {
 
   return (
     <div>
-      {/* Legend */}
-      <div style={{ display: 'flex', gap: 18, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 20, marginBottom: 20, flexWrap: 'wrap' }}>
         {[
           { color: '#10b981', label: 'Satış' },
           { color: '#3b82f6', label: 'Alım' },
           { color: '#8b5cf6', label: 'Marj' }
         ].map(({ color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--clr-muted)' }}>
-            <div style={{ width: 10, height: 10, borderRadius: 2, background: color }} />
-            <span>{label}</span>
+            <div style={{ width: 10, height: 10, borderRadius: 3, background: color }} />
+            <span style={{ fontWeight: 500 }}>{label}</span>
           </div>
         ))}
       </div>
 
-      {/* Bars */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 120, position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 130, position: 'relative' }}>
         {data.map((d, i) => {
           const soV  = parseFloat(d.so_value)||0
           const poV  = parseFloat(d.po_value)||0
@@ -169,43 +169,48 @@ function TrendBarChart({ data, currency = 'USD' }) {
 
           return (
             <div key={i}
-              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}
+              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative', cursor: 'pointer' }}
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}>
 
-              {/* Tooltip */}
               {isHov && (
                 <div style={{
-                  position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)',
-                  background: '#1e293b', color: '#fff', borderRadius: 8, padding: '8px 12px',
-                  fontSize: 11, whiteSpace: 'nowrap', zIndex: 10, lineHeight: 1.7,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                  position: 'absolute', bottom: '108%', left: '50%', transform: 'translateX(-50%)',
+                  background: '#0f172a', color: '#f8fafc', borderRadius: 10, padding: '10px 14px',
+                  fontSize: 11, whiteSpace: 'nowrap', zIndex: 10, lineHeight: 1.8,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                  border: '1px solid rgba(255,255,255,0.08)'
                 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 4, color: '#94a3b8' }}>{d.month_label}</div>
-                  <div style={{ color: '#10b981' }}>Satış: {sym}{soV.toLocaleString()}</div>
-                  <div style={{ color: '#60a5fa' }}>Alım: {sym}{poV.toLocaleString()}</div>
-                  <div style={{ color: marj >= 0 ? '#a78bfa' : '#f87171' }}>
-                    Marj: {marj >= 0 ? '+' : '-'}{sym}{Math.abs(marj).toLocaleString()}
-                  </div>
+                  <div style={{ fontWeight: 700, marginBottom: 4, color: '#94a3b8', fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase' }}>{d.month_label}</div>
+                  <div><span style={{ color: '#6ee7b7' }}>●</span> Satış: {sym}{soV.toLocaleString()}</div>
+                  <div><span style={{ color: '#93c5fd' }}>●</span> Alım: {sym}{poV.toLocaleString()}</div>
+                  <div><span style={{ color: marj >= 0 ? '#c4b5fd' : '#fca5a5' }}>●</span> Marj: {marj >= 0 ? '+' : '-'}{sym}{Math.abs(marj).toLocaleString()}</div>
                 </div>
               )}
 
-              {/* Bar group */}
-              <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', gap: 1, height: 110 }}>
+              <div style={{
+                width: '100%', display: 'flex', alignItems: 'flex-end', gap: 1, height: 120,
+                background: isHov ? 'rgba(99,102,241,0.04)' : 'transparent',
+                borderRadius: 6, transition: 'background .15s', padding: '0 2px'
+              }}>
                 {[
-                  { h: soH,  bg: '#10b981', opacity: isHov ? 1 : 0.8 },
-                  { h: poH,  bg: '#3b82f6', opacity: isHov ? 1 : 0.8 },
-                  { h: marH, bg: marj >= 0 ? '#8b5cf6' : '#ef4444', opacity: isHov ? 1 : 0.7 }
+                  { h: soH,  bg: isHov ? '#10b981' : '#34d399', opacity: 1 },
+                  { h: poH,  bg: isHov ? '#3b82f6' : '#60a5fa', opacity: 1 },
+                  { h: marH, bg: marj >= 0 ? (isHov ? '#8b5cf6' : '#a78bfa') : '#f87171', opacity: 1 }
                 ].map((bar, j) => (
                   <div key={j} style={{
-                    flex: 1, background: bar.bg, opacity: bar.opacity,
-                    borderRadius: '3px 3px 0 0',
+                    flex: 1, background: bar.bg,
+                    borderRadius: '4px 4px 0 0',
                     height: `${bar.h}%`, minHeight: bar.h > 0 ? 3 : 0,
-                    transition: 'opacity .15s'
+                    transition: 'all .2s ease'
                   }} />
                 ))}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--clr-muted)', marginTop: 6, whiteSpace: 'nowrap' }}>
+              <div style={{
+                fontSize: 10, color: isHov ? 'var(--clr-text)' : 'var(--clr-muted)',
+                marginTop: 7, whiteSpace: 'nowrap', fontWeight: isHov ? 700 : 400,
+                transition: 'all .15s'
+              }}>
                 {d.month_label}
               </div>
             </div>
@@ -218,14 +223,21 @@ function TrendBarChart({ data, currency = 'USD' }) {
 
 // ─── Sub Components ───────────────────────────────────────────────────────────
 
-function SectionHeader({ icon, title, action }) {
+function SectionHeader({ icon, title, action, accent = '#6366f1' }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       marginBottom: 14
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ color: 'var(--clr-muted)', display: 'flex' }}>{icon}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 28, height: 28, borderRadius: 8,
+          background: `${accent}18`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: accent
+        }}>
+          {icon}
+        </div>
         <h2 style={{
           fontSize: 13, fontWeight: 700, letterSpacing: '.04em',
           textTransform: 'uppercase', color: 'var(--clr-text)', margin: 0
@@ -241,9 +253,9 @@ function Card({ children, style = {}, noPad }) {
     <div style={{
       background: 'var(--clr-surface)',
       border: '1px solid var(--clr-border)',
-      borderRadius: 14,
+      borderRadius: 16,
       overflow: 'hidden',
-      ...(noPad ? {} : { padding: '18px 20px' }),
+      ...(noPad ? {} : { padding: '20px 22px' }),
       ...style
     }}>
       {children}
@@ -251,40 +263,48 @@ function Card({ children, style = {}, noPad }) {
   )
 }
 
-function KpiCard({ label, value, sub, badge, icon, accentColor, accentBg, borderAccent }) {
+function KpiCard({ label, value, sub, badge, icon, accentColor, accentBg }) {
+  const [hovered, setHovered] = useState(false)
   return (
-    <div style={{
-      background: 'var(--clr-surface)',
-      border: '1px solid var(--clr-border)',
-      borderTop: borderAccent ? `3px solid ${accentColor}` : '1px solid var(--clr-border)',
-      borderRadius: 14,
-      padding: '16px 18px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 0,
-      minWidth: 0,  /* critical: prevents overflow in grid */
-    }}>
-      {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--clr-muted)', letterSpacing: '.01em' }}>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: 'var(--clr-surface)',
+        border: '1px solid var(--clr-border)',
+        borderTop: `3px solid ${accentColor}`,
+        borderRadius: 16,
+        padding: '18px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0,
+        minWidth: 0,
+        cursor: 'default',
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hovered
+          ? `0 8px 24px rgba(0,0,0,0.1), 0 0 0 1px ${accentColor}30`
+          : '0 1px 3px rgba(0,0,0,0.04)',
+        transition: 'all .2s ease'
+      }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--clr-muted)', letterSpacing: '.04em', textTransform: 'uppercase' }}>
           {label}
         </span>
         <div style={{
-          width: 34, height: 34, borderRadius: 10, background: accentBg,
+          width: 36, height: 36, borderRadius: 10, background: accentBg,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: accentColor, flexShrink: 0
         }}>
           {icon}
         </div>
       </div>
-      {/* Value */}
       <div style={{
-        fontSize: '1.55rem', fontWeight: 800, lineHeight: 1, letterSpacing: '-.02em',
-        color: 'var(--clr-text)', marginBottom: 8
+        fontSize: '1.7rem', fontWeight: 900, lineHeight: 1, letterSpacing: '-.03em',
+        color: 'var(--clr-text)', marginBottom: 10,
+        fontVariantNumeric: 'tabular-nums'
       }}>
         {value}
       </div>
-      {/* Sub + badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 'auto' }}>
         <span style={{ fontSize: 11, color: 'var(--clr-muted)' }}>{sub}</span>
         {badge}
@@ -299,7 +319,7 @@ function MoMBadge({ val }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 3,
-      fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
+      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
       background: pos ? '#dcfce7' : '#fee2e2',
       color: pos ? '#15803d' : '#b91c1c'
     }}>
@@ -314,20 +334,21 @@ function StatPill({ icon, label, value, color, bg }) {
     <div style={{
       background: 'var(--clr-surface)',
       border: '1px solid var(--clr-border)',
-      borderRadius: 12,
-      padding: '14px 16px',
-      display: 'flex', alignItems: 'center', gap: 12
+      borderRadius: 14,
+      padding: '16px 18px',
+      display: 'flex', alignItems: 'center', gap: 14,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
     }}>
       <div style={{
-        width: 40, height: 40, borderRadius: 10, background: bg,
+        width: 42, height: 42, borderRadius: 12, background: bg,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         color, flexShrink: 0
       }}>
         {icon}
       </div>
       <div>
-        <div style={{ fontSize: '1.1rem', fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3 }}>{label}</div>
+        <div style={{ fontSize: '1.15rem', fontWeight: 900, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+        <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 4, fontWeight: 500 }}>{label}</div>
       </div>
     </div>
   )
@@ -337,8 +358,8 @@ function StatusBadge({ status }) {
   const sc = statusColor(status)
   return (
     <span style={{
-      fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20,
-      background: sc.bg, color: sc.color, whiteSpace: 'nowrap'
+      fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+      background: sc.bg, color: sc.color, whiteSpace: 'nowrap', letterSpacing: '.01em'
     }}>
       {statusLabel(status)}
     </span>
@@ -348,9 +369,10 @@ function StatusBadge({ status }) {
 function EmptyCard({ message }) {
   return (
     <div style={{
-      padding: '36px 20px', textAlign: 'center',
+      padding: '44px 20px', textAlign: 'center',
       color: 'var(--clr-muted)', fontSize: 13
     }}>
+      <div style={{ fontSize: 28, marginBottom: 10, opacity: .4 }}>—</div>
       {message}
     </div>
   )
@@ -358,6 +380,48 @@ function EmptyCard({ message }) {
 
 function Divider() {
   return <div style={{ height: 1, background: 'var(--clr-border)' }} />
+}
+
+// ─── Ranking Row ─────────────────────────────────────────────────────────────
+
+function RankRow({ rank, name, sub, value, barPct, rankColor, rankBg, barColor }) {
+  return (
+    <div>
+      <div style={{ padding: '14px 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+          <span style={{
+            width: 26, height: 26, borderRadius: '50%',
+            background: rankBg, color: rankColor,
+            fontSize: 11, fontWeight: 800,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0
+          }}>{rank}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontWeight: 700, fontSize: 13,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+            }}>
+              {name}
+            </div>
+            {sub && <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 2 }}>{sub}</div>}
+          </div>
+          <div style={{
+            fontWeight: 800, fontSize: 14, flexShrink: 0,
+            color: 'var(--clr-text)', fontVariantNumeric: 'tabular-nums'
+          }}>
+            {value}
+          </div>
+        </div>
+        <div style={{ background: 'var(--clr-border)', borderRadius: 99, height: 5 }}>
+          <div style={{
+            width: `${barPct}%`, height: '100%', borderRadius: 99,
+            background: barColor,
+            transition: 'width .6s ease'
+          }} />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
@@ -377,22 +441,22 @@ export default function DashboardPage() {
   if (loading) return (
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      height: '60vh', flexDirection: 'column', gap: 14
+      height: '60vh', flexDirection: 'column', gap: 16
     }}>
       <div style={{
-        width: 36, height: 36, border: '3px solid var(--clr-border)',
-        borderTopColor: '#10b981', borderRadius: '50%',
+        width: 40, height: 40, border: '3px solid var(--clr-border)',
+        borderTopColor: '#6366f1', borderRadius: '50%',
         animation: 'spin 0.8s linear infinite'
       }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      <div style={{ color: 'var(--clr-muted)', fontSize: 13, fontWeight: 500 }}>Yükleniyor…</div>
+      <div style={{ color: 'var(--clr-muted)', fontSize: 13, fontWeight: 600, letterSpacing: '.02em' }}>Yükleniyor…</div>
     </div>
   )
 
   if (error) return (
     <div style={{
       margin: 32, padding: '18px 20px', background: '#fef2f2',
-      border: '1px solid #fca5a5', borderRadius: 12,
+      border: '1px solid #fca5a5', borderRadius: 14,
       color: '#991b1b', fontSize: 13, display: 'flex', alignItems: 'center', gap: 10
     }}>
       <AlertTriangleIcon size={16} color="#dc2626" />
@@ -425,36 +489,59 @@ export default function DashboardPage() {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   })
 
-  return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 20px 60px' }}>
+  // Current month label for highlight
+  const currentMonthLabel = now.toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' })
 
-      {/* ── Page Header ── */}
+  return (
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 0 60px' }}>
+
+      {/* ── Page Header (sticky) ── */}
       <div style={{
+        position: 'sticky', top: 0, zIndex: 20,
+        background: 'var(--clr-bg, var(--clr-surface))',
+        borderBottom: '1px solid var(--clr-border)',
+        padding: '14px 24px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap: 'wrap', gap: 16, marginBottom: 28
+        flexWrap: 'wrap', gap: 14,
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
       }}>
-        <div>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 800, margin: 0, letterSpacing: '-.02em' }}>
-            Kontrol Paneli
-          </h1>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--clr-muted)' }}>
-            {dateStr}
-          </p>
+        {/* Logo + title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff', boxShadow: '0 2px 8px rgba(99,102,241,0.35)'
+          }}>
+            <GlobeIcon size={18} color="#fff" />
+          </div>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-.02em', lineHeight: 1 }}>
+              Orvia OMS
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 2, fontWeight: 500 }}>
+              {dateStr}
+            </div>
+          </div>
         </div>
 
         {/* Tab nav */}
         <nav style={{
-          display: 'flex', background: 'var(--clr-border)',
+          display: 'flex',
+          background: 'var(--clr-border)',
           borderRadius: 12, padding: 4, gap: 2
         }}>
           {tabs.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               style={{
-                padding: '7px 18px', borderRadius: 9, border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: 600, transition: 'all .15s',
-                background: tab === t.key ? 'var(--clr-surface)' : 'transparent',
-                color: tab === t.key ? 'var(--clr-text)' : 'var(--clr-muted)',
-                boxShadow: tab === t.key ? '0 1px 6px rgba(0,0,0,.12)' : 'none',
+                padding: '7px 20px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: 700, transition: 'all .18s cubic-bezier(.4,0,.2,1)',
+                background: tab === t.key
+                  ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
+                  : 'transparent',
+                color: tab === t.key ? '#fff' : 'var(--clr-muted)',
+                boxShadow: tab === t.key ? '0 2px 8px rgba(99,102,241,0.35)' : 'none',
                 letterSpacing: '.01em'
               }}>
               {t.label}
@@ -463,18 +550,21 @@ export default function DashboardPage() {
         </nav>
       </div>
 
+      <div style={{ padding: '28px 24px' }}>
+
       {/* ══════════ ÖZET ══════════ */}
       {tab === 'overview' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
           {/* ETA Alerts */}
           {etaAlerts && etaAlerts.length > 0 && (
             <section>
               <SectionHeader
-                icon={<AlertTriangleIcon size={15} />}
+                icon={<AlertTriangleIcon size={14} />}
                 title={`ETA Uyarıları — ${etaAlerts.length} Sevkiyat Bu Hafta`}
+                accent="#f59e0b"
               />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {etaAlerts.map(a => {
                   const days = parseInt(a.days_until_eta) ?? 0
                   const urg  = etaUrgency(days)
@@ -482,58 +572,61 @@ export default function DashboardPage() {
                   return (
                     <div key={`eta-${a.type}-${a.id}`} style={{
                       background: 'var(--clr-surface)',
-                      border: `1px solid ${urg.border}`,
+                      border: `1px solid var(--clr-border)`,
                       borderLeft: `4px solid ${urg.color}`,
-                      borderRadius: 12,
-                      padding: '14px 18px',
-                      display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap'
+                      borderRadius: 14,
+                      padding: '16px 20px',
+                      display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+                      boxShadow: `0 2px 8px ${urg.color}12`
                     }}>
                       <div style={{
-                        width: 38, height: 38, borderRadius: 10,
+                        width: 42, height: 42, borderRadius: 12,
                         background: urg.bg, display: 'flex', alignItems: 'center',
                         justifyContent: 'center', color: urg.color, flexShrink: 0
                       }}>
-                        <TransportIcon mode={a.transport_mode} size={18} />
+                        <TransportIcon mode={a.transport_mode} size={20} />
                       </div>
                       <div style={{ flex: 1, minWidth: 160 }}>
-                        <div style={{ fontWeight: 700, fontSize: 13 }}>
+                        <div style={{ fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                           {a.party_name || '—'}
-                          <span style={{ fontWeight: 400, color: 'var(--clr-muted)', marginLeft: 6 }}>
-                            · {a.product_name || '—'}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 3, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           <span style={{
                             background: a.type === 'purchase' ? '#dbeafe' : '#dcfce7',
                             color: a.type === 'purchase' ? '#1d4ed8' : '#15803d',
-                            padding: '1px 7px', borderRadius: 20, fontSize: 10, fontWeight: 600
+                            padding: '1px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700
                           }}>
                             {a.type === 'purchase' ? 'Alım' : 'Satış'}
                           </span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--clr-muted)', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 600 }}>{a.product_name || '—'}</span>
+                          <span style={{ opacity: .4 }}>·</span>
                           <span>{a.party_no}</span>
-                          {a.container_number && <span>📦 {a.container_number}</span>}
-                          {a.vessel_name && <span>🚢 {a.vessel_name}</span>}
+                          {a.container_number && <><span style={{ opacity: .4 }}>·</span><span>📦 {a.container_number}</span></>}
+                          {a.vessel_name && <><span style={{ opacity: .4 }}>·</span><span>🚢 {a.vessel_name}</span></>}
                         </div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{
-                            fontWeight: 800, fontSize: 13, color: urg.color,
-                            background: urg.bg, padding: '4px 12px',
-                            borderRadius: 20, display: 'inline-block'
+                            fontWeight: 900, fontSize: 14, color: urg.color,
+                            background: urg.bg, padding: '5px 14px',
+                            borderRadius: 20, display: 'inline-block',
+                            fontVariantNumeric: 'tabular-nums',
+                            border: `1px solid ${urg.border}`
                           }}>
                             {urg.label}
                           </div>
-                          <div style={{ fontSize: 10, color: 'var(--clr-muted)', marginTop: 3 }}>
+                          <div style={{ fontSize: 10, color: 'var(--clr-muted)', marginTop: 4 }}>
                             ETA: {fmtDate(a.eta)}
                           </div>
                         </div>
                         <Link to={link} style={{
-                          display: 'flex', alignItems: 'center', gap: 4,
-                          padding: '7px 14px', borderRadius: 8,
+                          display: 'flex', alignItems: 'center', gap: 5,
+                          padding: '8px 16px', borderRadius: 10,
                           background: urg.color, color: '#fff',
-                          textDecoration: 'none', fontSize: 12, fontWeight: 600,
-                          flexShrink: 0
+                          textDecoration: 'none', fontSize: 12, fontWeight: 700,
+                          flexShrink: 0, boxShadow: `0 2px 8px ${urg.color}40`,
+                          transition: 'opacity .15s'
                         }}>
                           Görüntüle <ArrowRightIcon size={12} color="#fff" />
                         </Link>
@@ -547,58 +640,55 @@ export default function DashboardPage() {
 
           {/* KPI Cards */}
           <section>
-            <SectionHeader icon={<DollarIcon size={15} />} title="Bu Ay Finansal" />
+            <SectionHeader icon={<DollarIcon size={14} />} title="Bu Ay Finansal" accent="#10b981" />
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-              gap: 12
+              gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
+              gap: 14
             }}>
               <KpiCard
                 label="Satış Bu Ay"
                 value={fmtMoney(fin.so_value_this_month, soCur)}
                 sub={`Geçen: ${fmtMoney(fin.so_value_last_month, soCur)}`}
                 badge={<MoMBadge val={soMoM} />}
-                icon={<DollarIcon size={16} color="#059669" />}
+                icon={<DollarIcon size={17} color="#059669" />}
                 accentColor="#059669" accentBg="#d1fae5"
-                borderAccent
               />
               <KpiCard
                 label="Alım Bu Ay"
                 value={fmtMoney(fin.po_value_this_month, poCur)}
                 sub={`Geçen: ${fmtMoney(fin.po_value_last_month, poCur)}`}
                 badge={<MoMBadge val={poMoM} />}
-                icon={<ShoppingBagIcon size={16} color="#2563eb" />}
+                icon={<ShoppingBagIcon size={17} color="#2563eb" />}
                 accentColor="#2563eb" accentBg="#dbeafe"
-                borderAccent
               />
               <KpiCard
                 label="Tahmini Marj"
                 value={`${marginPct.toFixed(1)}%`}
                 sub={`${marginAbs >= 0 ? '+' : ''}${fmtMoney(marginAbs, soCur)}`}
-                icon={<BarChartIcon size={16} color={marginPct > 0 ? '#7c3aed' : '#dc2626'} />}
+                icon={<BarChartIcon size={17} color={marginPct > 0 ? '#7c3aed' : '#dc2626'} />}
                 accentColor={marginPct > 0 ? '#7c3aed' : '#dc2626'}
                 accentBg={marginPct > 0 ? '#ede9fe' : '#fee2e2'}
-                borderAccent={marginPct > 0}
               />
               <KpiCard
-                label="Ort. Sipariş Değeri"
+                label="Ort. Sipariş"
                 value={fmtMoney(fin.so_avg_order_this_month, soCur)}
                 sub="Bu ay satış ortalaması"
-                icon={<PackageIcon size={16} color="#d97706" />}
+                icon={<PackageIcon size={17} color="#d97706" />}
                 accentColor="#d97706" accentBg="#fef3c7"
               />
               <KpiCard
-                label="Pipeline (Satış)"
+                label="Pipeline Satış"
                 value={fmtMoney(fin.so_pipeline_value, soCur)}
                 sub="Aktif & onaylı siparişler"
-                icon={<ClockIcon size={16} color="#059669" />}
+                icon={<ClockIcon size={17} color="#059669" />}
                 accentColor="#059669" accentBg="#d1fae5"
               />
               <KpiCard
-                label="Pipeline (Alım)"
+                label="Pipeline Alım"
                 value={fmtMoney(fin.po_pipeline_value, poCur)}
                 sub="Aktif & onaylı siparişler"
-                icon={<ClockIcon size={16} color="#2563eb" />}
+                icon={<ClockIcon size={17} color="#2563eb" />}
                 accentColor="#2563eb" accentBg="#dbeafe"
               />
             </div>
@@ -606,33 +696,40 @@ export default function DashboardPage() {
 
           {/* Operational Stats */}
           <section>
-            <SectionHeader icon={<PackageIcon size={15} />} title="Operasyonel Durum" />
+            <SectionHeader icon={<PackageIcon size={14} />} title="Operasyonel Durum" accent="#6366f1" />
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-              gap: 10
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              gap: 12
             }}>
-              <StatPill icon={<ShipIcon size={17} />}  label="Transit"    value={parseInt(stats.in_transit)||0} color="#1d4ed8" bg="#dbeafe" />
-              <StatPill icon={<PackageIcon size={17} />} label="Aktif SO" value={parseInt(stats.so_active)||0}  color="#059669" bg="#d1fae5" />
-              <StatPill icon={<ShoppingBagIcon size={17} />} label="Aktif PO" value={parseInt(stats.po_active)||0} color="#2563eb" bg="#eff6ff" />
-              <StatPill icon={<BarChartIcon size={17} />} label="Tamamlandı" value={parseInt(stats.completed)||0} color="#475569" bg="#f1f5f9" />
-              <StatPill icon={<ScaleIcon size={17} />} label="SO Ağırlık YTD" value={fmtKg(fin.so_kg_ytd)} color="#059669" bg="#d1fae5" />
-              <StatPill icon={<ScaleIcon size={17} />} label="PO Ağırlık YTD" value={fmtKg(fin.po_kg_ytd)} color="#2563eb" bg="#eff6ff" />
+              <StatPill icon={<ShipIcon size={19} />}  label="Transit"    value={parseInt(stats.in_transit)||0} color="#1d4ed8" bg="#dbeafe" />
+              <StatPill icon={<PackageIcon size={19} />} label="Aktif SO" value={parseInt(stats.so_active)||0}  color="#059669" bg="#d1fae5" />
+              <StatPill icon={<ShoppingBagIcon size={19} />} label="Aktif PO" value={parseInt(stats.po_active)||0} color="#7c3aed" bg="#ede9fe" />
+              <StatPill icon={<BarChartIcon size={19} />} label="Tamamlandı" value={parseInt(stats.completed)||0} color="#475569" bg="#f1f5f9" />
+              <StatPill icon={<ScaleIcon size={19} />} label="SO Ağırlık YTD" value={fmtKg(fin.so_kg_ytd)} color="#059669" bg="#d1fae5" />
+              <StatPill icon={<ScaleIcon size={19} />} label="PO Ağırlık YTD" value={fmtKg(fin.po_kg_ytd)} color="#2563eb" bg="#eff6ff" />
             </div>
           </section>
 
           {/* Recent Transactions */}
           <section>
             <SectionHeader
-              icon={<ClockIcon size={15} />}
+              icon={<ClockIcon size={14} />}
               title="Son İşlemler"
+              accent="#64748b"
               action={
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Link to="/sales-orders" style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
-                    Satışlar →
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <Link to="/sales-orders" style={{
+                    fontSize: 12, color: '#6366f1', textDecoration: 'none', fontWeight: 700,
+                    display: 'flex', alignItems: 'center', gap: 4
+                  }}>
+                    Satışlar <ArrowRightIcon size={11} color="#6366f1" />
                   </Link>
-                  <Link to="/purchase-orders" style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
-                    Alımlar →
+                  <Link to="/purchase-orders" style={{
+                    fontSize: 12, color: '#6366f1', textDecoration: 'none', fontWeight: 700,
+                    display: 'flex', alignItems: 'center', gap: 4
+                  }}>
+                    Alımlar <ArrowRightIcon size={11} color="#6366f1" />
                   </Link>
                 </div>
               }
@@ -649,48 +746,52 @@ export default function DashboardPage() {
                       {i > 0 && <Divider />}
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: 14,
-                        padding: '13px 18px', flexWrap: 'wrap'
-                      }}>
-                        {/* Type badge */}
+                        padding: '14px 20px', flexWrap: 'wrap',
+                        transition: 'background .12s'
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--clr-border)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
                         <div style={{
-                          width: 36, height: 36, borderRadius: 9, flexShrink: 0,
+                          width: 38, height: 38, borderRadius: 11, flexShrink: 0,
                           background: isPurchase ? '#dbeafe' : '#dcfce7',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           color: isPurchase ? '#1d4ed8' : '#15803d'
                         }}>
                           {isPurchase
-                            ? <ShoppingBagIcon size={16} color="#1d4ed8" />
-                            : <PackageIcon size={16} color="#15803d" />}
+                            ? <ShoppingBagIcon size={17} color="#1d4ed8" />
+                            : <PackageIcon size={17} color="#15803d" />}
                         </div>
-                        {/* Info */}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{
-                            fontWeight: 600, fontSize: 13,
+                            fontWeight: 700, fontSize: 13,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                           }}>
                             {r.party_name || '—'}
                           </div>
                           <div style={{
-                            fontSize: 11, color: 'var(--clr-muted)', marginTop: 2,
+                            fontSize: 11, color: 'var(--clr-muted)', marginTop: 3,
                             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
                           }}>
                             {r.product_name || '—'} · {r.party_no} · {fmtDate(r.created_at)}
                             {r.eta ? ` · ETA ${fmtDate(r.eta)}` : ''}
                           </div>
                         </div>
-                        {/* Status */}
                         <StatusBadge status={r.status} />
-                        {/* Amount */}
-                        <div style={{ fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
+                        <div style={{
+                          fontWeight: 800, fontSize: 14, flexShrink: 0,
+                          fontVariantNumeric: 'tabular-nums'
+                        }}>
                           {fmtMoney(amount, r.currency)}
                         </div>
-                        {/* Link */}
                         <Link to={link} style={{
                           display: 'flex', alignItems: 'center', gap: 4,
-                          fontSize: 12, color: '#2563eb', textDecoration: 'none',
-                          fontWeight: 600, flexShrink: 0
+                          padding: '6px 14px', borderRadius: 9,
+                          background: '#6366f110',
+                          fontSize: 12, color: '#6366f1', textDecoration: 'none',
+                          fontWeight: 700, flexShrink: 0, border: '1px solid #6366f120'
                         }}>
-                          Detay <ArrowRightIcon size={12} color="#2563eb" />
+                          Detay <ArrowRightIcon size={12} color="#6366f1" />
                         </Link>
                       </div>
                     </div>
@@ -704,7 +805,7 @@ export default function DashboardPage() {
 
       {/* ══════════ SEVKİYAT ══════════ */}
       {tab === 'shipments' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {(!shipments || shipments.length === 0)
             ? (
               <Card>
@@ -722,9 +823,8 @@ export default function DashboardPage() {
               }
               const daysLeft = etaDate ? Math.ceil((etaDate - now) / 86400000) : null
               const isLate   = daysLeft !== null && daysLeft < 0
-              const barColor = isLate ? '#dc2626'
-                             : daysLeft <= 3 ? '#d97706'
-                             : '#2563eb'
+              const isUrgent = !isLate && daysLeft !== null && daysLeft <= 3
+              const barColor = isLate ? '#dc2626' : isUrgent ? '#d97706' : '#6366f1'
               const amount = parseFloat(s.quantity_kg||0) * parseFloat(s.price_per_unit||0)
 
               return (
@@ -732,110 +832,157 @@ export default function DashboardPage() {
                   background: 'var(--clr-surface)',
                   border: '1px solid var(--clr-border)',
                   borderLeft: `4px solid ${barColor}`,
-                  borderRadius: 14,
-                  overflow: 'hidden'
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  boxShadow: isLate
+                    ? '0 2px 12px rgba(220,38,38,0.1)'
+                    : isUrgent
+                    ? '0 2px 12px rgba(217,119,6,0.08)'
+                    : '0 1px 4px rgba(0,0,0,0.04)'
                 }}>
-                  <div style={{ padding: '16px 20px' }}>
+                  <div style={{ padding: '18px 22px' }}>
                     {/* Top row */}
                     <div style={{
                       display: 'flex', justifyContent: 'space-between',
-                      alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 14
+                      alignItems: 'flex-start', gap: 14, flexWrap: 'wrap', marginBottom: 16
                     }}>
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
                         <div style={{
-                          width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
                           background: `${barColor}15`,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           color: barColor
                         }}>
-                          <TransportIcon mode={s.transport_mode} size={20} />
+                          <TransportIcon mode={s.transport_mode} size={22} />
                         </div>
                         <div>
-                          <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div style={{ fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
                             {s.party_name || '—'}
                             <span style={{
-                              fontSize: 10, fontWeight: 600, padding: '2px 8px',
-                              borderRadius: 20, background: s.type === 'purchase' ? '#dbeafe' : '#dcfce7',
+                              fontSize: 10, fontWeight: 700, padding: '2px 9px',
+                              borderRadius: 20,
+                              background: s.type === 'purchase' ? '#dbeafe' : '#dcfce7',
                               color: s.type === 'purchase' ? '#1d4ed8' : '#15803d'
                             }}>
                               {s.type === 'purchase' ? 'Alım' : 'Satış'}
                             </span>
                           </div>
                           <div style={{
-                            fontSize: 12, color: 'var(--clr-muted)', marginTop: 3,
-                            display: 'flex', gap: 10, flexWrap: 'wrap'
+                            fontSize: 12, color: 'var(--clr-muted)',
+                            display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center'
                           }}>
-                            <span>{s.product_name || '—'}</span>
-                            <span style={{ color: 'var(--clr-border)' }}>·</span>
+                            <span style={{ fontWeight: 600 }}>{s.product_name || '—'}</span>
+                            <span style={{ opacity: .4 }}>·</span>
                             <span>{s.party_no}</span>
-                            {s.container_number && <><span style={{ color: 'var(--clr-border)' }}>·</span><span>📦 {s.container_number}</span></>}
-                            {s.vessel_name && <><span style={{ color: 'var(--clr-border)' }}>·</span><span>🚢 {s.vessel_name}</span></>}
+                            {s.container_number && <><span style={{ opacity: .4 }}>·</span><span>📦 {s.container_number}</span></>}
+                            {s.vessel_name && <><span style={{ opacity: .4 }}>·</span><span>🚢 {s.vessel_name}</span></>}
                           </div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                        <StatusBadge status={isLate ? 'in_transit' : s.status} />
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <StatusBadge status={s.status} />
                         {isLate && (
                           <span style={{
-                            fontSize: 11, fontWeight: 700, padding: '3px 10px',
-                            borderRadius: 20, background: '#fee2e2', color: '#b91c1c'
+                            fontSize: 11, fontWeight: 800, padding: '4px 11px',
+                            borderRadius: 20, background: '#fee2e2', color: '#b91c1c',
+                            border: '1px solid #fca5a5'
                           }}>
-                            {Math.abs(daysLeft)}g gecikmiş
+                            ⚠ {Math.abs(daysLeft)}g gecikmiş
+                          </span>
+                        )}
+                        {isUrgent && !isLate && (
+                          <span style={{
+                            fontSize: 11, fontWeight: 800, padding: '4px 11px',
+                            borderRadius: 20, background: '#fffbeb', color: '#b45309',
+                            border: '1px solid #fcd34d'
+                          }}>
+                            ⏰ {daysLeft}g kaldı
                           </span>
                         )}
                         <Link to={`/${s.type === 'purchase' ? 'purchase-orders' : 'sales-orders'}/${s.id}`}
                           style={{
-                            display: 'flex', alignItems: 'center', gap: 4,
-                            fontSize: 12, color: '#2563eb', textDecoration: 'none', fontWeight: 600
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '7px 16px', borderRadius: 10,
+                            background: `${barColor}12`, border: `1px solid ${barColor}25`,
+                            fontSize: 12, color: barColor, textDecoration: 'none', fontWeight: 700
                           }}>
-                          Detay <ArrowRightIcon size={12} color="#2563eb" />
+                          Detay <ArrowRightIcon size={12} color={barColor} />
                         </Link>
                       </div>
                     </div>
 
-                    {/* Progress bar */}
+                    {/* Progress */}
                     {etdDate && etaDate && (
-                      <div style={{ marginBottom: 12 }}>
+                      <div style={{ marginBottom: 14 }}>
                         <div style={{
                           display: 'flex', justifyContent: 'space-between',
-                          fontSize: 11, color: 'var(--clr-muted)', marginBottom: 6
+                          fontSize: 11, color: 'var(--clr-muted)', marginBottom: 8,
+                          fontWeight: 500
                         }}>
                           <span>ETD {fmtDate(s.etd)}</span>
                           <span style={{
-                            fontWeight: 700,
-                            color: isLate ? '#dc2626' : daysLeft === 0 ? '#d97706' : 'var(--clr-text)'
+                            fontWeight: 800, fontSize: 12,
+                            color: isLate ? '#dc2626' : daysLeft === 0 ? '#d97706' : barColor
                           }}>
                             {daysLeft === null ? '' :
                              daysLeft < 0  ? `${Math.abs(daysLeft)}g gecikmiş` :
-                             daysLeft === 0 ? 'Bugün geliyor' :
+                             daysLeft === 0 ? 'Bugün geliyor!' :
                              `${daysLeft} gün kaldı`}
                           </span>
                           <span>ETA {fmtDate(s.eta)}</span>
                         </div>
-                        <div style={{
-                          background: 'var(--clr-border)', borderRadius: 99, height: 7, overflow: 'hidden'
-                        }}>
+                        {/* Progress track with dot */}
+                        <div style={{ position: 'relative', height: 8 }}>
                           <div style={{
-                            height: '100%', borderRadius: 99, width: `${progress}%`,
-                            background: barColor, transition: 'width .5s ease'
+                            background: 'var(--clr-border)', borderRadius: 99,
+                            height: '100%', overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              height: '100%', borderRadius: 99, width: `${progress}%`,
+                              background: `linear-gradient(90deg, ${barColor}99 0%, ${barColor} 100%)`,
+                              transition: 'width .6s ease'
+                            }} />
+                          </div>
+                          {/* Dot indicator */}
+                          <div style={{
+                            position: 'absolute', top: '50%', left: `${Math.min(Math.max(progress, 1), 99)}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: 14, height: 14, borderRadius: '50%',
+                            background: barColor,
+                            border: '2px solid var(--clr-surface)',
+                            boxShadow: `0 0 0 2px ${barColor}50`,
+                            transition: 'left .6s ease'
                           }} />
                         </div>
                       </div>
                     )}
 
-                    {/* Footer details */}
-                    <div style={{
-                      display: 'flex', gap: 20, fontSize: 12,
-                      color: 'var(--clr-muted)', flexWrap: 'wrap'
-                    }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {/* Footer chips */}
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <span style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        fontSize: 12, fontWeight: 600,
+                        background: 'var(--clr-border)', borderRadius: 20,
+                        padding: '5px 12px', color: 'var(--clr-text)'
+                      }}>
                         <ScaleIcon size={13} /> {fmtKg(s.quantity_kg)}
                       </span>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        fontSize: 12, fontWeight: 600,
+                        background: 'var(--clr-border)', borderRadius: 20,
+                        padding: '5px 12px', color: 'var(--clr-text)'
+                      }}>
                         <DollarIcon size={13} /> {fmtMoney(amount, s.currency)}
                       </span>
                       {s.transport_mode && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{
+                          display: 'flex', alignItems: 'center', gap: 6,
+                          fontSize: 12, fontWeight: 600,
+                          background: `${barColor}12`, borderRadius: 20,
+                          padding: '5px 12px', color: barColor,
+                          border: `1px solid ${barColor}25`
+                        }}>
                           <TransportIcon mode={s.transport_mode} size={13} />
                           {s.transport_mode}
                         </span>
@@ -851,24 +998,25 @@ export default function DashboardPage() {
 
       {/* ══════════ ANALİTİK ══════════ */}
       {tab === 'analytics' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
           {/* Monthly trend */}
           <section>
-            <SectionHeader icon={<BarChartIcon size={15} />} title="Son 6 Ay Trend" />
+            <SectionHeader icon={<BarChartIcon size={14} />} title="Son 6 Ay Trend" accent="#8b5cf6" />
             <Card>
               <TrendBarChart data={monthlyTrend} currency={soCur} />
               {monthlyTrend && monthlyTrend.length > 0 && (
-                <div style={{ marginTop: 20, overflowX: 'auto' }}>
+                <div style={{ marginTop: 24, overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
-                      <tr style={{ borderBottom: '2px solid var(--clr-border)' }}>
-                        {['Ay', 'Satış', 'Alım', 'Marj'].map(h => (
+                      <tr>
+                        {['Ay', 'Satış', 'Alım', 'Marj', 'Marj %'].map(h => (
                           <th key={h} style={{
                             textAlign: h === 'Ay' ? 'left' : 'right',
-                            padding: '6px 10px', fontWeight: 700, fontSize: 11,
-                            color: 'var(--clr-muted)', letterSpacing: '.04em',
-                            textTransform: 'uppercase'
+                            padding: '8px 12px', fontWeight: 700, fontSize: 10,
+                            color: 'var(--clr-muted)', letterSpacing: '.06em',
+                            textTransform: 'uppercase',
+                            borderBottom: '2px solid var(--clr-border)'
                           }}>{h}</th>
                         ))}
                       </tr>
@@ -876,20 +1024,48 @@ export default function DashboardPage() {
                     <tbody>
                       {monthlyTrend.map((m, i) => {
                         const marj = parseFloat(m.margin_value)||0
+                        const so   = parseFloat(m.so_value)||0
+                        const marjPct = so > 0 ? (marj / so * 100) : 0
+                        const isCurrentMonth = m.month_label === currentMonthLabel
                         return (
-                          <tr key={i} style={{ borderBottom: '1px solid var(--clr-border)' }}>
-                            <td style={{ padding: '8px 10px', fontWeight: 600, fontSize: 12 }}>
+                          <tr key={i} style={{
+                            background: isCurrentMonth ? '#6366f108' : 'transparent',
+                            borderBottom: '1px solid var(--clr-border)'
+                          }}>
+                            <td style={{
+                              padding: '10px 12px', fontWeight: isCurrentMonth ? 800 : 600,
+                              fontSize: 12,
+                              color: isCurrentMonth ? '#6366f1' : 'var(--clr-text)'
+                            }}>
                               {m.month_label}
+                              {isCurrentMonth && (
+                                <span style={{
+                                  marginLeft: 8, fontSize: 10, fontWeight: 700,
+                                  background: '#6366f1', color: '#fff',
+                                  padding: '1px 7px', borderRadius: 20
+                                }}>Bu Ay</span>
+                              )}
                             </td>
-                            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#059669', fontWeight: 600 }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', color: '#059669', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                               {fmtMoney(m.so_value, soCur)}
                             </td>
-                            <td style={{ padding: '8px 10px', textAlign: 'right', color: '#2563eb', fontWeight: 600 }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', color: '#2563eb', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                               {fmtMoney(m.po_value, poCur)}
                             </td>
-                            <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700,
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums',
                                          color: marj >= 0 ? '#059669' : '#dc2626' }}>
                               {marj >= 0 ? '+' : '−'}{fmtMoney(Math.abs(marj), soCur)}
+                            </td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                              <span style={{
+                                display: 'inline-block',
+                                fontSize: 11, fontWeight: 700,
+                                padding: '2px 8px', borderRadius: 20,
+                                background: marjPct >= 0 ? '#dcfce7' : '#fee2e2',
+                                color: marjPct >= 0 ? '#15803d' : '#b91c1c'
+                              }}>
+                                {marjPct >= 0 ? '+' : ''}{marjPct.toFixed(1)}%
+                              </span>
                             </td>
                           </tr>
                         )
@@ -902,56 +1078,28 @@ export default function DashboardPage() {
           </section>
 
           {/* Top Customers + Suppliers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 24 }}>
 
-            {/* Top Customers */}
             <section>
-              <SectionHeader icon={<UsersIcon size={15} />} title="Bu Ay Top Müşteriler" />
+              <SectionHeader icon={<UsersIcon size={14} />} title="Top Müşteriler" accent="#3b82f6" />
               <Card noPad>
                 {(!topCustomers || topCustomers.length === 0)
                   ? <EmptyCard message="Müşteri verisi yok" />
                   : topCustomers.map((r, i) => {
                     const maxV = parseFloat(topCustomers[0].total_value)||1
-                    const w = ((parseFloat(r.total_value)||0) / maxV) * 100
+                    const barPct = ((parseFloat(r.total_value)||0) / maxV) * 100
                     return (
                       <div key={i}>
                         {i > 0 && <Divider />}
-                        <div style={{ padding: '13px 18px' }}>
-                          <div style={{
-                            display: 'flex', justifyContent: 'space-between',
-                            alignItems: 'center', marginBottom: 8, gap: 8
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                              <span style={{
-                                width: 22, height: 22, borderRadius: '50%',
-                                background: '#dbeafe', color: '#1d4ed8',
-                                fontSize: 11, fontWeight: 800,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0
-                              }}>{i + 1}</span>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{
-                                  fontWeight: 600, fontSize: 13,
-                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                                }}>
-                                  {r.customer_name}
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--clr-muted)' }}>
-                                  {r.order_count} sipariş
-                                </div>
-                              </div>
-                            </div>
-                            <div style={{ fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-                              {fmtMoney(r.total_value, soCur)}
-                            </div>
-                          </div>
-                          <div style={{ background: 'var(--clr-border)', borderRadius: 99, height: 4 }}>
-                            <div style={{
-                              width: `${w}%`, height: '100%', borderRadius: 99,
-                              background: '#3b82f6'
-                            }} />
-                          </div>
-                        </div>
+                        <RankRow
+                          rank={i + 1}
+                          name={r.customer_name}
+                          sub={`${r.order_count} sipariş`}
+                          value={fmtMoney(r.total_value, soCur)}
+                          barPct={barPct}
+                          rankColor="#1d4ed8" rankBg="#dbeafe"
+                          barColor="#3b82f6"
+                        />
                       </div>
                     )
                   })
@@ -959,55 +1107,26 @@ export default function DashboardPage() {
               </Card>
             </section>
 
-            {/* Top Suppliers */}
             <section>
-              <SectionHeader icon={<BuildingIcon size={15} />} title="Bu Ay Top Tedarikçiler" />
+              <SectionHeader icon={<BuildingIcon size={14} />} title="Top Tedarikçiler" accent="#10b981" />
               <Card noPad>
                 {(!topSuppliers || topSuppliers.length === 0)
                   ? <EmptyCard message="Tedarikçi verisi yok" />
                   : topSuppliers.map((r, i) => {
                     const maxV = parseFloat(topSuppliers[0].total_value)||1
-                    const w = ((parseFloat(r.total_value)||0) / maxV) * 100
+                    const barPct = ((parseFloat(r.total_value)||0) / maxV) * 100
                     return (
                       <div key={i}>
                         {i > 0 && <Divider />}
-                        <div style={{ padding: '13px 18px' }}>
-                          <div style={{
-                            display: 'flex', justifyContent: 'space-between',
-                            alignItems: 'center', marginBottom: 8, gap: 8
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                              <span style={{
-                                width: 22, height: 22, borderRadius: '50%',
-                                background: '#dcfce7', color: '#15803d',
-                                fontSize: 11, fontWeight: 800,
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                flexShrink: 0
-                              }}>{i + 1}</span>
-                              <div style={{ minWidth: 0 }}>
-                                <div style={{
-                                  fontWeight: 600, fontSize: 13,
-                                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                                }}>
-                                  {r.supplier_name}
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--clr-muted)' }}>
-                                  {r.order_count} sipariş
-                                  {r.avg_transit_days ? ` · Ort. ${parseFloat(r.avg_transit_days).toFixed(0)}g transit` : ''}
-                                </div>
-                              </div>
-                            </div>
-                            <div style={{ fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-                              {fmtMoney(r.total_value, poCur)}
-                            </div>
-                          </div>
-                          <div style={{ background: 'var(--clr-border)', borderRadius: 99, height: 4 }}>
-                            <div style={{
-                              width: `${w}%`, height: '100%', borderRadius: 99,
-                              background: '#10b981'
-                            }} />
-                          </div>
-                        </div>
+                        <RankRow
+                          rank={i + 1}
+                          name={r.supplier_name}
+                          sub={`${r.order_count} sipariş${r.avg_transit_days ? ` · Ort. ${parseFloat(r.avg_transit_days).toFixed(0)}g transit` : ''}`}
+                          value={fmtMoney(r.total_value, poCur)}
+                          barPct={barPct}
+                          rankColor="#15803d" rankBg="#dcfce7"
+                          barColor="#10b981"
+                        />
                       </div>
                     )
                   })
@@ -1018,52 +1137,25 @@ export default function DashboardPage() {
 
           {/* Top Products */}
           <section>
-            <SectionHeader icon={<PackageIcon size={15} />} title="Bu Ay Top Ürünler" />
+            <SectionHeader icon={<PackageIcon size={14} />} title="Top Ürünler" accent="#f59e0b" />
             <Card noPad>
               {(!topProducts || topProducts.length === 0)
                 ? <EmptyCard message="Ürün verisi yok" />
                 : topProducts.map((p, i) => {
                   const maxKg = parseFloat(topProducts[0].total_kg)||1
-                  const w = ((parseFloat(p.total_kg)||0) / maxKg) * 100
+                  const barPct = ((parseFloat(p.total_kg)||0) / maxKg) * 100
                   return (
                     <div key={i}>
                       {i > 0 && <Divider />}
-                      <div style={{ padding: '13px 18px' }}>
-                        <div style={{
-                          display: 'flex', justifyContent: 'space-between',
-                          alignItems: 'center', marginBottom: 8, gap: 12
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                            <span style={{
-                              width: 22, height: 22, borderRadius: '50%',
-                              background: '#fef3c7', color: '#b45309',
-                              fontSize: 11, fontWeight: 800,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              flexShrink: 0
-                            }}>{i + 1}</span>
-                            <div style={{ minWidth: 0 }}>
-                              <div style={{
-                                fontWeight: 600, fontSize: 13,
-                                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                              }}>
-                                {p.product_name}
-                              </div>
-                              <div style={{ fontSize: 11, color: 'var(--clr-muted)' }}>
-                                {p.order_count} kalem · {fmtKg(p.total_kg)}
-                              </div>
-                            </div>
-                          </div>
-                          <div style={{ fontWeight: 700, fontSize: 13, flexShrink: 0 }}>
-                            {fmtMoney(p.total_value, soCur)}
-                          </div>
-                        </div>
-                        <div style={{ background: 'var(--clr-border)', borderRadius: 99, height: 4 }}>
-                          <div style={{
-                            width: `${w}%`, height: '100%', borderRadius: 99,
-                            background: '#f59e0b'
-                          }} />
-                        </div>
-                      </div>
+                      <RankRow
+                        rank={i + 1}
+                        name={p.product_name}
+                        sub={`${p.order_count} kalem · ${fmtKg(p.total_kg)}`}
+                        value={fmtMoney(p.total_value, soCur)}
+                        barPct={barPct}
+                        rankColor="#b45309" rankBg="#fef3c7"
+                        barColor="#f59e0b"
+                      />
                     </div>
                   )
                 })
@@ -1072,6 +1164,8 @@ export default function DashboardPage() {
           </section>
         </div>
       )}
+
+      </div>
     </div>
   )
 }
