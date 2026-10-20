@@ -259,17 +259,17 @@ ${CSS}
 .page-body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
 .invoice-footer { flex-shrink:0; margin-top:auto; padding-top:1mm; }
 /* Compact overrides for invoice single-page fit */
-.section-header { padding:0.7mm 3mm; margin:2mm 0 0; font-size:6pt; }
+.section-header { padding:0.7mm 3mm; margin:1.5mm 0 0; font-size:6pt; }
 .info-cell { padding:1mm 2mm; }
 .info-label { font-size:5pt; margin-bottom:0.3mm; }
 .info-value { font-size:7pt; line-height:1.2; }
-.parties { margin-bottom:2mm; }
+.parties { margin-bottom:1.5mm; }
 .party-col { padding:2mm; }
 .party-label { margin-bottom:1mm; padding-bottom:0.8mm; font-size:5.5pt; }
 .party-name { font-size:8pt; margin-bottom:0.5mm; }
 .party-detail { font-size:6pt; line-height:1.4; }
-.info-grid { margin-bottom:2mm; }
-.table-wrapper { margin-bottom:2mm; }
+.info-grid { margin-bottom:1.5mm !important; }
+.table-wrapper { margin-bottom:1.5mm; }
 tbody tr td { padding:1.5mm 2mm; font-size:6.5pt; }
 .tfoot-row td { padding:2mm 2mm; font-size:7pt; }
 thead tr th { padding:1.5mm 2mm; font-size:6pt; }
@@ -543,12 +543,12 @@ function bankHTML (compact) {
     <div style="padding:2.5mm 3mm;border-right:1px solid #e5e7eb;">
       <div style="font-size:6.5pt;font-weight:700;color:#0a5c3a;margin-bottom:1mm;padding-bottom:0.8mm;border-bottom:1px solid #e5e7eb;">USD Account</div>
       <div style="font-size:7.5pt;font-weight:700;font-family:monospace;letter-spacing:0.4px;color:#111827;margin-bottom:1mm;">${CO.usd}</div>
-      <div style="font-size:6pt;color:#374151;line-height:1.6;"><strong style="color:#111827;">${CO.bank}</strong><br>Branch: ${CO.bankBranch}<br>${CO.bankAddress}<br>BIC / SWIFT: ${CO.bic}</div>
+      <div style="font-size:6pt;color:#374151;line-height:1.6;"><strong style="color:#111827;">${CO.bank}</strong><br>Branch: ${CO.bankBranch}<br>${CO.bankAddress}<br>SWIFT: ${CO.bic}</div>
     </div>
     <div style="padding:2.5mm 3mm;">
       <div style="font-size:6.5pt;font-weight:700;color:#0a5c3a;margin-bottom:1mm;padding-bottom:0.8mm;border-bottom:1px solid #e5e7eb;">EUR Account</div>
       <div style="font-size:7.5pt;font-weight:700;font-family:monospace;letter-spacing:0.4px;color:#111827;margin-bottom:1mm;">${CO.eur}</div>
-      <div style="font-size:6pt;color:#374151;line-height:1.6;"><strong style="color:#111827;">${CO.bank}</strong><br>Branch: ${CO.bankBranch}<br>${CO.bankAddress}<br>BIC / SWIFT: ${CO.bic}</div>
+      <div style="font-size:6pt;color:#374151;line-height:1.6;"><strong style="color:#111827;">${CO.bank}</strong><br>Branch: ${CO.bankBranch}<br>${CO.bankAddress}<br>SWIFT: ${CO.bic}</div>
     </div>
   </div>
 </div>`
