@@ -488,7 +488,26 @@ function saGoodsTableHTML (orderItems, so) {
 </div>`
 }
 
-function bankHTML () {
+function bankHTML (compact) {
+  if (compact) {
+    // Compact version for invoice footer — same info, less padding
+    return `
+<div style="background:#fff;border:1px solid #e5e7eb;border-radius:2px;overflow:hidden;margin-bottom:2mm;">
+  <div style="background:#0a5c3a;color:#fff;font-size:6pt;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:0.8mm 3mm;">Banking Details</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+    <div style="padding:2mm 2.5mm;border-right:1px solid #e5e7eb;">
+      <div style="font-size:6.5pt;font-weight:700;color:#0a5c3a;margin-bottom:0.5mm;">USD Account</div>
+      <div style="font-size:7pt;font-weight:700;font-family:monospace;color:#111827;margin-bottom:0.5mm;">${CO.usd}</div>
+      <div style="font-size:6pt;color:#374151;line-height:1.5;"><strong>${CO.bank}</strong> · Branch: ${CO.bankBranch} · ${CO.bankAddress} · BIC/SWIFT: ${CO.bic}</div>
+    </div>
+    <div style="padding:2mm 2.5mm;">
+      <div style="font-size:6.5pt;font-weight:700;color:#0a5c3a;margin-bottom:0.5mm;">EUR Account</div>
+      <div style="font-size:7pt;font-weight:700;font-family:monospace;color:#111827;margin-bottom:0.5mm;">${CO.eur}</div>
+      <div style="font-size:6pt;color:#374151;line-height:1.5;"><strong>${CO.bank}</strong> · Branch: ${CO.bankBranch} · ${CO.bankAddress} · BIC/SWIFT: ${CO.bic}</div>
+    </div>
+  </div>
+</div>`
+  }
   return `
 <div class="section-header">Banking Details</div>
 <div class="bank-grid">
@@ -759,10 +778,9 @@ ${indiaRegSection}
 ${shipmentInfoHTML(so, allContainers)}
 ${invoiceGoodsTableHTML(orderItems, so)}
 ${qualitySection}
-${bankHTML()}
-`, { footerTop: `<div style="margin-bottom:2mm;">${sigHTML(false, true).replace('margin-top:4mm', 'margin-top:0')}</div>` })
+`, { footerTop: `${bankHTML(true)}<div style="margin-bottom:2mm;">${sigHTML(false, true).replace('margin-top:4mm', 'margin-top:0')}</div>` })
 
-    const pdf = await htmlToPDF(html, { margin: { top: '8mm', right: '8mm', bottom: '38mm', left: '8mm' } })
+    const pdf = await htmlToPDF(html, { margin: { top: '8mm', right: '8mm', bottom: '62mm', left: '8mm' } })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="Invoice_${so.party_no}.pdf"`,
