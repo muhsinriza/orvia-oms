@@ -61,8 +61,8 @@ const CO = {
   bankBranch:  '1128 / FENER MAHALLESİ / ANTALYA',
   bankAddress: 'Çağlayan Mah. Barınaklar Bulvarı No:32, Muratpaşa / Antalya / Türkiye',
   bic:         'TGBATRISXXX',
-  usd:         process.env.BANK_IBAN_USD || '',
-  eur:         process.env.BANK_IBAN_EUR || '',
+  usd:         process.env.BANK_IBAN_USD || 'TR72 0006 2001 1280 0009 0700 75',
+  eur:         process.env.BANK_IBAN_EUR || 'TR02 0006 2001 1280 0009 0700 74',
 }
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
