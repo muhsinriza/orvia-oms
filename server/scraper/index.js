@@ -145,7 +145,7 @@ async function trackSingle(orderType, orderId) {
   const order = row.rows[0];
   const blNumber = order.seawaybill_number || order.tracking_number;
 
-  if (!order.shipping_line) return { success: false, error: 'Shipping line seçilmemiş' };
+  if (!order.shipping_line) return { success: false, error: 'Gemi firması seçilmemiş — Commercial Invoice\'dan seçin' };
   if (!blNumber) return { success: false, error: 'BL/Seawaybill numarası girilmemiş' };
 
   const result = await trackShipment(order.shipping_line, blNumber);
