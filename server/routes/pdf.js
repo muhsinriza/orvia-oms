@@ -817,6 +817,16 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
       }]
     }
 
+    // Load containers from DB (for multi-container packing list support)
+    let dbContainers = []
+    try {
+      const contRes = await db.query(
+        'SELECT id, container_number, packing_list_data FROM sales_order_containers WHERE sales_order_id=$1 ORDER BY sort_order, id',
+        [req.params.id]
+      )
+      dbContainers = contRes.rows
+    } catch (_) {}
+
     const palletCount = so.pallets || 1
     const totalBoxes  = orderItems.reduce((s, it) => {
       const bw = Number(it.box_weight_kg || 0)
@@ -824,28 +834,73 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
     }, 0)
 
     const useItemRows = orderItems.length > 1
-    let rowsInitJS = ''
     // Safe JSON-in-script embed: escape </script> to prevent injection
     function safeJsonStr (obj) {
       return JSON.stringify(obj).replace(/<\/script>/gi, '<\\/script>')
     }
-    if (useItemRows) {
-      rowsInitJS = orderItems.map((it, idx) => {
-        const bw    = Number(it.box_weight_kg || 0)
-        const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
-        const net   = Number(it.quantity_kg || 0)
-        const gross = b * bw * 1.05
-        return safeJsonStr({ label: `Item ${idx + 1}`, product: it.product_name || '—', variety: [it.variety, it.caliber].filter(Boolean).join(' / ') || '—', origin: it.origin || '—', boxType: it.box_type || '—', boxes: b, netBox: bw, net, gross })
-      }).join(',\n')
-    } else {
-      const boxesPerPallet = Math.floor(totalBoxes / palletCount)
-      const rem = totalBoxes % palletCount
-      const bw = Number(orderItems[0]?.box_weight_kg || 0)
-      rowsInitJS = Array.from({ length: palletCount }, (_, i) => {
-        const pb = i < rem ? boxesPerPallet + 1 : boxesPerPallet
-        return safeJsonStr({ label: `Pallet ${i+1}`, product: orderItems[0]?.product_name || '—', variety: [orderItems[0]?.variety, orderItems[0]?.caliber].filter(Boolean).join(' / ') || '—', origin: orderItems[0]?.origin || '—', boxType: orderItems[0]?.box_type || '—', boxes: pb, netBox: bw, net: pb * bw, gross: pb * bw * 1.05 })
-      }).join(',\n')
+
+    // Build default rows based on order items/pallets
+    function buildDefaultRows () {
+      if (useItemRows) {
+        return orderItems.map((it, idx) => {
+          const bw    = Number(it.box_weight_kg || 0)
+          const b     = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+          const net   = Number(it.quantity_kg || 0)
+          const gross = b * bw * 1.05
+          return { label: `Item ${idx + 1}`, product: it.product_name || '—', variety: [it.variety, it.caliber].filter(Boolean).join(' / ') || '—', origin: it.origin || '—', boxType: it.box_type || '—', boxes: b, netBox: bw, net, gross }
+        })
+      } else {
+        const boxesPerPallet = Math.floor(totalBoxes / palletCount)
+        const rem = totalBoxes % palletCount
+        const bw = Number(orderItems[0]?.box_weight_kg || 0)
+        return Array.from({ length: palletCount }, (_, i) => {
+          const pb = i < rem ? boxesPerPallet + 1 : boxesPerPallet
+          return { label: `Pallet ${i+1}`, product: orderItems[0]?.product_name || '—', variety: [orderItems[0]?.variety, orderItems[0]?.caliber].filter(Boolean).join(' / ') || '—', origin: orderItems[0]?.origin || '—', boxType: orderItems[0]?.box_type || '—', boxes: pb, netBox: bw, net: pb * bw, gross: pb * bw * 1.05 }
+        })
+      }
     }
+
+    // Build containers data for JS: use saved packing_list_data if available, else defaults
+    const isMultiContainer = dbContainers.length > 1
+    let containersJS = '[]'
+    let rowsInitJS = ''
+
+    if (isMultiContainer) {
+      const containersData = dbContainers.map(c => {
+        let savedData = null
+        try { savedData = typeof c.packing_list_data === 'string' ? JSON.parse(c.packing_list_data) : c.packing_list_data } catch (_) {}
+        const rows = (savedData && Array.isArray(savedData.rows) && savedData.rows.length > 0)
+          ? savedData.rows
+          : buildDefaultRows()
+        return {
+          id: c.id,
+          containerNumber: c.container_number || `Container ${c.id}`,
+          palletCount: (savedData && savedData.palletCount) || palletCount,
+          rows,
+        }
+      })
+      containersJS = safeJsonStr(containersData)
+    } else {
+      // Single container or no containers
+      let savedRows = null
+      if (dbContainers.length === 1) {
+        try {
+          const saved = typeof dbContainers[0].packing_list_data === 'string'
+            ? JSON.parse(dbContainers[0].packing_list_data)
+            : dbContainers[0].packing_list_data
+          if (saved && Array.isArray(saved.rows) && saved.rows.length > 0) savedRows = saved
+        } catch (_) {}
+      } else if (so.packing_list_data) {
+        try {
+          const saved = typeof so.packing_list_data === 'string' ? JSON.parse(so.packing_list_data) : so.packing_list_data
+          if (saved && Array.isArray(saved.rows) && saved.rows.length > 0) savedRows = saved
+        } catch (_) {}
+      }
+      const initRows = savedRows ? savedRows.rows : buildDefaultRows()
+      rowsInitJS = initRows.map(r => safeJsonStr(r)).join(',\n')
+    }
+
+    const singleContainerId = (dbContainers.length === 1) ? dbContainers[0].id : null
 
     const editorHTML = `<!DOCTYPE html>
 <html lang="tr">
@@ -936,6 +991,16 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
   .doc-footer { background: #064e32; color: #a7f3d0; font-size: 5pt; padding: 4px 12px; display: flex; justify-content: space-between; border-radius: 0 0 6px 6px; margin-top: 0; }
 
   .toast { position: fixed; bottom: 20px; right: 20px; background: #0a5c3a; color: #fff; padding: 8px 16px; border-radius: 4px; font-size: 8pt; font-weight: 600; display: none; z-index: 999; }
+  .toast.error { background: #dc2626; }
+
+  /* Container tabs */
+  .container-tabs { display: flex; gap: 4px; padding: 10px 20px 0; background: #0a5c3a; flex-wrap: wrap; }
+  .container-tab { padding: 5px 12px; border-radius: 4px 4px 0 0; font-size: 7.5pt; font-weight: 600; cursor: pointer; border: 1px solid rgba(110,231,183,0.4); border-bottom: none; color: #a7f3d0; background: rgba(0,0,0,0.2); transition: all 0.15s; }
+  .container-tab.active { background: #fff; color: #0a5c3a; border-color: #fff; }
+  .container-tab:hover:not(.active) { background: rgba(110,231,183,0.15); color: #fff; }
+  .btn-save { background: #10b981; color: #fff; border: none; }
+  .btn-save:hover { background: #059669; }
+  .btn-save.saving { opacity: 0.7; pointer-events: none; }
 </style>
 </head>
 <body>
@@ -950,9 +1015,12 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
   <div class="toolbar-right">
     <button class="btn btn-danger" onclick="window.close()">✕ Kapat</button>
     <button class="btn btn-outline" onclick="recalc()">↺ Hesapla</button>
+    <button class="btn btn-save" id="save-btn" onclick="saveData()">💾 Kaydet</button>
     <button class="btn btn-primary" onclick="downloadPDF()">⬇ PDF İndir</button>
   </div>
 </div>
+
+<div id="container-tabs-bar" style="display:none" class="container-tabs"></div>
 
 <div class="page">
   <!-- Doc header -->
@@ -1055,11 +1123,64 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
 
 <script>
 const USE_ITEM_ROWS = ${useItemRows};
-let rows = [
+const IS_MULTI = ${isMultiContainer ? 'true' : 'false'};
+const CONTAINERS = ${containersJS};
+const SINGLE_CONTAINER_ID = ${singleContainerId ? JSON.stringify(singleContainerId) : 'null'};
+const ORDER_ID = '${req.params.id}';
+const palletCountInit = ${palletCount};
+
+// Single-container mode state
+let rows = IS_MULTI ? [] : [
 ${rowsInitJS}
 ];
 
-const palletCountInit = ${palletCount};
+// Multi-container: track active container index
+let activeContainerIdx = 0;
+
+// Sync active container's rows from DOM editable fields before switching
+function flushEdits() {
+  document.querySelectorAll('.ef').forEach(el => {
+    const i = parseInt(el.dataset.row);
+    const f = el.dataset.field;
+    if (!isNaN(i) && f) {
+      const raw = el.textContent.trim();
+      rows[i][f] = raw;
+      if (f === 'boxes' || f === 'netBox') {
+        const b  = parseFloat(rows[i].boxes) || 0;
+        const bw = parseFloat(rows[i].netBox) || 0;
+        rows[i].net   = b * bw;
+        rows[i].gross = b * bw * 1.05;
+      }
+    }
+  });
+}
+
+// Multi-container: switch to a container tab
+function switchContainer(idx) {
+  if (IS_MULTI) {
+    flushEdits();
+    CONTAINERS[activeContainerIdx].rows = rows.map(r => Object.assign({}, r));
+    activeContainerIdx = idx;
+    rows = CONTAINERS[idx].rows.map(r => Object.assign({}, r));
+    document.querySelectorAll('.container-tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  }
+  render();
+}
+
+// Initialize container tabs if multi
+if (IS_MULTI && CONTAINERS.length > 0) {
+  rows = CONTAINERS[0].rows.map(r => Object.assign({}, r));
+  const tabBar = document.getElementById('container-tabs-bar');
+  tabBar.style.display = 'flex';
+  CONTAINERS.forEach((c, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'container-tab' + (i === 0 ? ' active' : '');
+    btn.textContent = c.containerNumber || ('Container ' + (i + 1));
+    btn.onclick = () => switchContainer(i);
+    tabBar.appendChild(btn);
+  });
+}
+
 document.getElementById('rows-hdr').textContent = USE_ITEM_ROWS ? 'Item Breakdown' : 'Pallet Breakdown';
 document.getElementById('th-label').textContent = USE_ITEM_ROWS ? 'Item' : 'Pallet';
 
@@ -1112,7 +1233,8 @@ function recalc() {
   const totBoxes = rows.reduce((s,r)=>s+(parseFloat(r.boxes)||0),0);
   const totNet   = rows.reduce((s,r)=>s+(parseFloat(r.net)||0),0);
   const totGross = rows.reduce((s,r)=>s+(parseFloat(r.gross)||0),0);
-  const pCount   = USE_ITEM_ROWS ? palletCountInit : rows.length;
+  const pCount   = IS_MULTI ? (CONTAINERS[activeContainerIdx]?.palletCount || rows.length)
+                             : (USE_ITEM_ROWS ? palletCountInit : rows.length);
   document.getElementById('sum-pallets').textContent = pCount;
   document.getElementById('sum-boxes').textContent   = fmtN(totBoxes,0);
   document.getElementById('sum-net').textContent     = fmtN(totNet)+' kg';
@@ -1147,30 +1269,84 @@ function handleEfKey(e, el) {
   }
 }
 
-function showToast(msg) {
+function showToast(msg, isError) {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.style.display = 'block';
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.style.display = 'block';
   setTimeout(()=>{ t.style.display='none'; }, 2500);
 }
 
-function downloadPDF() {
-  showToast('PDF hazırlanıyor…');
-  document.querySelectorAll('.ef').forEach(el => {
-    const i = parseInt(el.dataset.row);
-    const f = el.dataset.field;
-    rows[i][f] = el.textContent.trim();
-    if (f === 'boxes' || f === 'netBox') {
-      const b  = parseFloat(rows[i].boxes) || 0;
-      const bw = parseFloat(rows[i].netBox) || 0;
-      rows[i].net   = b * bw;
-      rows[i].gross = b * bw * 1.05;
+async function saveData() {
+  flushEdits();
+  if (IS_MULTI) {
+    // Save current container's rows back to CONTAINERS array
+    CONTAINERS[activeContainerIdx].rows = rows.map(r => Object.assign({}, r));
+  }
+
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn.classList.add('saving');
+  saveBtn.textContent = '⏳ Kaydediliyor…';
+
+  try {
+    if (IS_MULTI) {
+      // Save each container separately
+      for (const c of CONTAINERS) {
+        const pc = c.palletCount || c.rows.length;
+        const resp = await fetch('/api/sales-orders/' + ORDER_ID + '/packing-list', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ rows: c.rows, palletCount: pc, containerId: c.id }),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error || ('Container ' + c.containerNumber + ' kaydedilemedi'));
+        }
+      }
+      showToast('✓ ' + CONTAINERS.length + ' konteyner kaydedildi');
+    } else {
+      // Single container or legacy order-level save
+      const pc = USE_ITEM_ROWS ? palletCountInit : rows.length;
+      const body = { rows, palletCount: pc };
+      if (SINGLE_CONTAINER_ID) body.containerId = SINGLE_CONTAINER_ID;
+      const resp = await fetch('/api/sales-orders/' + ORDER_ID + '/packing-list', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || 'Kayıt hatası');
+      }
+      showToast('✓ Kaydedildi');
     }
-  });
+  } catch (e) {
+    showToast('Hata: ' + e.message, true);
+  } finally {
+    saveBtn.classList.remove('saving');
+    saveBtn.textContent = '💾 Kaydet';
+  }
+}
+
+function downloadPDF() {
+  flushEdits();
+  if (IS_MULTI) {
+    CONTAINERS[activeContainerIdx].rows = rows.map(r => Object.assign({}, r));
+  }
+  showToast('PDF hazırlanıyor…');
+  let body;
+  if (IS_MULTI) {
+    body = JSON.stringify({ containers: CONTAINERS.map(c => ({ containerNumber: c.containerNumber, rows: c.rows, palletCount: c.palletCount || c.rows.length })) });
+  } else {
+    body = JSON.stringify({ rows, palletCount: USE_ITEM_ROWS ? palletCountInit : rows.length });
+  }
   fetch('/api/pdf/packing-list-custom/${req.params.id}', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ rows, palletCount: USE_ITEM_ROWS ? palletCountInit : rows.length }),
+    body,
   }).then(r => {
     if (!r.ok) return r.json().then(e => { throw new Error(e.error || 'PDF hatası'); });
     return r.blob();
@@ -1180,7 +1356,7 @@ function downloadPDF() {
     a.href = url; a.download = 'PackingList_${so.party_no || so.sa_number || 'PL'}.pdf'; a.click();
     URL.revokeObjectURL(url);
     showToast('PDF indirildi ✓');
-  }).catch(e => showToast('Hata: ' + e.message));
+  }).catch(e => showToast('Hata: ' + e.message, true));
 }
 
 render();
