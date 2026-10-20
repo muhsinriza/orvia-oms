@@ -296,7 +296,6 @@ app.use('/api/order-links',     require('./routes/orderLinks'))
 app.use('/api/shipment-events', require('./routes/shipmentEvents'))
 app.use('/api/pdf',             require('./routes/pdf'))
 app.use('/api/customs-excel',   require('./routes/customsExcel'))
-app.use('/api/tracking',        require('./routes/tracking'))
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ ok: true }))
@@ -309,7 +308,4 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`Orvia OMS backend listening on port ${PORT}`)
-  // Shipping tracking cron'u başlat
-  const { startCron } = require('./scraper/index')
-  startCron()
 })
