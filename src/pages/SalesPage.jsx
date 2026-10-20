@@ -17,7 +17,7 @@ const DOC_TR = { invoice:'Fatura', packing_list:'Paket Listesi', health_certific
 
 const SALES_TYPE_TR = { ihracat:'İhracat', yerli:'Yerli Satış', transit:'Transit' }
 
-const EMPTY_ITEM = { product_id:'', variety:'', caliber:'', origin:'', quantity_kg:'', price_per_unit:'', box_type:'', box_weight_kg:'', sell_by:'box' }
+const EMPTY_ITEM = { product_id:'', variety:'', caliber:'', origin:'', quantity_kg:'', box_count:'', price_per_unit:'', box_type:'', box_weight_kg:'', sell_by:'box' }
 
 const EMPTY_FORM = {
   sales_type:'ihracat',
@@ -94,20 +94,27 @@ export default function SalesPage() {
     try {
       const detail = await api.get(`/sales-orders/${o.id}`)
       const d = detail.data ?? detail
-      loadedItems = (d.items || []).map(it => ({
-        product_id: it.product_id||'',
-        variety: it.variety||'',
-        caliber: it.caliber||'',
-        origin: it.origin||'',
-        quantity_kg: it.quantity_kg||'',
-        price_per_unit: it.price_per_unit||'',
-        box_type: it.box_type||'',
-        box_weight_kg: it.box_weight_kg||'',
-        sell_by: it.sell_by||'box',
-      }))
+      loadedItems = (d.items || []).map(it => {
+        const bw = parseFloat(it.box_weight_kg) || 0
+        const qty = parseFloat(it.quantity_kg) || 0
+        return {
+          product_id: it.product_id||'',
+          variety: it.variety||'',
+          caliber: it.caliber||'',
+          origin: it.origin||'',
+          quantity_kg: it.quantity_kg||'',
+          box_count: bw > 0 && qty > 0 ? String(Math.round(qty/bw)) : '',
+          price_per_unit: it.price_per_unit||'',
+          box_type: it.box_type||'',
+          box_weight_kg: it.box_weight_kg||'',
+          sell_by: it.sell_by||'box',
+        }
+      })
     } catch (_) {}
     if (loadedItems.length === 0) {
-      loadedItems = [{ product_id: o.product_id||'', variety: o.variety||'', caliber: o.caliber||'', origin: o.origin||'', quantity_kg: o.quantity_kg||'', price_per_unit: o.price_per_unit||'', box_type: o.box_type||'', box_weight_kg: o.box_weight_kg||'', sell_by: 'box' }]
+      const bw = parseFloat(o.box_weight_kg) || 0
+      const qty = parseFloat(o.quantity_kg) || 0
+      loadedItems = [{ product_id: o.product_id||'', variety: o.variety||'', caliber: o.caliber||'', origin: o.origin||'', quantity_kg: o.quantity_kg||'', box_count: bw > 0 && qty > 0 ? String(Math.round(qty/bw)) : '', price_per_unit: o.price_per_unit||'', box_type: o.box_type||'', box_weight_kg: o.box_weight_kg||'', sell_by: 'box' }]
     }
     setForm({
       sales_type: o.sales_type||'ihracat',
@@ -137,7 +144,30 @@ export default function SalesPage() {
 
   function setItemField(idx, k, v) {
     setForm(f => {
-      const items = f.items.map((it, i) => i === idx ? { ...it, [k]: v } : it)
+      const items = f.items.map((it, i) => {
+        if (i !== idx) return it
+        const updated = { ...it, [k]: v }
+        const bw = parseFloat(updated.box_weight_kg) || 0
+        // kutu girince kg hesapla
+        if (k === 'box_count' && bw > 0) {
+          const boxes = parseFloat(v) || 0
+          updated.quantity_kg = boxes > 0 ? String(Math.round(boxes * bw * 100) / 100) : updated.quantity_kg
+        }
+        // kg girince kutu hesapla
+        if (k === 'quantity_kg' && bw > 0) {
+          const qty = parseFloat(v) || 0
+          updated.box_count = qty > 0 ? String(Math.round(qty / bw)) : updated.box_count
+        }
+        // kutu ağırlığı değişince, kutu adedi varsa kg'yi güncelle
+        if (k === 'box_weight_kg') {
+          const newBw = parseFloat(v) || 0
+          const boxes = parseFloat(updated.box_count) || 0
+          if (newBw > 0 && boxes > 0) {
+            updated.quantity_kg = String(Math.round(boxes * newBw * 100) / 100)
+          }
+        }
+        return updated
+      })
       return { ...f, items }
     })
   }
@@ -381,8 +411,8 @@ export default function SalesPage() {
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Menşei</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Kutu Tipi</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-20">Kutu (kg)</th>
+                    <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Kutu Adedi</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-24">Miktar (kg)*</th>
-                    <th className="px-2 py-2 text-right text-xs font-semibold text-gray-500 w-16">Kutu Adedi</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-20">Birim*</th>
                     <th className="px-2 py-2 text-left text-xs font-semibold text-gray-500 w-28">Birim Fiyat*</th>
                     <th className="px-2 py-2 w-8"></th>
@@ -402,17 +432,8 @@ export default function SalesPage() {
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" value={it.origin} onChange={e=>setItemField(idx,'origin',e.target.value)} placeholder="Türkiye"/></td>
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" value={it.box_type} onChange={e=>setItemField(idx,'box_type',e.target.value)} placeholder="10kg karton"/></td>
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" step="0.01" value={it.box_weight_kg} onChange={e=>setItemField(idx,'box_weight_kg',e.target.value)} placeholder="10"/></td>
+                      <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" value={it.box_count||''} onChange={e=>setItemField(idx,'box_count',e.target.value)} placeholder="500"/></td>
                       <td className="px-2 py-1.5"><input className="input text-xs py-1" type="number" value={it.quantity_kg} onChange={e=>setItemField(idx,'quantity_kg',e.target.value)} placeholder="5000"/></td>
-                      <td className="px-2 py-1.5 text-right">
-                        {(() => {
-                          const bw = Number(it.box_weight_kg||0)
-                          const qty = Number(it.quantity_kg||0)
-                          if (bw > 0 && qty > 0) {
-                            return <span className="text-xs font-semibold text-emerald-700 font-mono bg-emerald-50 px-1.5 py-0.5 rounded">{Math.round(qty/bw).toLocaleString()}</span>
-                          }
-                          return <span className="text-xs text-gray-300">—</span>
-                        })()}
-                      </td>
                       <td className="px-2 py-1.5">
                         <select className="select text-xs py-1" value={it.sell_by||'box'} onChange={e=>setItemField(idx,'sell_by',e.target.value)}>
                           <option value="box">Kutu</option>
