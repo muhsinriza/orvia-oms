@@ -953,11 +953,13 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
   .val-static { font-size: 8.5pt; font-weight: 700; color: #1a1a1a; }
   .val-detail { font-size: 6pt; color: #475569; line-height: 1.65; margin-top: 2px; }
 
-  /* Editable field */
-  .ef { border: 1px dashed #cbd5e1; border-radius: 3px; padding: 2px 5px; background: #f8fafc; cursor: text; min-width: 40px; display: inline-block; font-size: 7pt; color: #1a1a1a; transition: background 0.15s; }
-  .ef:focus { outline: none; background: #eff6ff; border-color: #3b82f6; }
-  .ef:hover { background: #f0f9ff; }
-  .ef-note { font-size: 5pt; color: #94a3b8; margin-top: 2px; }
+  /* Editable input field */
+  .ef { width: 100%; border: 1px solid transparent; border-radius: 3px; padding: 2px 5px; background: transparent; font-size: 7pt; font-family: inherit; color: #1a1a1a; transition: border-color 0.15s, background 0.15s; box-sizing: border-box; }
+  .ef:hover { border-color: #cbd5e1; background: #f8fafc; }
+  .ef:focus { outline: none; border-color: #3b82f6; background: #eff6ff; }
+  .ef.num { text-align: right; width: 80px; }
+  /* Calculated (read-only) cells */
+  .rows-table td.cal { color: #475569; font-size: 6.5pt; }
 
   /* Meta grid */
   .meta-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0; border: 1px solid #e2e8f0; }
@@ -977,8 +979,9 @@ router.get('/packing-list/:id/edit', requireAuth, async (req, res) => {
   .rows-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 7pt; }
   .rows-table th { background: #f0fdf4; border: 1px solid #e2e8f0; padding: 4px 7px; font-size: 5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #064e32; text-align: left; white-space: nowrap; }
   .rows-table th.r { text-align: right; }
-  .rows-table td { border: 1px solid #e2e8f0; padding: 3px 6px; vertical-align: middle; }
-  .rows-table td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .rows-table td { border: 1px solid #e2e8f0; padding: 1px 2px; vertical-align: middle; }
+  .rows-table td.r { text-align: right; font-variant-numeric: tabular-nums; padding: 3px 6px; }
+  .rows-table td:first-child { padding: 3px 6px; white-space: nowrap; }
   .rows-table tr:nth-child(even) td { background: #f8fafc; }
   .rows-table tfoot td { background: #0a5c3a; color: #fff; font-weight: 700; font-size: 7pt; border: 1px solid #064e32; padding: 4px 7px; }
   .rows-table tfoot td.r { text-align: right; }
@@ -1137,24 +1140,6 @@ ${rowsInitJS}
 // Multi-container: track active container index
 let activeContainerIdx = 0;
 
-// Sync active container's rows from DOM editable fields before switching
-function flushEdits() {
-  document.querySelectorAll('.ef').forEach(el => {
-    const i = parseInt(el.dataset.row);
-    const f = el.dataset.field;
-    if (!isNaN(i) && f) {
-      const raw = el.textContent.trim();
-      rows[i][f] = raw;
-      if (f === 'boxes' || f === 'netBox') {
-        const b  = parseFloat(rows[i].boxes) || 0;
-        const bw = parseFloat(rows[i].netBox) || 0;
-        rows[i].net   = b * bw;
-        rows[i].gross = b * bw * 1.05;
-      }
-    }
-  });
-}
-
 // Multi-container: switch to a container tab
 function switchContainer(idx) {
   if (IS_MULTI) {
@@ -1189,44 +1174,54 @@ function fmtN(n, d=2) {
   return Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
-function ef(value, rowIdx, field, type='text') {
-  const v = value !== null && value !== undefined && value !== '—' ? value : '';
-  return '<span class="ef" contenteditable="true" data-row="'+rowIdx+'" data-field="'+field+'" onblur="onEdit(this)" onkeydown="handleEfKey(event,this)">' + (v || '') + '</span>';
-}
-
+// Render the rows table — uses <input> elements for reliable editing
 function render() {
   const tbody = document.getElementById('rows-body');
   tbody.innerHTML = rows.map((r, i) => \`
-    <tr>
-      <td>\${r.label || (USE_ITEM_ROWS ? 'Item '+(i+1) : 'Pallet '+(i+1))}</td>
-      <td>\${ef(r.product, i, 'product')}</td>
-      <td>\${ef(r.variety, i, 'variety')}</td>
-      <td>\${ef(r.origin, i, 'origin')}</td>
-      <td>\${ef(r.boxType, i, 'boxType')}</td>
-      <td class="r">\${ef(r.boxes, i, 'boxes', 'number')}</td>
-      <td class="r">\${ef(r.netBox, i, 'netBox', 'number')}</td>
-      <td class="r">\${fmtN(r.net)}</td>
-      <td class="r">\${fmtN(r.gross)}</td>
+    <tr data-row-idx="\${i}">
+      <td style="font-size:6.5pt;color:#475569;padding-left:8px;">\${r.label || (USE_ITEM_ROWS ? 'Item '+(i+1) : 'Pallet '+(i+1))}</td>
+      <td><input class="ef" type="text" data-row="\${i}" data-field="product" value="\${escAttr(r.product)}" oninput="onInput(this)" onkeydown="handleEfKey(event,this)"></td>
+      <td><input class="ef" type="text" data-row="\${i}" data-field="variety" value="\${escAttr(r.variety)}" oninput="onInput(this)" onkeydown="handleEfKey(event,this)"></td>
+      <td><input class="ef" type="text" data-row="\${i}" data-field="origin" value="\${escAttr(r.origin)}" oninput="onInput(this)" onkeydown="handleEfKey(event,this)"></td>
+      <td><input class="ef" type="text" data-row="\${i}" data-field="boxType" value="\${escAttr(r.boxType)}" oninput="onInput(this)" onkeydown="handleEfKey(event,this)"></td>
+      <td class="r"><input class="ef num" type="number" step="1" min="0" data-row="\${i}" data-field="boxes" value="\${r.boxes || 0}" oninput="onNumInput(this)" onkeydown="handleEfKey(event,this)"></td>
+      <td class="r"><input class="ef num" type="number" step="0.01" min="0" data-row="\${i}" data-field="netBox" value="\${r.netBox || 0}" oninput="onNumInput(this)" onkeydown="handleEfKey(event,this)"></td>
+      <td class="r cal" id="net-\${i}">\${fmtN(r.net)}</td>
+      <td class="r cal" id="gross-\${i}">\${fmtN(r.gross)}</td>
       <td><button class="del-row" onclick="delRow(\${i})" title="Satırı Sil">×</button></td>
     </tr>
   \`).join('');
   recalc();
 }
 
-function onEdit(el) {
+// Escape for HTML attribute values
+function escAttr(v) {
+  if (v == null || v === '—') return '';
+  return String(v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Text field input — update data immediately, no re-render
+function onInput(el) {
   const i = parseInt(el.dataset.row);
   const f = el.dataset.field;
-  const raw = el.textContent.trim();
-  rows[i][f] = raw;
-  if (f === 'boxes' || f === 'netBox') {
-    const b  = parseFloat(rows[i].boxes) || 0;
-    const bw = parseFloat(rows[i].netBox) || 0;
-    rows[i].net   = b * bw;
-    rows[i].gross = b * bw * 1.05;
-    render();
-  } else {
-    recalc();
-  }
+  rows[i][f] = el.value;
+}
+
+// Numeric field input — recalculate net/gross inline, no re-render
+function onNumInput(el) {
+  const i = parseInt(el.dataset.row);
+  const f = el.dataset.field;
+  rows[i][f] = el.value;
+  const b  = parseFloat(rows[i].boxes) || 0;
+  const bw = parseFloat(rows[i].netBox) || 0;
+  rows[i].net   = b * bw;
+  rows[i].gross = b * bw * 1.05;
+  // Update only the calculated cells in this row (no full re-render = no focus loss)
+  const netEl   = document.getElementById('net-'   + i);
+  const grossEl = document.getElementById('gross-' + i);
+  if (netEl)   netEl.textContent   = fmtN(rows[i].net);
+  if (grossEl) grossEl.textContent = fmtN(rows[i].gross);
+  recalc();
 }
 
 function recalc() {
@@ -1245,7 +1240,25 @@ function recalc() {
   document.getElementById('tfoot-gross').textContent = fmtN(totGross)+' kg';
 }
 
+// Sync all input values from DOM into rows[] before save/PDF/tab-switch
+function flushEdits() {
+  document.querySelectorAll('input.ef').forEach(el => {
+    const i = parseInt(el.dataset.row);
+    const f = el.dataset.field;
+    if (!isNaN(i) && f && rows[i]) {
+      rows[i][f] = el.value;
+      if (f === 'boxes' || f === 'netBox') {
+        const b  = parseFloat(rows[i].boxes) || 0;
+        const bw = parseFloat(rows[i].netBox) || 0;
+        rows[i].net   = b * bw;
+        rows[i].gross = b * bw * 1.05;
+      }
+    }
+  });
+}
+
 function delRow(i) {
+  flushEdits();
   if (rows.length <= 1) { showToast('En az 1 satır olmalı'); return; }
   rows.splice(i,1);
   rows.forEach((r,idx)=>{ r.label = USE_ITEM_ROWS ? 'Item '+(idx+1) : 'Pallet '+(idx+1); });
@@ -1253,19 +1266,25 @@ function delRow(i) {
 }
 
 function addRow() {
+  flushEdits();
   const last = rows[rows.length-1] || {};
   rows.push({ label: USE_ITEM_ROWS ? 'Item '+(rows.length+1) : 'Pallet '+(rows.length+1), product: last.product||'', variety: last.variety||'', origin: last.origin||'', boxType: last.boxType||'', boxes: 0, netBox: last.netBox||0, net: 0, gross: 0 });
   render();
+  // Focus the first input of new row
+  setTimeout(() => {
+    const newInputs = document.querySelectorAll('input.ef[data-row="'+(rows.length-1)+'"]');
+    if (newInputs[0]) newInputs[0].focus();
+  }, 30);
 }
 
 function handleEfKey(e, el) {
   if (e.key === 'Enter') { e.preventDefault(); el.blur(); return; }
   if (e.key === 'Tab') {
     e.preventDefault();
-    const all = Array.from(document.querySelectorAll('.ef'));
+    const all = Array.from(document.querySelectorAll('input.ef'));
     const idx = all.indexOf(el);
     const next = e.shiftKey ? all[idx - 1] : all[idx + 1];
-    if (next) { el.blur(); next.focus(); const r = document.createRange(); r.selectNodeContents(next); r.collapse(false); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+    if (next) next.focus();
   }
 }
 
