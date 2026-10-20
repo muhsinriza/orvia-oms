@@ -1,84 +1,102 @@
 /**
- * CMA CGM Tracking Scraper
- * URL: https://www.cma-cgm.com/ebusiness/tracking/search?SearchBy=BillOfLading&Reference={BL}
+ * CMA CGM Tracking - Public REST API
+ * https://api.cma-cgm.net/booking/shipment/v2/shipments?searchParameter={BL}&searchCriteria=BillOfLading
  */
 
-const puppeteer = require('puppeteer');
+const https = require('https');
+
+function httpGet(url, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        ...headers,
+      },
+    };
+    https.get(url, options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => (data += chunk));
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode, body: JSON.parse(data) });
+        } catch {
+          resolve({ status: res.statusCode, body: data });
+        }
+      });
+    }).on('error', reject);
+  });
+}
 
 async function trackCmaCgm(blNumber) {
-  let browser;
   try {
-    browser = await puppeteer.launch({
-      headless: 'new',
-      executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium-browser',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
-    });
+    // CMA CGM public tracking API
+    const url = `https://api.cma-cgm.net/booking/shipment/v2/shipments?searchParameter=${encodeURIComponent(blNumber)}&searchCriteria=BillOfLading`;
+    const { status, body } = await httpGet(url);
 
-    const page = await browser.newPage();
-    await page.setUserAgent(
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    );
-    await page.setViewport({ width: 1280, height: 800 });
+    if (status !== 200) {
+      // Fallback: eski web scraper yerine basit fetch dene
+      return await trackCmaCgmWeb(blNumber);
+    }
 
+    // API yanıtını parse et
+    const shipment = body?.shipments?.[0] || body?.[0] || body;
+    if (!shipment) return { success: false, error: 'Sevkiyat bulunamadı' };
+
+    const transport = shipment.transportations?.[0] || {};
+    const places = shipment.places || {};
+
+    return {
+      success: true,
+      data: {
+        status: shipment.statusCode || shipment.status || null,
+        vessel: transport.vesselName || shipment.vesselName || null,
+        currentPort: shipment.currentLocation || places.currentPort || null,
+        eta: shipment.estimatedTimeArrival || shipment.eta || null,
+        pol: places.portOfLoading || shipment.pol || null,
+        pod: places.portOfDischarge || shipment.pod || null,
+      },
+    };
+  } catch (err) {
+    return { success: false, error: 'CMA CGM API hatası: ' + err.message };
+  }
+}
+
+// Alternatif: CMA CGM'in tracking sayfasından JSON veri çek (script tag içinde)
+async function trackCmaCgmWeb(blNumber) {
+  try {
     const url = `https://www.cma-cgm.com/ebusiness/tracking/search?SearchBy=BillOfLading&Reference=${encodeURIComponent(blNumber)}`;
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-
-    // Cookie banner kapat
-    try {
-      await page.click('#onetrust-accept-btn-handler', { timeout: 3000 });
-      await page.waitForTimeout(1000);
-    } catch (_) {}
-
-    // Tracking sonuçlarını bekle
-    await page.waitForSelector('.tracking-result, .shipment-status, [class*="tracking"]', { timeout: 15000 });
-
-    const result = await page.evaluate(() => {
-      const getText = (sel) => {
-        const el = document.querySelector(sel);
-        return el ? el.innerText.trim() : null;
-      };
-
-      // Durum
-      const status =
-        getText('.shipment-status') ||
-        getText('[class*="status"]') ||
-        getText('[class*="Status"]');
-
-      // Gemi adı
-      const vessel =
-        getText('[class*="vessel"]') ||
-        getText('[class*="Vessel"]') ||
-        getText('.vessel-name');
-
-      // Mevcut port
-      const currentPort =
-        getText('[class*="current-port"]') ||
-        getText('[class*="location"]') ||
-        getText('[class*="port"]');
-
-      // ETA
-      const eta =
-        getText('[class*="eta"]') ||
-        getText('[class*="ETA"]') ||
-        getText('[class*="arrival"]');
-
-      // POL / POD
-      const pol = getText('[class*="origin"]') || getText('[class*="pol"]');
-      const pod = getText('[class*="destination"]') || getText('[class*="pod"]');
-
-      return { status, vessel, currentPort, eta, pol, pod };
+    const { status, body } = await httpGet(url, {
+      'Accept': 'text/html,application/xhtml+xml',
     });
 
-    return { success: true, data: result };
+    if (typeof body !== 'string') return { success: false, error: 'Geçersiz yanıt' };
+
+    // JSON-LD veya window.__data__ gibi gömülü veriyi ara
+    const jsonMatch = body.match(/window\.__(?:trackingData|data|state)__\s*=\s*({.+?});/s)
+      || body.match(/<script type="application\/json"[^>]*>({.+?})<\/script>/s);
+
+    if (jsonMatch) {
+      try {
+        const data = JSON.parse(jsonMatch[1]);
+        const s = data?.shipment || data?.tracking || data;
+        return {
+          success: true,
+          data: {
+            status: s?.status || s?.statusCode || null,
+            vessel: s?.vesselName || null,
+            currentPort: s?.currentPort || s?.location || null,
+            eta: s?.eta || s?.estimatedArrival || null,
+            pol: s?.pol || null,
+            pod: s?.pod || null,
+          },
+        };
+      } catch (_) {}
+    }
+
+    return { success: false, error: 'CMA CGM sayfa yapısı değişmiş, veri çekilemedi' };
   } catch (err) {
     return { success: false, error: err.message };
-  } finally {
-    if (browser) await browser.close();
   }
 }
 
