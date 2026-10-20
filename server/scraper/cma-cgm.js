@@ -31,7 +31,7 @@ function httpGet(url, headers = {}) {
 async function trackCmaCgm(blNumber) {
   try {
     // CMA CGM public tracking API
-    const url = `https://api.cma-cgm.net/booking/shipment/v2/shipments?searchParameter=${encodeURIComponent(blNumber)}&searchCriteria=BillOfLading`;
+    const url = `https://www.cma-cgm.com/api/tracking/v2/shipments?searchParameter=${encodeURIComponent(blNumber)}&searchCriteria=BillOfLading`;
     const { status, body } = await httpGet(url);
 
     if (status !== 200) {
