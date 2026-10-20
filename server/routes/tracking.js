@@ -24,7 +24,7 @@ router.post('/refresh/:orderType/:orderId', requireAuth, async (req, res) => {
   }
 
   try {
-    const result = await trackSingle(orderType, parseInt(orderId));
+    const result = await trackSingle(orderType, orderId);
 
     if (result.success) {
       res.json({ success: true, data: result.data, message: 'Tracking güncellendi' });
@@ -49,7 +49,7 @@ router.get('/status/:orderType/:orderId', requireAuth, async (req, res) => {
         vessel_name, tracking_status, current_port,
         pol, pod, eta, ata, last_tracked_at, tracking_error
        FROM ${table} WHERE id = $1`,
-      [parseInt(orderId)]
+      [orderId]
     );
 
     if (!row.rows.length) return res.status(404).json({ error: 'Sipariş bulunamadı' });
@@ -61,7 +61,7 @@ router.get('/status/:orderType/:orderId', requireAuth, async (req, res) => {
        WHERE order_type = $1 AND order_id = $2
        ORDER BY event_date DESC
        LIMIT 10`,
-      [orderType, parseInt(orderId)]
+      [orderType, orderId]
     );
 
     res.json({

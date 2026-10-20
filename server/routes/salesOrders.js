@@ -317,17 +317,17 @@ router.patch('/:id/status', requireRole('admin'), async (req, res) => {
 
 // PATCH /sales-orders/:id/shipping — update invoice/logistics fields only
 router.patch('/:id/shipping', requireRole('admin'), async (req, res) => {
-  const { invoice_no, lot_no, vessel_name, container_number, seawaybill_number, etd, eta, containers, loading_address, freight_amount } = req.body
+  const { invoice_no, lot_no, shipping_line, vessel_name, container_number, seawaybill_number, etd, eta, containers, loading_address, freight_amount } = req.body
   try {
     const { rows } = await db.query(`
       UPDATE sales_orders SET
         invoice_no=$1, lot_no=$2, vessel_name=$3, container_number=$4, seawaybill_number=$5, etd=$6, eta=$7,
-        loading_address=$8, freight_amount=$9
-      WHERE id=$10 RETURNING *
+        loading_address=$8, freight_amount=$9, shipping_line=$10
+      WHERE id=$11 RETURNING *
     `, [
       invoice_no || null, lot_no || null, vessel_name || null,
       container_number || null, seawaybill_number || null, etd || null, eta || null,
-      loading_address || null, freight_amount || null,
+      loading_address || null, freight_amount || null, shipping_line || null,
       req.params.id,
     ])
     if (!rows[0]) return res.status(404).json({ error: 'Bulunamadı' })

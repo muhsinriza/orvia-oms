@@ -1012,6 +1012,7 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
   const [form, setForm] = useState({
     invoice_no:        order.invoice_no        || '',
     lot_no:            order.lot_no            || '',
+    shipping_line:     order.shipping_line     || '',
     vessel_name:       order.vessel_name       || '',
     seawaybill_number: order.seawaybill_number || '',
     etd: order.etd ? order.etd.slice(0, 10) : '',
@@ -1091,6 +1092,17 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {field('invoice_no', 'Invoice No', 'text', 'INV-2026-001')}
           {field('lot_no', 'Lot / Party No', 'text', 'LOT-2026-001')}
+          <div>
+            <label className="label">Gemi Firması (Liner)</label>
+            <select className="input" value={form.shipping_line}
+              onChange={e => setForm(f => ({ ...f, shipping_line: e.target.value }))}>
+              <option value="">— Seçiniz —</option>
+              <option value="cma-cgm">CMA CGM</option>
+              <option value="arkas">Arkas Line</option>
+              <option value="wan-hai">Wan Hai Lines</option>
+              <option value="other">Diğer</option>
+            </select>
+          </div>
           {field('vessel_name', 'Vessel Name', 'text', 'MSC OSCAR')}
           {field('seawaybill_number', 'Sea Waybill No (SWB)', 'text', 'SWB123456789')}
           {field('etd', 'ETD (Gerçek Kalkış)', 'date')}
