@@ -1542,11 +1542,16 @@ router.post('/packing-list-custom/:id', requireAuth, async (req, res) => {
     const so = rows[0]
 
     // Compact CSS overrides — fits pallet rows on one A4 page per container
+    // A4 = 297mm. With 4mm padding top+bottom = 8mm. Fixed chrome (header ~28mm, parties ~18mm,
+    // shipment details ~22mm, pkg-strip ~8mm, section-header ~4mm, tfoot ~7mm, auth-block ~12mm,
+    // footer ~8mm) ≈ 107mm used. Remaining for table body ≈ 190mm (conservative: 297-107=190).
     const plCompact = `<style>
 @page { margin: 0; size: A4; }
 html, body { margin: 0; padding: 0; }
-.page { padding:4mm; width:210mm; min-height:297mm; display:flex; flex-direction:column; box-sizing:border-box; page-break-after:always; }
+/* Exact A4 height — prevents overflow to 2nd page */
+.page { padding:4mm; width:210mm; height:297mm; display:flex; flex-direction:column; box-sizing:border-box; page-break-after:always; overflow:hidden; }
 .page:last-child { page-break-after:auto; }
+.page-body { flex:1; display:flex; flex-direction:column; overflow:hidden; }
 .doc-header { padding:2.5mm 0 2mm; margin-bottom:2mm; }
 .doc-header-inner { padding:0 4mm; gap:3mm; }
 .doc-title { font-size:11pt; }
@@ -1569,22 +1574,36 @@ html, body { margin: 0; padding: 0; }
 .pl-table thead th { padding:0.9mm 1.8mm; font-size:5.5pt; }
 .pl-table tbody td { padding:0.65mm 1.8mm; font-size:5.8pt; border-bottom:1px solid #f0f0f0; }
 .pl-table tfoot td { padding:1.1mm 1.8mm; font-size:6pt; }
-.table-wrapper { margin-bottom:1mm; flex-grow:1; }
-.page-footer { position:static; margin-top:1.5mm; left:auto; right:auto; bottom:auto; }
+.table-wrapper { margin-bottom:1mm; }
+/* Footer: position static, pinned to bottom via flex spacer */
+.page-footer { position:static; margin-top:auto; left:auto; right:auto; bottom:auto; flex-shrink:0; }
 .page-footer-logo { padding:1.2mm 3mm; font-size:7.5pt; letter-spacing:3px; }
 .page-footer-text, .page-footer-right { font-size:4.5pt; padding:1.2mm 3mm; line-height:1.7; }
+/* Compact auth block */
+.auth-block { margin-top:2mm; }
+.auth-signatory { padding:2mm 3mm; min-width:36mm; }
+.auth-sig-eyebrow { margin-bottom:1.5mm; }
+.auth-sig-name { font-size:8pt; }
+.auth-sig-line { margin:1.5mm 0 1mm; }
+.auth-declaration { padding:2mm 3mm; }
+.auth-decl-text { font-size:5.5pt; line-height:1.5; }
+.auth-stamp { padding:2mm 3mm; min-width:28mm; }
 </style>`
 
     let pagesHTML = ''
     let dynamicRowCSS = ''
+
+    // Available body height for table rows ≈ 190mm (A4 297mm minus all fixed chrome)
+    // We clamp between 4mm (min readable) and 9mm (max before it looks sparse)
+    const AVAILABLE_MM = 190
 
     if (Array.isArray(containersPayload) && containersPayload.length > 0) {
       // Multi-container mode: one page per container
       const total = containersPayload.length
       const cssRules = []
       pagesHTML = containersPayload.map((c, idx) => {
-        const rowCount = (c.rows || []).length || c.palletCount || 1
-        const rowHeightMm = Math.min(10, Math.max(4, Math.floor(159 / rowCount * 10) / 10))
+        const rowCount = Math.max(1, (c.rows || []).length || c.palletCount || 1)
+        const rowHeightMm = Math.min(9, Math.max(4, Math.floor((AVAILABLE_MM / rowCount) * 10) / 10))
         cssRules.push(`.page:nth-child(${idx + 1}) .pl-table tbody tr { height: ${rowHeightMm}mm; }`)
         return buildPackingListPageBody(so, c.containerNumber, c.rows || [], c.palletCount, idx, total)
       }).join('\n')
@@ -1592,8 +1611,8 @@ html, body { margin: 0; padding: 0; }
     } else {
       // Legacy single-container mode
       const orderRows = customRows || []
-      const rowCount = orderRows.length || Number(palletCount) || 1
-      const rowHeightMm = Math.min(10, Math.max(4, Math.floor(159 / rowCount * 10) / 10))
+      const rowCount = Math.max(1, orderRows.length || Number(palletCount) || 1)
+      const rowHeightMm = Math.min(9, Math.max(4, Math.floor((AVAILABLE_MM / rowCount) * 10) / 10))
       dynamicRowCSS = `<style>.pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
       pagesHTML = buildPackingListPageBody(so, so.container_number, orderRows, palletCount, 0, 1)
     }
