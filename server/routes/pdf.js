@@ -240,6 +240,36 @@ ${CSS}
 </body></html>`
 }
 
+// Invoice-specific wrap: single A4 page with fixed footer containing banking+sig+greenbar
+function wrapInvoice (body, bankingHTML, sigBlockHTML) {
+  const greenBar = `
+  <div class="page-footer-inner">
+    <div class="page-footer-logo">ORVIA</div>
+    <div class="page-footer-text">
+      ${CO.name}<br>
+      ${CO.address}
+    </div>
+    <div class="page-footer-right">WhatsApp: +90 530 552 83 06<br>Direct: +90 532 703 55 07<br>orviatropical.com &nbsp;·&nbsp; orviaoms.com</div>
+  </div>`
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+${CSS}
+.page { width:210mm; height:297mm; padding:8mm; display:flex; flex-direction:column; box-sizing:border-box; overflow:hidden; }
+.page-body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.invoice-footer { flex-shrink:0; margin-top:auto; padding-top:2mm; }
+</style></head><body>
+<div class="page">
+  <div class="page-body">${body}</div>
+  <div class="invoice-footer">
+    ${bankingHTML}
+    <div style="margin-bottom:2mm;">${sigBlockHTML}</div>
+    ${greenBar}
+  </div>
+</div>
+</body></html>`
+}
+
 function headerHTML (docType, docNum, date, extra) {
   extra = extra || ''
   return `
@@ -771,16 +801,18 @@ router.post('/invoice/:id', requireAuth, async (req, res) => {
 <div class="section-header">Quality Notes</div>
 <div class="notes-box">${esc(so.quality_notes)}</div>` : ''
 
-    const html = wrap(`
-${headerHTML('COMMERCIAL INVOICE', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
+    const html = wrapInvoice(
+      `${headerHTML('COMMERCIAL INVOICE', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
 ${partiesHTML(so, customer, false)}
 ${indiaRegSection}
 ${shipmentInfoHTML(so, allContainers)}
 ${invoiceGoodsTableHTML(orderItems, so)}
-${qualitySection}
-`, { footerTop: `${bankHTML(true)}<div style="margin-bottom:2mm;">${sigHTML(false, true).replace('margin-top:4mm', 'margin-top:0')}</div>` })
+${qualitySection}`,
+      bankHTML(true),
+      sigHTML(false, true).replace('margin-top:4mm', 'margin-top:0')
+    )
 
-    const pdf = await htmlToPDF(html, { margin: { top: '8mm', right: '8mm', bottom: '62mm', left: '8mm' } })
+    const pdf = await htmlToPDF(html, { margin: { top: '0', right: '0', bottom: '0', left: '0' } })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="Invoice_${so.party_no}.pdf"`,
