@@ -16,9 +16,10 @@ function etaDaysLeft(eta) {
 function fmtMoney(val, currency = 'USD') {
   const n = parseFloat(val) || 0
   if (n === 0) return '—'
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
-  if (n >= 1_000)     return `$${(n / 1_000).toFixed(1)}K`
-  return `$${n.toFixed(0)}`
+  const sym = (currency || 'USD').toUpperCase() === 'EUR' ? '€' : '$'
+  if (n >= 1_000_000) return `${sym}${(n / 1_000_000).toFixed(2)}M`
+  if (n >= 1_000)     return `${sym}${(n / 1_000).toFixed(1)}K`
+  return `${sym}${n.toFixed(0)}`
 }
 
 function fmtKg(val) {
@@ -205,7 +206,7 @@ export default function DashboardPage() {
         <KpiCard
           icon={TrendingUp}
           label="Satış (Bu Ay)"
-          value={fmtMoney(fin.so_value_this_month)}
+          value={fmtMoney(fin.so_value_this_month, fin.so_currency)}
           sub={`${stats.so_count ?? 0} sipariş`}
           change={soChangePct}
           iconClass="kpi-icon-green"
@@ -214,7 +215,7 @@ export default function DashboardPage() {
         <KpiCard
           icon={ShoppingCart}
           label="Alım (Bu Ay)"
-          value={fmtMoney(fin.po_value_this_month)}
+          value={fmtMoney(fin.po_value_this_month, fin.po_currency)}
           sub={`${stats.po_count ?? 0} sipariş`}
           change={poChangePct}
           iconClass="kpi-icon-blue"
@@ -223,7 +224,7 @@ export default function DashboardPage() {
         <KpiCard
           icon={DollarSign}
           label="Açık Pipeline"
-          value={fmtMoney(fin.so_pipeline_value)}
+          value={fmtMoney(fin.so_pipeline_value, fin.so_currency)}
           sub="Aktif satışlar"
           iconClass="kpi-icon-purple"
           accent="kpi-accent-purple"

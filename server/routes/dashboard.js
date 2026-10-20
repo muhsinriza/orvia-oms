@@ -56,70 +56,78 @@ router.get('/', async (req, res) => {
           WHERE po.quantity_kg IS NOT NULL AND po.price_per_unit IS NOT NULL
         )
         SELECT
-          -- Bu ay satış tutarı (kutu × birim fiyat, yoksa kg × birim fiyat)
+          -- Bu ay satış tutarı (kutu × birim fiyat, yoksa kg × birim fiyat) — draft hariç
           COALESCE((SELECT SUM(
               CASE WHEN total_boxes > 0 THEN total_boxes * price_per_unit
                    ELSE quantity_kg * price_per_unit END)
             FROM so_box_totals
             WHERE created_at >= date_trunc('month', now())
-              AND status NOT IN ('cancelled')), 0) AS so_value_this_month,
+              AND status NOT IN ('cancelled','draft')), 0) AS so_value_this_month,
 
-          -- Geçen ay satış tutarı
+          -- Geçen ay satış tutarı — draft hariç
           COALESCE((SELECT SUM(
               CASE WHEN total_boxes > 0 THEN total_boxes * price_per_unit
                    ELSE quantity_kg * price_per_unit END)
             FROM so_box_totals
             WHERE created_at >= date_trunc('month', now()) - INTERVAL '1 month'
               AND created_at <  date_trunc('month', now())
-              AND status NOT IN ('cancelled')), 0) AS so_value_last_month,
+              AND status NOT IN ('cancelled','draft')), 0) AS so_value_last_month,
 
-          -- Bu ay alım tutarı (kg × birim fiyat — satın almada kg kullanılır)
+          -- Bu ay alım tutarı — draft hariç
           COALESCE((SELECT SUM(quantity_kg * price_per_unit)
             FROM po_totals
             WHERE created_at >= date_trunc('month', now())
-              AND status NOT IN ('cancelled')), 0) AS po_value_this_month,
+              AND status NOT IN ('cancelled','draft')), 0) AS po_value_this_month,
 
-          -- Geçen ay alım tutarı
+          -- Geçen ay alım tutarı — draft hariç
           COALESCE((SELECT SUM(quantity_kg * price_per_unit)
             FROM po_totals
             WHERE created_at >= date_trunc('month', now()) - INTERVAL '1 month'
               AND created_at <  date_trunc('month', now())
-              AND status NOT IN ('cancelled')), 0) AS po_value_last_month,
+              AND status NOT IN ('cancelled','draft')), 0) AS po_value_last_month,
 
-          -- Açık pipeline: aktif satışların gerçek tutarı
+          -- Açık pipeline: aktif satışların gerçek tutarı — draft hariç
           COALESCE((SELECT SUM(
               CASE WHEN total_boxes > 0 THEN total_boxes * price_per_unit
                    ELSE quantity_kg * price_per_unit END)
             FROM so_box_totals
-            WHERE status NOT IN ('completed','delivered','cancelled')), 0) AS so_pipeline_value,
+            WHERE status NOT IN ('completed','delivered','cancelled','draft')), 0) AS so_pipeline_value,
 
           COALESCE((SELECT SUM(quantity_kg * price_per_unit)
             FROM po_totals
-            WHERE status NOT IN ('completed','cancelled')), 0) AS po_pipeline_value,
+            WHERE status NOT IN ('completed','cancelled','draft')), 0) AS po_pipeline_value,
 
-          -- Bu yılki toplam kg (gerçek ağırlık, hem satış hem alımda kg aynı)
+          -- Bu yılki toplam kg — draft hariç
           COALESCE((SELECT SUM(quantity_kg)
             FROM sales_orders
             WHERE created_at >= date_trunc('year', now())
-              AND status NOT IN ('cancelled')
+              AND status NOT IN ('cancelled','draft')
               AND quantity_kg IS NOT NULL), 0) AS so_kg_ytd,
 
           COALESCE((SELECT SUM(quantity_kg)
             FROM purchase_orders
             WHERE created_at >= date_trunc('year', now())
-              AND status NOT IN ('cancelled')
+              AND status NOT IN ('cancelled','draft')
               AND quantity_kg IS NOT NULL), 0) AS po_kg_ytd,
 
           COALESCE((SELECT AVG(price_per_unit)
             FROM sales_orders
             WHERE created_at >= date_trunc('month', now())
-              AND status NOT IN ('cancelled')
+              AND status NOT IN ('cancelled','draft')
               AND price_per_unit IS NOT NULL), 0) AS avg_so_price_this_month,
 
-          (SELECT COALESCE(string_agg(DISTINCT currency, ','), 'USD')
-            FROM sales_orders
+          -- Ana para birimi: bu ayki en çok kullanılan
+          COALESCE((SELECT currency FROM sales_orders
             WHERE created_at >= date_trunc('month', now())
-              AND status NOT IN ('cancelled')) AS currencies
+              AND status NOT IN ('cancelled','draft')
+              AND currency IS NOT NULL
+            GROUP BY currency ORDER BY COUNT(*) DESC LIMIT 1), 'USD') AS so_currency,
+
+          COALESCE((SELECT currency FROM purchase_orders
+            WHERE created_at >= date_trunc('month', now())
+              AND status NOT IN ('cancelled','draft')
+              AND currency IS NOT NULL
+            GROUP BY currency ORDER BY COUNT(*) DESC LIMIT 1), 'USD') AS po_currency
       `),
 
       // Son satın almalar
@@ -156,7 +164,7 @@ router.get('/', async (req, res) => {
                (SELECT name FROM products  WHERE id = product_id)  AS product_name,
                'purchase' AS type
         FROM purchase_orders
-        WHERE status NOT IN ('completed','cancelled') AND eta IS NOT NULL
+        WHERE status NOT IN ('completed','cancelled','draft') AND eta IS NOT NULL
         UNION ALL
         SELECT id, party_no, status, eta, etd, transport_mode,
                quantity_kg, price_per_unit, currency,
@@ -164,7 +172,7 @@ router.get('/', async (req, res) => {
                (SELECT name FROM products  WHERE id = product_id)  AS product_name,
                'sales' AS type
         FROM sales_orders
-        WHERE status NOT IN ('completed','delivered','cancelled') AND eta IS NOT NULL
+        WHERE status NOT IN ('completed','delivered','cancelled','draft') AND eta IS NOT NULL
         ORDER BY eta ASC
       `),
 
@@ -189,7 +197,7 @@ router.get('/', async (req, res) => {
         FROM sales_orders so
         LEFT JOIN products p ON p.id = so.product_id
         WHERE so.created_at >= date_trunc('month', now())
-          AND so.status NOT IN ('cancelled')
+          AND so.status NOT IN ('cancelled','draft')
           AND p.name IS NOT NULL
         GROUP BY p.name
         ORDER BY total_kg DESC NULLS LAST
