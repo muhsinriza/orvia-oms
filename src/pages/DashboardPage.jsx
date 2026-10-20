@@ -566,7 +566,7 @@ export default function DashboardPage() {
                 {etaAlerts.map(a => {
                   const days = parseInt(a.days_until_eta) ?? 0
                   const urg  = etaUrgency(days)
-                  const link = `/${a.type === 'purchase' ? 'purchase-orders' : 'sales-orders'}/${a.id}`
+                  const link = `/${a.type === 'purchase' ? 'purchasing' : 'sales'}/${a.id}`
                   return (
                     <div key={`eta-${a.type}-${a.id}`} style={{
                       background: 'var(--clr-surface)',
@@ -717,13 +717,13 @@ export default function DashboardPage() {
               accent="#64748b"
               action={
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <Link to="/sales-orders" style={{
+                  <Link to="/sales" style={{
                     fontSize: 12, color: '#6366f1', textDecoration: 'none', fontWeight: 700,
                     display: 'flex', alignItems: 'center', gap: 4
                   }}>
                     Satışlar <ArrowRightIcon size={11} color="#6366f1" />
                   </Link>
-                  <Link to="/purchase-orders" style={{
+                  <Link to="/purchasing" style={{
                     fontSize: 12, color: '#6366f1', textDecoration: 'none', fontWeight: 700,
                     display: 'flex', alignItems: 'center', gap: 4
                   }}>
@@ -738,7 +738,7 @@ export default function DashboardPage() {
                 : recent.map((r, i) => {
                   const isPurchase = r.type === 'purchase'
                   const amount = parseFloat(r.quantity_kg||0) * parseFloat(r.price_per_unit||0)
-                  const link = `/${isPurchase ? 'purchase-orders' : 'sales-orders'}/${r.id}`
+                  const link = `/${isPurchase ? 'purchasing' : 'sales'}/${r.id}`
                   return (
                     <div key={`rec-${r.type}-${r.id}`}>
                       {i > 0 && <Divider />}
@@ -897,7 +897,7 @@ export default function DashboardPage() {
                             ⏰ {daysLeft}g kaldı
                           </span>
                         )}
-                        <Link to={`/${s.type === 'purchase' ? 'purchase-orders' : 'sales-orders'}/${s.id}`}
+                        <Link to={`/${s.type === 'purchase' ? 'purchasing' : 'sales'}/${s.id}`}
                           style={{
                             display: 'flex', alignItems: 'center', gap: 5,
                             padding: '7px 16px', borderRadius: 10,
