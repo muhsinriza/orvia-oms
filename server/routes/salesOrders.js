@@ -238,6 +238,7 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
     tracking_number, container_number, seawaybill_number, vessel_name,
     flight_number, driver_name, driver_phone,
     loading_address, freight_amount,
+    shipping_line,
     items,
   } = req.body
   const client = await db.connect()
@@ -268,6 +269,7 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
         tracking_number=$34, container_number=$35, seawaybill_number=$36, vessel_name=$37,
         flight_number=$38, driver_name=$39, driver_phone=$40,
         loading_address=$41, freight_amount=$42,
+        shipping_line=$44,
         party_no=COALESCE(NULLIF($43,''), party_no)
       WHERE id=$33
       RETURNING *
@@ -286,6 +288,7 @@ router.put('/:id', requireRole('admin'), async (req, res) => {
       flight_number || null, driver_name || null, driver_phone || null,
       loading_address || null, freight_amount || null,
       party_no || null,
+      shipping_line || null,
     ])
     if (!rows[0]) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Bulunamadı' }) }
 
