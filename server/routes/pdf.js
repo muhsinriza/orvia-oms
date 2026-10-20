@@ -255,9 +255,24 @@ function wrapInvoice (body, bankingHTML, sigBlockHTML) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 ${CSS}
-.page { width:210mm; height:297mm; padding:8mm; display:flex; flex-direction:column; box-sizing:border-box; overflow:hidden; }
+.page { width:210mm; height:297mm; padding:6mm 8mm; display:flex; flex-direction:column; box-sizing:border-box; overflow:hidden; }
 .page-body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
-.invoice-footer { flex-shrink:0; margin-top:auto; padding-top:2mm; }
+.invoice-footer { flex-shrink:0; margin-top:auto; padding-top:1mm; }
+/* Compact overrides for invoice single-page fit */
+.section-header { padding:0.7mm 3mm; margin:2mm 0 0; font-size:6pt; }
+.info-cell { padding:1mm 2mm; }
+.info-label { font-size:5pt; margin-bottom:0.3mm; }
+.info-value { font-size:7pt; line-height:1.2; }
+.parties { margin-bottom:2mm; }
+.party-col { padding:2mm; }
+.party-label { margin-bottom:1mm; padding-bottom:0.8mm; font-size:5.5pt; }
+.party-name { font-size:8pt; margin-bottom:0.5mm; }
+.party-detail { font-size:6pt; line-height:1.4; }
+.info-grid { margin-bottom:2mm; }
+.table-wrapper { margin-bottom:2mm; }
+tbody tr td { padding:1.5mm 2mm; font-size:6.5pt; }
+.tfoot-row td { padding:2mm 2mm; font-size:7pt; }
+thead tr th { padding:1.5mm 2mm; font-size:6pt; }
 </style></head><body>
 <div class="page">
   <div class="page-body">${body}</div>
