@@ -1,6 +1,7 @@
 /**
- * CMA CGM Tracking - Public REST API
- * https://api.cma-cgm.net/booking/shipment/v2/shipments?searchParameter={BL}&searchCriteria=BillOfLading
+ * CMA CGM Tracking
+ * NOT: CMA CGM Developer Portal API onayı bekleniyor.
+ * Onay gelince bu dosya API entegrasyonuyla güncellenecek.
  */
 
 const https = require('https');
@@ -29,6 +30,13 @@ function httpGet(url, headers = {}) {
 }
 
 async function trackCmaCgm(blNumber) {
+  // CMA CGM Developer Portal API onayı henüz gelmedi.
+  // Onay gelince burada API key ile entegrasyon yapılacak.
+  return {
+    success: false,
+    error: 'CMA CGM otomatik takip yakında aktif olacak — Developer Portal API onayı bekleniyor. Şimdilik takip bilgilerini manuel girin.',
+  };
+
   try {
     // CMA CGM public tracking API
     const url = `https://www.cma-cgm.com/api/tracking/v2/shipments?searchParameter=${encodeURIComponent(blNumber)}&searchCriteria=BillOfLading`;
