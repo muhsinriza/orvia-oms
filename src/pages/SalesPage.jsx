@@ -333,8 +333,8 @@ export default function SalesPage() {
                           'bg-green-100 text-green-700'
                         }`}>{SALES_TYPE_TR[o.sales_type] || 'İhracat'}</span>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">{o.customer_name}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
+                      <td className="px-4 py-3 whitespace-nowrap" style={{maxWidth:'140px',overflow:'hidden',textOverflow:'ellipsis'}}>{o.customer_name}</td>
+                      <td className="px-4 py-3" style={{maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={[o.product_name, o.variety ? `/ ${o.variety}` : '', o.caliber ? `· ${o.caliber}` : ''].filter(Boolean).join(' ')}>{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{Number(o.quantity_kg).toLocaleString()}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{Number(o.price_per_unit).toFixed(2)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{o.currency}</td>
