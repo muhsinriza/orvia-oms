@@ -1636,9 +1636,10 @@ html, body { margin: 0; padding: 0; }
     let pagesHTML = ''
     let dynamicRowCSS = ''
 
-    // Available body height for table rows ≈ 190mm (A4 297mm minus all fixed chrome)
-    // We clamp between 4mm (min readable) and 9mm (max before it looks sparse)
-    const AVAILABLE_MM = 190
+    // Available body height for table rows ≈ 178mm (A4 297mm minus fixed chrome + safety margin)
+    // Conservative estimate prevents last row being clipped at page boundary
+    // We clamp between 4mm (min readable) and 8.5mm (max before it looks sparse)
+    const AVAILABLE_MM = 178
 
     // Determine yerli mode: body flag takes precedence, falls back to DB value
     const isYerliMode = bodyIsYerli !== undefined ? !!bodyIsYerli : (so.sales_type === 'yerli')
@@ -1649,7 +1650,7 @@ html, body { margin: 0; padding: 0; }
       const cssRules = []
       pagesHTML = containersPayload.map((c, idx) => {
         const rowCount = Math.max(1, (c.rows || []).length || c.palletCount || 1)
-        const rowHeightMm = Math.min(9, Math.max(4, Math.floor((AVAILABLE_MM / rowCount) * 10) / 10))
+        const rowHeightMm = Math.min(8.5, Math.max(4, Math.floor((AVAILABLE_MM / rowCount) * 10) / 10))
         cssRules.push(`.page:nth-child(${idx + 1}) .pl-table tbody tr { height: ${rowHeightMm}mm; }`)
         return buildPackingListPageBody(so, c.containerNumber, c.rows || [], c.palletCount, idx, total, isYerliMode)
       }).join('\n')
@@ -1658,7 +1659,7 @@ html, body { margin: 0; padding: 0; }
       // Legacy single-container mode
       const orderRows = customRows || []
       const rowCount = Math.max(1, orderRows.length || Number(palletCount) || 1)
-      const rowHeightMm = Math.min(9, Math.max(4, Math.floor((AVAILABLE_MM / rowCount) * 10) / 10))
+      const rowHeightMm = Math.min(8.5, Math.max(4, Math.floor((AVAILABLE_MM / rowCount) * 10) / 10))
       dynamicRowCSS = `<style>.pl-table tbody tr { height: ${rowHeightMm}mm; }</style>`
       // For yerli mode, use the container number from the body if provided
       const effectiveContainerNo = isYerliMode && bodyContainerNo ? bodyContainerNo : so.container_number
