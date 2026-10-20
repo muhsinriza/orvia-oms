@@ -32,6 +32,8 @@ services:
       DB_PASSWORD:     ${DB_PASSWORD}
       SESSION_SECRET:  ${SESSION_SECRET}
       PORT:            3001
+      BANK_IBAN_USD:   ${BANK_IBAN_USD}
+      BANK_IBAN_EUR:   ${BANK_IBAN_EUR}
     expose:
       - "3001"
 
