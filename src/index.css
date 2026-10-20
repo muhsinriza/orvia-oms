@@ -51,3 +51,13 @@
   .badge-paid       { @apply badge bg-green-100 text-green-700; }
   .badge-overdue    { @apply badge bg-red-100 text-red-700; }
 }
+
+/* Dashboard fixed header — mobilde full width, büyük ekranda sidebar'ın sağından başlar */
+.dashboard-fixed-header {
+  left: 0 !important;
+}
+@media (min-width: 1024px) {
+  .dashboard-fixed-header {
+    left: 240px !important;
+  }
+}

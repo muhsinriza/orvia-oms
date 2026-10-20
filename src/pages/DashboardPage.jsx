@@ -494,16 +494,14 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* ── Page Header (sticky — tam genişlik, scroll'dan bağımsız) ── */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 20,
-        background: 'var(--clr-bg, var(--clr-surface))',
-        borderBottom: '1px solid var(--clr-border)',
+      {/* ── Page Header (fixed — scroll container'dan bağımsız) ── */}
+      <div className="dashboard-fixed-header" style={{
+        position: 'fixed', top: 56, left: 0, right: 0, zIndex: 20,
+        background: 'white',
+        borderBottom: '1px solid #e5e7eb',
         padding: '14px 24px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexWrap: 'wrap', gap: 14,
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
       }}>
         {/* Logo + title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -550,7 +548,7 @@ export default function DashboardPage() {
       </div>
 
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 0 60px' }}>
-      <div style={{ padding: '28px 24px' }}>
+      <div style={{ padding: '28px 24px', paddingTop: 76 }}>
 
       {/* ══════════ ÖZET ══════════ */}
       {tab === 'overview' && (
