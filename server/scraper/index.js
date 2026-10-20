@@ -86,7 +86,7 @@ async function runTrackingCycle() {
      FROM purchase_orders
      WHERE shipping_line IS NOT NULL
        AND (seawaybill_number IS NOT NULL OR tracking_number IS NOT NULL)
-       AND status NOT IN ('teslim_edildi', 'iptal')
+       AND status NOT IN ('delivered', 'cancelled')
        AND (last_tracked_at IS NULL OR last_tracked_at < NOW() - INTERVAL '6 hours')`
   );
 
@@ -96,7 +96,7 @@ async function runTrackingCycle() {
      FROM sales_orders
      WHERE shipping_line IS NOT NULL
        AND (seawaybill_number IS NOT NULL OR tracking_number IS NOT NULL)
-       AND status NOT IN ('teslim_edildi', 'iptal')
+       AND status NOT IN ('delivered', 'cancelled')
        AND (last_tracked_at IS NULL OR last_tracked_at < NOW() - INTERVAL '6 hours')`
   );
 
