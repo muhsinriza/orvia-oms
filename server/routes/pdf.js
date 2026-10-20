@@ -1294,9 +1294,22 @@ ${headerHTML('PACKING LIST', val(so.invoice_no || so.party_no), fmtDate(so.shipm
 </table>
 </div>
 ${qualitySection}
-${sigHTML(false, true, true)}
   </div>
   <div class="page-footer">
+    <div style="background:linear-gradient(135deg,#f0f7f4 0%,#fff 60%);border:1px solid #d1e7dc;border-radius:3px 3px 0 0;padding:2mm 3.5mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+      <div style="display:flex;align-items:center;gap:2.5mm;">
+        <div style="flex-shrink:0;width:6.5mm;height:6.5mm;background:#0a5c3a;border-radius:50%;display:flex;align-items:center;justify-content:center;">
+          <svg width="10" height="10" viewBox="0 0 14 14" fill="none"><path d="M3 7L6 10L11 4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:5pt;font-weight:700;color:#0a5c3a;letter-spacing:1.2px;text-transform:uppercase;">Electronically Authorized · ${CO.name} · Tax: ${CO.tax}</div>
+        </div>
+        <div style="flex-shrink:0;text-align:right;border-left:1px solid #d1e7dc;padding-left:2.5mm;">
+          <div style="font-size:5pt;font-weight:700;color:#111827;white-space:nowrap;">${CO.rep}</div>
+          <div style="font-size:4.5pt;color:#6b7280;white-space:nowrap;">${CO.title}</div>
+        </div>
+      </div>
+    </div>
     <div class="page-footer-inner">
       <div class="page-footer-logo">ORVIA</div>
       <div class="page-footer-text">
@@ -1362,7 +1375,7 @@ html, body { margin: 0; padding: 0; }
 .pl-table tbody td { padding:0.65mm 1.8mm; font-size:5.8pt; border-bottom:1px solid #f0f0f0; }
 .pl-table tfoot td { padding:1.1mm 1.8mm; font-size:6pt; }
 .table-wrapper { margin-bottom:1mm; flex-grow:1; }
-.page-footer { margin-top:1.5mm; }
+.page-footer { position:static; margin-top:1.5mm; left:auto; right:auto; bottom:auto; }
 .page-footer-logo { padding:1.2mm 3mm; font-size:7.5pt; letter-spacing:3px; }
 .page-footer-text, .page-footer-right { font-size:4.5pt; padding:1.2mm 3mm; line-height:1.7; }
 </style>`
