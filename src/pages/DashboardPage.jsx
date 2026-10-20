@@ -493,9 +493,8 @@ export default function DashboardPage() {
   const currentMonthLabel = now.toLocaleDateString('tr-TR', { month: 'short', year: 'numeric' })
 
   return (
-    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 0 60px' }}>
-
-      {/* ── Page Header (sticky) ── */}
+    <>
+      {/* ── Page Header (sticky — tam genişlik, scroll'dan bağımsız) ── */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20,
         background: 'var(--clr-bg, var(--clr-surface))',
@@ -550,6 +549,7 @@ export default function DashboardPage() {
         </nav>
       </div>
 
+    <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 0 60px' }}>
       <div style={{ padding: '28px 24px' }}>
 
       {/* ══════════ ÖZET ══════════ */}
@@ -1167,5 +1167,6 @@ export default function DashboardPage() {
 
       </div>
     </div>
+    </>
   )
 }
