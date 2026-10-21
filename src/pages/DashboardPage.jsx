@@ -737,7 +737,9 @@ export default function DashboardPage() {
                 ? <EmptyCard message="Henüz işlem yok" />
                 : recent.map((r, i) => {
                   const isPurchase = r.type === 'purchase'
-                  const amount = parseFloat(r.quantity_kg||0) * parseFloat(r.price_per_unit||0)
+                  const amount = r.order_value != null
+                    ? parseFloat(r.order_value)
+                    : parseFloat(r.quantity_kg||0) * parseFloat(r.price_per_unit||0)
                   const link = `/${isPurchase ? 'purchasing' : 'sales'}/${r.id}`
                   return (
                     <div key={`rec-${r.type}-${r.id}`}>

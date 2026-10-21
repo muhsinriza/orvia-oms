@@ -161,7 +161,22 @@ router.get('/', async (req, res) => {
                so.quantity_kg, so.price_per_unit, so.currency,
                so.eta, so.etd, so.transport_mode,
                c.name AS party_name, p.name AS product_name,
-               'sales' AS type
+               'sales' AS type,
+               COALESCE((
+                 SELECT SUM(
+                   CASE
+                     WHEN soi.sell_by = 'kg' THEN
+                       COALESCE(soi.quantity_kg, 0) * COALESCE(soi.price_per_unit, 0)
+                     ELSE
+                       CASE WHEN COALESCE(soi.box_weight_kg, 0) > 0
+                         THEN ROUND(COALESCE(soi.quantity_kg, 0) / soi.box_weight_kg) * COALESCE(soi.price_per_unit, 0)
+                         ELSE 0
+                       END
+                   END
+                 )
+                 FROM sales_order_items soi
+                 WHERE soi.sales_order_id = so.id
+               ), so.quantity_kg * so.price_per_unit, 0) AS order_value
         FROM sales_orders so
         LEFT JOIN customers c ON c.id = so.customer_id
         LEFT JOIN products  p ON p.id = so.product_id
