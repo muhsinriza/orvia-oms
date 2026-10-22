@@ -17,6 +17,49 @@ const DOC_TR = { invoice:'Fatura', packing_list:'Paket Listesi', health_certific
 
 const SALES_TYPE_TR = { ihracat:'İhracat', yerli:'Yerli Satış', transit:'Transit' }
 
+function SalesTableRow({ o, openEdit, openLinks, setDeleteConfirm, generateSalesInvoicePDF, generatePackingListPDF }) {
+  const [hovered, setHovered] = React.useState(false)
+  const btnStyle = { padding:'5px', borderRadius:'4px', border:'none', background:'none', cursor:'pointer', color:'#6b7280' }
+  const delStyle = { padding:'5px', borderRadius:'4px', border:'none', background:'none', cursor:'pointer', color:'#f87171' }
+  return (
+    <tr className="transition-colors" style={{background: hovered ? '#f9fafb' : ''}}
+      onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)}>
+      <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">
+        <Link to={`/sales/${o.id}`} className="hover:underline">{o.party_no}</Link>
+      </td>
+      <td className="px-4 py-3 font-mono text-sm text-gray-700 whitespace-nowrap">
+        {o.lot_no || <span className="text-gray-300">—</span>}
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap">
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+          o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :
+          o.sales_type === 'transit' ? 'bg-purple-100 text-purple-700' :
+          'bg-green-100 text-green-700'
+        }`}>{SALES_TYPE_TR[o.sales_type] || 'İhracat'}</span>
+      </td>
+      <td className="px-4 py-3 whitespace-nowrap" style={{maxWidth:'140px',overflow:'hidden',textOverflow:'ellipsis'}}>{o.customer_name}</td>
+      <td className="px-4 py-3" style={{maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={[o.product_name, o.variety ? `/ ${o.variety}` : '', o.caliber ? `· ${o.caliber}` : ''].filter(Boolean).join(' ')}>{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
+      <td className="px-4 py-3 whitespace-nowrap">{Number(o.quantity_kg).toLocaleString()}</td>
+      <td className="px-4 py-3 whitespace-nowrap">{Number(o.price_per_unit).toFixed(2)}</td>
+      <td className="px-4 py-3 whitespace-nowrap">{o.currency}</td>
+      <td className="px-4 py-3"><span className={`badge-${o.status}`}>{STATUS_TR[o.status]}</span></td>
+      <td className="px-4 py-3 whitespace-nowrap" style={{minWidth:'130px'}}>
+        {hovered ? (
+          <div style={{display:'flex',gap:'2px'}}>
+            <button style={btnStyle} onMouseEnter={e=>e.currentTarget.style.background='#e5e7eb'} onMouseLeave={e=>e.currentTarget.style.background='none'} onClick={()=>openEdit(o)} title="Düzenle"><Edit2 size={14}/></button>
+            <button style={btnStyle} onMouseEnter={e=>e.currentTarget.style.background='#e5e7eb'} onMouseLeave={e=>e.currentTarget.style.background='none'} onClick={()=>generateSalesInvoicePDF(o)} title="Fatura PDF"><FileText size={14}/></button>
+            <button style={btnStyle} onMouseEnter={e=>e.currentTarget.style.background='#e5e7eb'} onMouseLeave={e=>e.currentTarget.style.background='none'} onClick={()=>generatePackingListPDF(o)} title="Paket Listesi PDF"><Package size={14}/></button>
+            <button style={btnStyle} onMouseEnter={e=>e.currentTarget.style.background='#e5e7eb'} onMouseLeave={e=>e.currentTarget.style.background='none'} onClick={()=>openLinks(o)} title="Bağlantılar"><Link2 size={14}/></button>
+            <button style={delStyle} onMouseEnter={e=>e.currentTarget.style.background='#fef2f2'} onMouseLeave={e=>e.currentTarget.style.background='none'} onClick={()=>setDeleteConfirm(o)} title="Sil"><Trash2 size={14}/></button>
+          </div>
+        ) : (
+          <span className="text-gray-400 text-xs">{o.created_at ? new Date(o.created_at).toLocaleDateString('tr-TR') : ''}</span>
+        )}
+      </td>
+    </tr>
+  )
+}
+
 const EMPTY_ITEM = { product_id:'', variety:'', caliber:'', origin:'', quantity_kg:'', box_count:'', price_per_unit:'', box_type:'', box_weight_kg:'', sell_by:'box' }
 
 const EMPTY_FORM = {
@@ -321,37 +364,7 @@ export default function SalesPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map(o => (
-                    <tr key={o.id} className="sales-row hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">
-                        <Link to={`/sales/${o.id}`} className="hover:underline">{o.party_no}</Link>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-sm text-gray-700 whitespace-nowrap">
-                        {o.lot_no || <span className="text-gray-300">—</span>}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :
-                          o.sales_type === 'transit' ? 'bg-purple-100 text-purple-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>{SALES_TYPE_TR[o.sales_type] || 'İhracat'}</span>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap" style={{maxWidth:'140px',overflow:'hidden',textOverflow:'ellipsis'}}>{o.customer_name}</td>
-                      <td className="px-4 py-3" style={{maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={[o.product_name, o.variety ? `/ ${o.variety}` : '', o.caliber ? `· ${o.caliber}` : ''].filter(Boolean).join(' ')}>{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{Number(o.quantity_kg).toLocaleString()}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{Number(o.price_per_unit).toFixed(2)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">{o.currency}</td>
-                      <td className="px-4 py-3"><span className={`badge-${o.status}`}>{STATUS_TR[o.status]}</span></td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                        <span className="row-date">{o.created_at ? new Date(o.created_at).toLocaleDateString('tr-TR') : ''}</span>
-                        <div className="row-actions">
-                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#9ca3af'}} onMouseEnter={e=>{e.currentTarget.style.color='#374151';e.currentTarget.style.background='#e5e7eb'}} onMouseLeave={e=>{e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='none'}} onClick={()=>openEdit(o)} title="Düzenle"><Edit2 size={14}/></button>
-                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#9ca3af'}} onMouseEnter={e=>{e.currentTarget.style.color='#374151';e.currentTarget.style.background='#e5e7eb'}} onMouseLeave={e=>{e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='none'}} onClick={()=>generateSalesInvoicePDF(o)} title="Fatura PDF"><FileText size={14}/></button>
-                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#9ca3af'}} onMouseEnter={e=>{e.currentTarget.style.color='#374151';e.currentTarget.style.background='#e5e7eb'}} onMouseLeave={e=>{e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='none'}} onClick={()=>generatePackingListPDF(o)} title="Paket Listesi PDF"><Package size={14}/></button>
-                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#9ca3af'}} onMouseEnter={e=>{e.currentTarget.style.color='#374151';e.currentTarget.style.background='#e5e7eb'}} onMouseLeave={e=>{e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='none'}} onClick={()=>openLinks(o)} title="Bağlantılar"><Link2 size={14}/></button>
-                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#f87171'}} onMouseEnter={e=>{e.currentTarget.style.color='#dc2626';e.currentTarget.style.background='#fef2f2'}} onMouseLeave={e=>{e.currentTarget.style.color='#f87171';e.currentTarget.style.background='none'}} onClick={()=>setDeleteConfirm(o)} title="Sil"><Trash2 size={14}/></button>
-                        </div>
-                      </td>
-                    </tr>
+                    <SalesTableRow key={o.id} o={o} openEdit={openEdit} openLinks={openLinks} setDeleteConfirm={setDeleteConfirm} generateSalesInvoicePDF={generateSalesInvoicePDF} generatePackingListPDF={generatePackingListPDF} />
                   ))}
                 </tbody>
               </table>
