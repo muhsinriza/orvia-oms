@@ -19,11 +19,15 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash)
     if (!ok) return res.status(401).json({ error: 'E-posta veya şifre hatalı' })
 
-    req.session.userId   = user.id
-    req.session.userRole = user.role
-    req.session.save(err => {
+    // Session fixation koruması: login öncesi session ID'yi yenile
+    req.session.regenerate(err => {
       if (err) return res.status(500).json({ error: 'Oturum başlatılamadı' })
-      res.json({ id: user.id, email: user.email, full_name: user.full_name, role: user.role })
+      req.session.userId   = user.id
+      req.session.userRole = user.role
+      req.session.save(saveErr => {
+        if (saveErr) return res.status(500).json({ error: 'Oturum kaydedilemedi' })
+        res.json({ id: user.id, email: user.email, full_name: user.full_name, role: user.role })
+      })
     })
   } catch (e) {
     console.error(e)
