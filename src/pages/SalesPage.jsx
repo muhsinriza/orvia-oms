@@ -321,7 +321,7 @@ export default function SalesPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map(o => (
-                    <tr key={o.id} className="group hover:bg-gray-50 transition-colors relative">
+                    <tr key={o.id} className="sales-row hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">
                         <Link to={`/sales/${o.id}`} className="hover:underline">{o.party_no}</Link>
                       </td>
@@ -342,13 +342,13 @@ export default function SalesPage() {
                       <td className="px-4 py-3 whitespace-nowrap">{o.currency}</td>
                       <td className="px-4 py-3"><span className={`badge-${o.status}`}>{STATUS_TR[o.status]}</span></td>
                       <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                        <span className="group-hover:hidden">{o.created_at ? new Date(o.created_at).toLocaleDateString('tr-TR') : ''}</span>
-                        <div className="hidden group-hover:flex gap-0.5">
-                          <button className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors" onClick={()=>openEdit(o)} title="Düzenle"><Edit2 size={14}/></button>
-                          <button className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors" onClick={()=>generateSalesInvoicePDF(o)} title="Fatura PDF"><FileText size={14}/></button>
-                          <button className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors" onClick={()=>generatePackingListPDF(o)} title="Paket Listesi PDF"><Package size={14}/></button>
-                          <button className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors" onClick={()=>openLinks(o)} title="Bağlantılar"><Link2 size={14}/></button>
-                          <button className="p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" onClick={()=>setDeleteConfirm(o)} title="Sil"><Trash2 size={14}/></button>
+                        <span className="row-date">{o.created_at ? new Date(o.created_at).toLocaleDateString('tr-TR') : ''}</span>
+                        <div className="row-actions">
+                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#9ca3af'}} onMouseEnter={e=>{e.currentTarget.style.color='#374151';e.currentTarget.style.background='#e5e7eb'}} onMouseLeave={e=>{e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='none'}} onClick={()=>openEdit(o)} title="Düzenle"><Edit2 size={14}/></button>
+                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#9ca3af'}} onMouseEnter={e=>{e.currentTarget.style.color='#374151';e.currentTarget.style.background='#e5e7eb'}} onMouseLeave={e=>{e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='none'}} onClick={()=>generateSalesInvoicePDF(o)} title="Fatura PDF"><FileText size={14}/></button>
+                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#9ca3af'}} onMouseEnter={e=>{e.currentTarget.style.color='#374151';e.currentTarget.style.background='#e5e7eb'}} onMouseLeave={e=>{e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='none'}} onClick={()=>generatePackingListPDF(o)} title="Paket Listesi PDF"><Package size={14}/></button>
+                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#9ca3af'}} onMouseEnter={e=>{e.currentTarget.style.color='#374151';e.currentTarget.style.background='#e5e7eb'}} onMouseLeave={e=>{e.currentTarget.style.color='#9ca3af';e.currentTarget.style.background='none'}} onClick={()=>openLinks(o)} title="Bağlantılar"><Link2 size={14}/></button>
+                          <button style={{padding:'6px',borderRadius:'4px',border:'none',background:'none',cursor:'pointer',color:'#f87171'}} onMouseEnter={e=>{e.currentTarget.style.color='#dc2626';e.currentTarget.style.background='#fef2f2'}} onMouseLeave={e=>{e.currentTarget.style.color='#f87171';e.currentTarget.style.background='none'}} onClick={()=>setDeleteConfirm(o)} title="Sil"><Trash2 size={14}/></button>
                         </div>
                       </td>
                     </tr>
