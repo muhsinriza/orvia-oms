@@ -284,25 +284,27 @@ export default function SalesPage() {
             <div className="lg:hidden divide-y divide-gray-100">
               {filtered.map(o => (
                 <div key={o.id} className="px-4 py-3">
-                  <div className="flex items-start gap-2 mb-1">
-                    <Link to={`/sales/${o.id}`} className="font-mono font-semibold text-primary-700 text-sm hover:underline">{o.party_no}</Link>
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
-                      o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :
-                      o.sales_type === 'transit' ? 'bg-purple-100 text-purple-700' :
-                      'bg-green-100 text-green-700'
-                    }`}>{SALES_TYPE_TR[o.sales_type] || 'İhracat'}</span>
-                    <span className={`ml-auto badge-${o.status} text-xs`}>{STATUS_TR[o.status]}</span>
-                  </div>
-                  <div className="text-sm text-gray-700 truncate">{o.customer_name}</div>
-                  <div className="text-xs text-gray-400 truncate">{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-500">{Number(o.quantity_kg).toLocaleString()} kg · {Number(o.price_per_unit).toFixed(2)} {o.currency}</span>
-                    <div className="flex gap-1">
-                      <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(o)}><Edit2 size={13}/></button>
-                      <button className="btn-ghost px-2 py-1" onClick={()=>generateSalesInvoicePDF(o)}><FileText size={13}/></button>
-                      <button className="btn-ghost px-2 py-1" onClick={()=>openLinks(o)}><Link2 size={13}/></button>
-                      <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(o)}><Trash2 size={13}/></button>
+                  {/* Tıklanabilir üst alan — detay sayfasına götürür */}
+                  <Link to={`/sales/${o.id}`} className="block mb-2">
+                    <div className="flex items-start gap-2 mb-1">
+                      <span className="font-mono font-semibold text-primary-700 text-sm">{o.party_no}</span>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                        o.sales_type === 'yerli' ? 'bg-blue-100 text-blue-700' :
+                        o.sales_type === 'transit' ? 'bg-purple-100 text-purple-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>{SALES_TYPE_TR[o.sales_type] || 'İhracat'}</span>
+                      <span className={`ml-auto badge-${o.status} text-xs`}>{STATUS_TR[o.status]}</span>
                     </div>
+                    <div className="text-sm text-gray-700 truncate">{o.customer_name}</div>
+                    <div className="text-xs text-gray-400 truncate">{o.product_name}{o.variety ? ` / ${o.variety}` : ''}{o.caliber ? ` · ${o.caliber}` : ''}</div>
+                    <div className="text-xs text-gray-500 mt-1">{Number(o.quantity_kg).toLocaleString()} kg · {Number(o.price_per_unit).toFixed(2)} {o.currency}</div>
+                  </Link>
+                  {/* Aksiyon butonları — ayrı satır, daha büyük dokunma hedefi */}
+                  <div className="flex gap-2 pt-1 border-t border-gray-100">
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs text-gray-600 hover:bg-gray-50 rounded-lg transition-colors" onClick={()=>openEdit(o)}><Edit2 size={15}/>Düzenle</button>
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs text-gray-600 hover:bg-gray-50 rounded-lg transition-colors" onClick={()=>generateSalesInvoicePDF(o)}><FileText size={15}/>Fatura</button>
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs text-gray-600 hover:bg-gray-50 rounded-lg transition-colors" onClick={()=>openLinks(o)}><Link2 size={15}/>Bağlantı</button>
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors" onClick={e=>{e.preventDefault();setDeleteConfirm(o)}}><Trash2 size={15}/>Sil</button>
                   </div>
                 </div>
               ))}

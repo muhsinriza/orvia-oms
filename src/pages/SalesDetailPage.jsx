@@ -58,7 +58,7 @@ function StatusBar({ status, onStatusChange }) {
             <React.Fragment key={s}>
               <button
                 onClick={() => !cancelled && onStatusChange(s)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors
                   ${active ? 'bg-primary-600 text-white shadow-sm' :
                     done ? 'bg-primary-100 text-primary-700 hover:bg-primary-200' :
                     'bg-gray-100 text-gray-400 hover:bg-gray-200'}
@@ -1563,14 +1563,15 @@ export default function SalesDetailPage() {
               <div className="col-span-2">
                 <dt className="text-gray-500 text-xs mb-1.5">Ürün Kalemleri</dt>
                 <dd>
-                  <table className="w-full text-xs border-collapse">
+                  <div className="overflow-x-auto -mx-2">
+                  <table className="min-w-full text-xs border-collapse">
                     <thead>
                       <tr className="bg-gray-50">
-                        <th className="text-left px-2 py-1 text-gray-500 font-medium">Çeşit / Kalibr</th>
-                        <th className="text-right px-2 py-1 text-gray-500 font-medium">Miktar</th>
-                        <th className="text-right px-2 py-1 text-gray-500 font-medium">Kutu</th>
-                        <th className="text-right px-2 py-1 text-gray-500 font-medium">Birim Fiyat</th>
-                        <th className="text-right px-2 py-1 text-gray-500 font-medium">Tutar</th>
+                        <th className="text-left px-2 py-1 text-gray-500 font-medium whitespace-nowrap">Çeşit / Kalibr</th>
+                        <th className="text-right px-2 py-1 text-gray-500 font-medium whitespace-nowrap">Miktar</th>
+                        <th className="text-right px-2 py-1 text-gray-500 font-medium whitespace-nowrap">Kutu</th>
+                        <th className="text-right px-2 py-1 text-gray-500 font-medium whitespace-nowrap">Birim Fiyat</th>
+                        <th className="text-right px-2 py-1 text-gray-500 font-medium whitespace-nowrap">Tutar</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -1607,6 +1608,7 @@ export default function SalesDetailPage() {
                       </tr>
                     </tfoot>
                   </table>
+                  </div>
                 </dd>
               </div>
             ) : (

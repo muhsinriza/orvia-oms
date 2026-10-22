@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useToast } from '../components/ui/Toast'
 import Modal from '../components/ui/Modal'
-import { Plus, Search, FileText } from 'lucide-react'
+import { Plus, Search, FileText, Edit2 } from 'lucide-react'
 import { generatePurchaseOrderPDF } from '../lib/pdf'
 
 const STATUS_TR = {
@@ -244,25 +244,25 @@ export default function PurchasingPage() {
             <div className="lg:hidden divide-y divide-gray-100">
               {filtered.map(o => (
                 <div key={o.id} className="px-4 py-3">
-                  <div className="flex items-start gap-2 mb-1">
-                    <Link to={`/purchasing/${o.id}`} className="font-mono font-semibold text-primary-600 text-sm hover:underline">{o.party_no}</Link>
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${o.purchase_type === 'yerli' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
-                      {PURCHASE_TYPE_TR[o.purchase_type] || 'İthalat'}
-                    </span>
-                    <span className={`ml-auto badge badge-${o.status} text-xs`}>{STATUS_TR[o.status] || o.status}</span>
-                  </div>
-                  <div className="text-sm text-gray-700 truncate">{o.supplier_name || '—'}</div>
-                  <div className="text-xs text-gray-400 truncate">{productLabel(o)}</div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-500">
-                      {Number(o.quantity_kg).toLocaleString('tr-TR')} kg · {Number(o.quantity_kg * o.price_per_unit).toLocaleString('tr-TR', {maximumFractionDigits:0})} {o.currency}
-                    </span>
-                    <div className="flex gap-1">
-                      <button className="btn-ghost px-2 py-1 text-xs" onClick={() => openEdit(o)}>Düzenle</button>
-                      <button className="btn-ghost px-2 py-1" onClick={() => generatePurchaseOrderPDF({...o, supplier: suppliers.find(s=>s.id===o.supplier_id), product: products.find(p=>p.id===o.product_id)})}>
-                        <FileText size={13}/>
-                      </button>
+                  {/* Tıklanabilir üst alan — detay sayfasına götürür */}
+                  <Link to={`/purchasing/${o.id}`} className="block mb-2">
+                    <div className="flex items-start gap-2 mb-1">
+                      <span className="font-mono font-semibold text-primary-700 text-sm">{o.party_no}</span>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${o.purchase_type === 'yerli' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}`}>
+                        {PURCHASE_TYPE_TR[o.purchase_type] || 'İthalat'}
+                      </span>
+                      <span className={`ml-auto badge badge-${o.status} text-xs`}>{STATUS_TR[o.status] || o.status}</span>
                     </div>
+                    <div className="text-sm text-gray-700 truncate">{o.supplier_name || '—'}</div>
+                    <div className="text-xs text-gray-400 truncate">{productLabel(o)}</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {Number(o.quantity_kg).toLocaleString('tr-TR')} kg · {Number(o.quantity_kg * o.price_per_unit).toLocaleString('tr-TR', {maximumFractionDigits:0})} {o.currency}
+                    </div>
+                  </Link>
+                  {/* Aksiyon butonları — ayrı satır, daha büyük dokunma hedefi */}
+                  <div className="flex gap-2 pt-1 border-t border-gray-100">
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs text-gray-600 hover:bg-gray-50 rounded-lg transition-colors" onClick={() => openEdit(o)}><Edit2 size={15}/>Düzenle</button>
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs text-gray-600 hover:bg-gray-50 rounded-lg transition-colors" onClick={() => generatePurchaseOrderPDF({...o, supplier: suppliers.find(s=>s.id===o.supplier_id), product: products.find(p=>p.id===o.product_id)})}><FileText size={15}/>Sipariş</button>
                   </div>
                 </div>
               ))}
