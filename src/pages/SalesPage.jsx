@@ -310,18 +310,18 @@ export default function SalesPage() {
               ))}
             </div>
             {/* Desktop table */}
-            <div className="hidden lg:block overflow-x-auto">
+            <div className="hidden lg:block">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    {['Party No','Parti No (İhr.)','Tip','Müşteri','Ürün','Miktar (kg)','Fiyat','Para','Durum','Tarih','İşlemler'].map(h=>(
+                    {['Party No','Parti No (İhr.)','Tip','Müşteri','Ürün','Miktar (kg)','Fiyat','Para','Durum','Tarih'].map(h=>(
                       <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-600 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map(o => (
-                    <tr key={o.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={o.id} className="group hover:bg-gray-50 transition-colors relative">
                       <td className="px-4 py-3 font-mono font-semibold text-primary-700 whitespace-nowrap">
                         <Link to={`/sales/${o.id}`} className="hover:underline">{o.party_no}</Link>
                       </td>
@@ -341,14 +341,14 @@ export default function SalesPage() {
                       <td className="px-4 py-3 whitespace-nowrap">{Number(o.price_per_unit).toFixed(2)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">{o.currency}</td>
                       <td className="px-4 py-3"><span className={`badge-${o.status}`}>{STATUS_TR[o.status]}</span></td>
-                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{o.created_at ? new Date(o.created_at).toLocaleDateString('tr-TR') : ''}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <button className="btn-ghost px-2 py-1" onClick={()=>openEdit(o)} title="Düzenle"><Edit2 size={13}/></button>
-                          <button className="btn-ghost px-2 py-1" onClick={()=>generateSalesInvoicePDF(o)} title="Fatura PDF"><FileText size={13}/></button>
-                          <button className="btn-ghost px-2 py-1" onClick={()=>generatePackingListPDF(o)} title="Paket Listesi PDF"><Package size={13}/></button>
-                          <button className="btn-ghost px-2 py-1" onClick={()=>openLinks(o)} title="Bağlantılar"><Link2 size={13}/></button>
-                          <button className="btn-ghost px-2 py-1 text-red-600 hover:bg-red-50" onClick={()=>setDeleteConfirm(o)} title="Sil"><Trash2 size={13}/></button>
+                      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                        <span className="group-hover:hidden">{o.created_at ? new Date(o.created_at).toLocaleDateString('tr-TR') : ''}</span>
+                        <div className="hidden group-hover:flex gap-0.5">
+                          <button className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors" onClick={()=>openEdit(o)} title="Düzenle"><Edit2 size={14}/></button>
+                          <button className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors" onClick={()=>generateSalesInvoicePDF(o)} title="Fatura PDF"><FileText size={14}/></button>
+                          <button className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors" onClick={()=>generatePackingListPDF(o)} title="Paket Listesi PDF"><Package size={14}/></button>
+                          <button className="p-1.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition-colors" onClick={()=>openLinks(o)} title="Bağlantılar"><Link2 size={14}/></button>
+                          <button className="p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors" onClick={()=>setDeleteConfirm(o)} title="Sil"><Trash2 size={14}/></button>
                         </div>
                       </td>
                     </tr>
