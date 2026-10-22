@@ -32,12 +32,27 @@ async function htmlToPDF (html, opts = {}) {
     const page = await browser.newPage()
     await page.setContent(html, { waitUntil: opts.waitUntil || 'domcontentloaded', timeout: 30000 })
     await page.evaluate(() => document.fonts?.ready).catch(() => {})
+
+    // Auto-scale: measure actual rendered height and shrink to fit one A4 page
+    // A4 printable height at 96dpi = 297mm. We use 275mm as safe usable height (accounts for margins).
+    let scale = opts.scale || undefined
+    if (opts.autoScale) {
+      const contentHeightPx = await page.evaluate(() => document.body.scrollHeight)
+      // 96dpi: 1mm = 3.7795px → 275mm = ~1039px usable
+      const usableHeightPx = 275 * 3.7795
+      if (contentHeightPx > usableHeightPx) {
+        scale = Math.max(0.5, usableHeightPx / contentHeightPx)
+        // Re-apply scale and re-render so fonts/layout adjust
+        await page.setViewport({ width: 794, height: Math.ceil(contentHeightPx), deviceScaleFactor: 1 })
+      }
+    }
+
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
       preferCSSPageSize: false,
       margin: opts.margin || { top: '8mm', right: '8mm', bottom: '8mm', left: '8mm' },
-      ...(opts.scale ? { scale: opts.scale } : {}),
+      ...(scale ? { scale } : {}),
     })
     return pdf
   } finally {
@@ -179,7 +194,7 @@ tbody tr td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .tc-num { font-weight:700; color:#0a5c3a; }
 
 /* PAGE FOOTER */
-.page-footer { position:fixed; bottom:0; left:8mm; right:8mm; padding-bottom:0; }
+.page-footer { margin-top:6mm; }
 .page-footer-inner { background:#0a5c3a; border-radius:2px; display:grid; grid-template-columns:auto 1fr auto; align-items:center; overflow:hidden; }
 .page-footer-logo { padding:2.5mm 5mm; font-size:10pt; font-weight:800; color:#fff; letter-spacing:4px; border-right:1px solid rgba(255,255,255,0.2); white-space:nowrap; }
 .page-footer-text { padding:2.5mm 4mm; font-size:5.5pt; color:rgba(255,255,255,0.65); text-align:center; line-height:1.8; }
@@ -255,8 +270,8 @@ function wrapInvoice (body, bankingHTML, sigBlockHTML) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 ${CSS}
-.page { width:210mm; height:297mm; padding:6mm 8mm; display:flex; flex-direction:column; box-sizing:border-box; overflow:hidden; }
-.page-body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.page { width:210mm; padding:6mm 8mm; display:flex; flex-direction:column; box-sizing:border-box; }
+.page-body { flex:1; display:flex; flex-direction:column; }
 .invoice-footer { flex-shrink:0; margin-top:auto; padding-top:1mm; }
 /* Compact overrides for invoice single-page fit */
 .section-header { padding:0.7mm 3mm; margin:1.5mm 0 0; font-size:6pt; }
@@ -827,7 +842,7 @@ ${qualitySection}`,
       sigHTML(false, true).replace('margin-top:4mm', 'margin-top:0')
     )
 
-    const pdf = await htmlToPDF(html, { margin: { top: '0', right: '0', bottom: '0', left: '0' } })
+    const pdf = await htmlToPDF(html, { margin: { top: '0', right: '0', bottom: '0', left: '0' }, autoScale: true })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="Invoice_${so.party_no}.pdf"`,
