@@ -300,6 +300,7 @@ async function runMigrations () {
       FOREIGN KEY (sales_order_id) REFERENCES sales_orders(id) ON DELETE CASCADE`)
     await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS customer_name TEXT`)
     await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS order_ref TEXT`)
+    await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS customer_address TEXT`)
     console.log('[migrate] All migrations applied successfully')
   } catch (e) {
     console.error('[migrate] Migration error:', e.message)

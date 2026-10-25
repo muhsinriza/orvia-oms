@@ -25,6 +25,7 @@ function CreateCNModal({ onClose, onSaved }) {
   const { showToast } = useToast()
   const [form, setForm] = useState({
     customer_name: '',
+    customer_address: '',
     order_ref: '',
     reason: '',
     amount: '',
@@ -32,8 +33,34 @@ function CreateCNModal({ onClose, onSaved }) {
     description: '',
   })
   const [saving, setSaving] = useState(false)
+  const [customers, setCustomers] = useState([])
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  useEffect(() => {
+    api.get('/customers').then(res => setCustomers(res.data ?? res)).catch(() => {})
+  }, [])
 
   function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
+
+  function handleCustomerInput(val) {
+    set('customer_name', val)
+    if (val.length < 1) { setSuggestions([]); setShowSuggestions(false); return }
+    const q = val.toLowerCase()
+    const matches = customers.filter(c => c.name.toLowerCase().includes(q)).slice(0, 6)
+    setSuggestions(matches)
+    setShowSuggestions(matches.length > 0)
+  }
+
+  function selectCustomer(c) {
+    setForm(f => ({
+      ...f,
+      customer_name: c.name,
+      customer_address: [c.address, c.country].filter(Boolean).join(', '),
+    }))
+    setSuggestions([])
+    setShowSuggestions(false)
+  }
 
   async function handleSubmit() {
     if (!form.customer_name.trim()) { showToast('Müşteri adı zorunludur', 'error'); return }
@@ -44,12 +71,13 @@ function CreateCNModal({ onClose, onSaved }) {
     setSaving(true)
     try {
       const res = await api.post('/credit-notes', {
-        customer_name: form.customer_name.trim(),
-        order_ref:     form.order_ref.trim() || null,
-        reason:        form.reason,
-        amount:        Number(form.amount),
-        currency:      form.currency,
-        description:   form.description.trim() || null,
+        customer_name:    form.customer_name.trim(),
+        customer_address: form.customer_address.trim() || null,
+        order_ref:        form.order_ref.trim() || null,
+        reason:           form.reason,
+        amount:           Number(form.amount),
+        currency:         form.currency,
+        description:      form.description.trim() || null,
       })
       const data = res.data ?? res
       showToast(`Credit Note oluşturuldu: ${data.cn_number}`, 'success')
@@ -73,13 +101,41 @@ function CreateCNModal({ onClose, onSaved }) {
           Sisteme kayıtlı olmayan bir sevkiyat için manuel credit note.
         </p>
 
-        <div>
+        <div className="relative">
           <label className="label">Müşteri Adı <span className="text-red-500">*</span></label>
           <input
             className="input"
             placeholder="Ör: Al-Bayan Trading Co."
             value={form.customer_name}
-            onChange={e => set('customer_name', e.target.value)}
+            onChange={e => handleCustomerInput(e.target.value)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            autoComplete="off"
+          />
+          {showSuggestions && (
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+              {suggestions.map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="w-full text-left px-3 py-2 hover:bg-amber-50 text-sm text-gray-800 border-b border-gray-50 last:border-0"
+                  onMouseDown={() => selectCustomer(c)}
+                >
+                  <span className="font-medium">{c.name}</span>
+                  {c.country && <span className="text-gray-400 ml-2 text-xs">{c.country}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="label">Adres <span className="text-gray-400 text-xs font-normal">(müşteri seçince otomatik gelir)</span></label>
+          <textarea
+            className="input"
+            rows={2}
+            placeholder="Müşteri adresi..."
+            value={form.customer_address}
+            onChange={e => set('customer_address', e.target.value)}
           />
         </div>
 
