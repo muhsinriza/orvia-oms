@@ -1,7 +1,7 @@
 const express = require('express')
 const router  = express.Router()
 const db      = require('../db')
-const { requireAuth } = require('./auth')
+const { requireAuth } = require('../middleware/auth')
 
 // List ALL credit notes (no filter) — for the standalone page
 router.get('/', requireAuth, async (req, res) => {
