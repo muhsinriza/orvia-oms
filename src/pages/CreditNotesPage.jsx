@@ -63,7 +63,7 @@ function CreateCNModal({ onClose, onSaved }) {
   }
 
   return (
-    <Modal onClose={onClose}>
+    <Modal open onClose={onClose}>
       <div className="p-6 space-y-4 w-full max-w-lg">
         <div className="flex items-center gap-2 mb-1">
           <ReceiptText size={20} className="text-amber-600" />
