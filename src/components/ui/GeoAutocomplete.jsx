@@ -125,7 +125,7 @@ const CITIES_BY_COUNTRY = {
   'Japan': ['Tokyo','Osaka','Yokohama','Nagoya','Sapporo','Kobe','Fukuoka'],
   'South Korea': ['Seoul','Busan','Incheon','Daegu','Daejeon','Gwangju'],
   'Singapore': ['Singapore'],
-  'Malaysia': ['Kuala Lumpur','George Town','Ipoh','Johor Bahru','Petaling Jaya'],
+  'Malaysia': ['Kuala Lumpur','George Town','Ipoh','Johor Bahru','Petaling Jaya','Pahang','Kuantan','Shah Alam','Subang Jaya','Kota Kinabalu','Kuching','Seremban','Melaka','Alor Setar','Kota Bharu'],
   'Indonesia': ['Jakarta','Surabaya','Bandung','Medan','Semarang','Makassar'],
   'Thailand': ['Bangkok','Chiang Mai','Pattaya','Phuket','Hat Yai'],
   'Vietnam': ['Hanoi','Ho Chi Minh City','Da Nang','Hai Phong','Can Tho'],
