@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { logout } from '../../lib/auth'
 import {
   LayoutDashboard, ShoppingCart, TrendingUp, Users, Building2,
-  Package, LogOut, Menu, X, ChevronRight
+  Package, LogOut, Menu, X, ChevronRight, ReceiptText
 } from 'lucide-react'
 import clsx from 'clsx'
 
@@ -12,6 +12,7 @@ const NAV = [
   { to: '/app',           icon: LayoutDashboard, label: 'Dashboard',     roles: ['admin','accounting','purchasing','sales'] },
   { to: '/purchasing',    icon: ShoppingCart,    label: 'Satın Alma',    roles: ['admin','purchasing','accounting'] },
   { to: '/sales',         icon: TrendingUp,      label: 'Satış',         roles: ['admin','sales','accounting'] },
+  { to: '/credit-notes',  icon: ReceiptText,     label: 'Credit Notes',  roles: ['admin','sales','accounting'] },
   { to: '/suppliers',     icon: Building2,       label: 'Tedarikçiler',  roles: ['admin','purchasing'] },
   { to: '/customers',     icon: Users,           label: 'Müşteriler',    roles: ['admin','sales'] },
   { to: '/products',      icon: Package,         label: 'Ürünler',       roles: ['admin'] },

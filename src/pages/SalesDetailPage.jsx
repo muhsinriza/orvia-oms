@@ -1279,7 +1279,7 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
   const loadCreditNotes = useCallback(async () => {
     setCnLoading(true)
     try {
-      const res = await api.get(`/credit-notes/${order.id}`)
+      const res = await api.get(`/credit-notes/order/${order.id}`)
       setCreditNotes(res.data ?? res)
     } catch (e) {
       showToast('Credit notlar yüklenemedi', 'error')

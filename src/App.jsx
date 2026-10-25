@@ -13,6 +13,7 @@ import SalesDetailPage from './pages/SalesDetailPage'
 import SuppliersPage from './pages/SuppliersPage'
 import CustomersPage from './pages/CustomersPage'
 import ProductsPage from './pages/ProductsPage'
+import CreditNotesPage from './pages/CreditNotesPage'
 
 function ProtectedRoute() {
   const { user, loading } = useAuth()
@@ -43,6 +44,7 @@ function AppRoutes() {
         <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/credit-notes" element={<CreditNotesPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -3,8 +3,27 @@ const router  = express.Router()
 const db      = require('../db')
 const { requireAuth } = require('./auth')
 
-// List credit notes for a sales order
-router.get('/:salesOrderId', requireAuth, async (req, res) => {
+// List ALL credit notes (no filter) — for the standalone page
+router.get('/', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT cn.*,
+             so.lot_no, so.party_no,
+             c.name AS customer_name_linked
+      FROM credit_notes cn
+      LEFT JOIN sales_orders so ON so.id = cn.sales_order_id
+      LEFT JOIN customers    c  ON c.id  = so.customer_id
+      ORDER BY cn.created_at DESC
+    `)
+    res.json(rows)
+  } catch (e) {
+    console.error('credit notes list error:', e.message)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// List credit notes for a specific sales order
+router.get('/order/:salesOrderId', requireAuth, async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT * FROM credit_notes WHERE sales_order_id = $1 ORDER BY created_at DESC`,
@@ -17,11 +36,11 @@ router.get('/:salesOrderId', requireAuth, async (req, res) => {
   }
 })
 
-// Create a credit note
+// Create a credit note (sales_order_id is optional for manual/standalone notes)
 router.post('/', requireAuth, async (req, res) => {
-  const { sales_order_id, reason, amount, currency, description } = req.body
-  if (!sales_order_id || !reason || !amount) {
-    return res.status(400).json({ error: 'sales_order_id, reason ve amount zorunludur' })
+  const { sales_order_id, customer_name, order_ref, reason, amount, currency, description } = req.body
+  if (!reason || !amount) {
+    return res.status(400).json({ error: 'reason ve amount zorunludur' })
   }
   try {
     const year = new Date().getFullYear()
@@ -29,10 +48,19 @@ router.post('/', requireAuth, async (req, res) => {
     const cn_number = `CN-${year}-${String(seq.rows[0].n).padStart(4, '0')}`
 
     const { rows } = await db.query(
-      `INSERT INTO credit_notes (sales_order_id, cn_number, reason, amount, currency, description)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO credit_notes (sales_order_id, cn_number, reason, amount, currency, description, customer_name, order_ref)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [sales_order_id, cn_number, reason, Number(amount), currency || 'USD', description || null]
+      [
+        sales_order_id || null,
+        cn_number,
+        reason,
+        Number(amount),
+        currency || 'USD',
+        description || null,
+        customer_name || null,
+        order_ref     || null,
+      ]
     )
     res.json(rows[0])
   } catch (e) {

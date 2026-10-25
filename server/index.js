@@ -293,6 +293,13 @@ async function runMigrations () {
     await db.query(`CREATE INDEX IF NOT EXISTS idx_cn_sales_order_id ON credit_notes(sales_order_id)`)
     // auto-increment sequence for CN numbers per year
     await db.query(`CREATE SEQUENCE IF NOT EXISTS credit_note_seq START 1`)
+    // migration 008b: make sales_order_id nullable, add manual fields
+    await db.query(`ALTER TABLE credit_notes DROP CONSTRAINT IF EXISTS credit_notes_sales_order_id_fkey`)
+    await db.query(`ALTER TABLE credit_notes ALTER COLUMN sales_order_id DROP NOT NULL`)
+    await db.query(`ALTER TABLE credit_notes ADD CONSTRAINT credit_notes_sales_order_id_fkey
+      FOREIGN KEY (sales_order_id) REFERENCES sales_orders(id) ON DELETE CASCADE`)
+    await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS customer_name TEXT`)
+    await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS order_ref TEXT`)
     console.log('[migrate] All migrations applied successfully')
   } catch (e) {
     console.error('[migrate] Migration error:', e.message)

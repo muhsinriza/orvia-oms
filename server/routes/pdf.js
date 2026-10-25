@@ -2215,17 +2215,20 @@ router.get('/credit-note/:id', requireAuth, async (req, res) => {
     const { rows } = await db.query(`
       SELECT cn.*,
              so.lot_no, so.party_no, so.currency AS order_currency,
-             c.name    AS customer_name,
+             c.name    AS linked_customer_name,
              c.address AS customer_address,
              c.country AS customer_country
       FROM credit_notes cn
-      JOIN sales_orders so ON so.id = cn.sales_order_id
+      LEFT JOIN sales_orders so ON so.id = cn.sales_order_id
       LEFT JOIN customers c ON c.id = so.customer_id
       WHERE cn.id = $1
     `, [req.params.id])
 
     if (!rows[0]) return res.status(404).json({ error: 'Credit note bulunamadı' })
     const cn = rows[0]
+    // Prefer manual fields when no linked order
+    cn.display_customer = cn.linked_customer_name || cn.customer_name || '—'
+    cn.display_order_ref = cn.lot_no || cn.party_no || cn.order_ref || '—'
 
     const REASON_LABELS = {
       'fiyat_indirimi':  'Price Reduction',
@@ -2251,9 +2254,9 @@ ${headerHTML('CREDIT NOTE', esc(cn.cn_number), fmtDate(cn.created_at), '')}
     </div>
     <div class="info-cell">
       <div class="info-label">Buyer (Recipient)</div>
-      <div class="info-value" style="font-weight:700;">${esc(cn.customer_name)}</div>
-      <div class="info-value">${esc(cn.customer_address)}</div>
-      <div class="info-value">${esc(cn.customer_country)}</div>
+      <div class="info-value" style="font-weight:700;">${esc(cn.display_customer)}</div>
+      ${cn.customer_address ? `<div class="info-value">${esc(cn.customer_address)}</div>` : ''}
+      ${cn.customer_country ? `<div class="info-value">${esc(cn.customer_country)}</div>` : ''}
     </div>
   </div>
 </div>
@@ -2262,7 +2265,7 @@ ${headerHTML('CREDIT NOTE', esc(cn.cn_number), fmtDate(cn.created_at), '')}
   <div class="info-row" style="grid-template-columns:1fr 1fr 1fr;">
     <div class="info-cell">
       <div class="info-label">Related Order</div>
-      <div class="info-value">${esc(cn.lot_no || cn.party_no || '—')}</div>
+      <div class="info-value">${esc(cn.display_order_ref)}</div>
     </div>
     <div class="info-cell">
       <div class="info-label">Reason</div>
