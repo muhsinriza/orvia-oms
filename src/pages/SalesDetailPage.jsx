@@ -6,7 +6,7 @@ import Modal from '../components/ui/Modal'
 import {
   ArrowLeft, Truck, Ship, Plane, Plus, Trash2, MapPin, Clock,
   FileText, Edit2, Package, FileSignature, ChevronRight, CheckCircle2,
-  Download, Loader2, X, ChevronLeft, FileSpreadsheet
+  Download, Loader2, X, ChevronLeft, FileSpreadsheet, ReceiptText, AlertCircle
 } from 'lucide-react'
 
 const STATUS_FLOW = ['draft', 'confirmed', 'in_transit', 'arrived', 'completed']
@@ -1163,11 +1163,132 @@ function InvoiceModal({ order, filename, onClose, onSaved }) {
 }
 
 // ── DOCUMENTS SECTION ─────────────────────────────────────────────────────────
+// ── CREDIT NOTE MODAL ─────────────────────────────────────────────────────────
+const CN_REASONS = [
+  { value: 'fiyat_indirimi', label: 'Fiyat İndirimi (Price Reduction)' },
+  { value: 'kalite_kusuru',  label: 'Kalite Kusuru (Quality Defect)' },
+  { value: 'eksik_teslimat', label: 'Eksik Teslimat (Short Delivery)' },
+  { value: 'hasar',          label: 'Hasar (Damage)' },
+  { value: 'iade',           label: 'İade (Return)' },
+  { value: 'diger',          label: 'Diğer (Other)' },
+]
+
+function CreditNoteModal({ order, onClose, onSaved }) {
+  const { showToast } = useToast()
+  const [form, setForm] = useState({ reason: '', amount: '', description: '', currency: order.currency || 'USD' })
+  const [saving, setSaving] = useState(false)
+
+  async function handleSubmit() {
+    if (!form.reason) { showToast('Lütfen bir neden seçin', 'error'); return }
+    if (!form.amount || isNaN(Number(form.amount)) || Number(form.amount) <= 0) {
+      showToast('Geçerli bir tutar girin', 'error'); return
+    }
+    setSaving(true)
+    try {
+      const res = await api.post('/credit-notes', {
+        sales_order_id: order.id,
+        reason: form.reason,
+        amount: Number(form.amount),
+        currency: form.currency,
+        description: form.description || null,
+      })
+      showToast(`Credit Note oluşturuldu: ${res.data?.cn_number || res.cn_number}`, 'success')
+      onSaved()
+      onClose()
+    } catch (e) {
+      showToast(e.message || 'Oluşturulamadı', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="p-6 space-y-4 w-full max-w-md">
+        <div className="flex items-center gap-2 mb-2">
+          <ReceiptText size={20} className="text-amber-600" />
+          <h2 className="font-bold text-lg text-gray-900">Yeni Credit Note</h2>
+        </div>
+
+        <div>
+          <label className="label">Neden <span className="text-red-500">*</span></label>
+          <select
+            className="input"
+            value={form.reason}
+            onChange={e => setForm(f => ({ ...f, reason: e.target.value }))}
+          >
+            <option value="">Seçin...</option>
+            {CN_REASONS.map(r => (
+              <option key={r.value} value={r.value}>{r.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Tutar <span className="text-red-500">*</span></label>
+            <input
+              className="input"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={form.amount}
+              onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="label">Para Birimi</label>
+            <input className="input bg-gray-50" value={form.currency} readOnly />
+          </div>
+        </div>
+
+        <div>
+          <label className="label">Açıklama <span className="text-gray-400 text-xs font-normal">(opsiyonel)</span></label>
+          <textarea
+            className="input"
+            rows={3}
+            placeholder="Ek açıklama..."
+            value={form.description}
+            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+          />
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button className="btn-secondary" onClick={onClose} disabled={saving}>İptal</button>
+          <button className="btn-primary flex items-center gap-2" onClick={handleSubmit} disabled={saving}>
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+            Oluştur
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+// ── DOCUMENTS SECTION ─────────────────────────────────────────────────────────
 function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
   const [loading, setLoading] = useState({})
   const [plModal, setPlModal] = useState(false)
   const [invModal, setInvModal] = useState(false)
+  const [cnModal, setCnModal] = useState(false)
+  const [creditNotes, setCreditNotes] = useState([])
+  const [cnLoading, setCnLoading] = useState(false)
   const { showToast } = useToast()
+
+  const loadCreditNotes = useCallback(async () => {
+    setCnLoading(true)
+    try {
+      const res = await api.get(`/credit-notes/${order.id}`)
+      setCreditNotes(res.data ?? res)
+    } catch (e) {
+      showToast('Credit notlar yüklenemedi', 'error')
+    } finally {
+      setCnLoading(false)
+    }
+  }, [order.id])
+
+  useEffect(() => { loadCreditNotes() }, [loadCreditNotes])
 
   const shippedStatuses = ['in_transit', 'arrived', 'completed', 'delivered']
   const isShipped = shippedStatuses.includes(order.status)
@@ -1301,6 +1422,99 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
           filename={docFilename('CommercialInvoice')}
           onClose={() => setInvModal(false)}
           onSaved={updates => { onOrderUpdate && onOrderUpdate(updates); onRefresh && onRefresh() }}
+        />
+      )}
+
+      {/* Credit Notes section */}
+      <div className="mt-4 border-t pt-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <ReceiptText size={16} className="text-amber-600" />
+            <h3 className="font-semibold text-gray-800 text-sm">Credit Notes</h3>
+            {creditNotes.length > 0 && (
+              <span className="bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                {creditNotes.length}
+              </span>
+            )}
+          </div>
+          <button
+            className="flex items-center gap-1 text-xs text-amber-700 hover:text-amber-900 font-medium border border-amber-200 hover:border-amber-400 rounded-lg px-2.5 py-1.5 transition-colors"
+            onClick={() => setCnModal(true)}
+          >
+            <Plus size={12} /> Credit Note
+          </button>
+        </div>
+
+        {cnLoading && (
+          <div className="flex items-center gap-2 text-gray-400 text-sm py-2">
+            <Loader2 size={14} className="animate-spin" /> Yükleniyor...
+          </div>
+        )}
+
+        {!cnLoading && creditNotes.length === 0 && (
+          <p className="text-xs text-gray-400 py-2">Henüz credit note yok.</p>
+        )}
+
+        {!cnLoading && creditNotes.length > 0 && (
+          <div className="space-y-2">
+            {/* Total */}
+            <div className="flex justify-between items-center text-xs text-gray-500 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
+              <span className="font-medium">Toplam Credit Note Tutarı</span>
+              <span className="font-bold text-amber-700">
+                {(creditNotes[0]?.currency || order.currency || 'USD')} {creditNotes.reduce((s, cn) => s + Number(cn.amount), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
+            {creditNotes.map(cn => (
+              <div key={cn.id} className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-700">{cn.cn_number}</span>
+                    <span className="text-xs text-gray-400">{new Date(cn.created_at).toLocaleDateString('tr-TR')}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">{CN_REASONS.find(r => r.value === cn.reason)?.label || cn.reason}{cn.description ? ` · ${cn.description}` : ''}</div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-sm font-bold text-amber-700">{cn.currency} {Number(cn.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <button
+                    title="PDF İndir"
+                    className="p-1 rounded hover:bg-amber-100 text-amber-600 transition-colors"
+                    onClick={() => {
+                      const a = document.createElement('a')
+                      a.href = `/api/pdf/credit-note/${cn.id}`
+                      a.download = `${cn.cn_number}.pdf`
+                      a.click()
+                    }}
+                  >
+                    <Download size={14} />
+                  </button>
+                  <button
+                    title="Sil"
+                    className="p-1 rounded hover:bg-red-100 text-red-400 hover:text-red-600 transition-colors"
+                    onClick={async () => {
+                      if (!window.confirm(`${cn.cn_number} silinsin mi?`)) return
+                      try {
+                        await api.delete(`/credit-notes/${cn.id}`)
+                        loadCreditNotes()
+                        showToast('Credit note silindi', 'success')
+                      } catch (e) {
+                        showToast('Silinemedi', 'error')
+                      }
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {cnModal && (
+        <CreditNoteModal
+          order={order}
+          onClose={() => setCnModal(false)}
+          onSaved={loadCreditNotes}
         />
       )}
     </div>

@@ -277,6 +277,22 @@ async function runMigrations () {
     await db.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS gtip_code TEXT`)
     await db.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS loading_address TEXT`)
     await db.query(`ALTER TABLE sales_orders ADD COLUMN IF NOT EXISTS freight_amount NUMERIC`)
+    // migration 008: credit_notes table
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS credit_notes (
+        id            SERIAL PRIMARY KEY,
+        sales_order_id UUID NOT NULL REFERENCES sales_orders(id) ON DELETE CASCADE,
+        cn_number     TEXT NOT NULL,
+        reason        TEXT NOT NULL,
+        amount        NUMERIC NOT NULL,
+        currency      TEXT NOT NULL DEFAULT 'USD',
+        description   TEXT,
+        created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `)
+    await db.query(`CREATE INDEX IF NOT EXISTS idx_cn_sales_order_id ON credit_notes(sales_order_id)`)
+    // auto-increment sequence for CN numbers per year
+    await db.query(`CREATE SEQUENCE IF NOT EXISTS credit_note_seq START 1`)
     console.log('[migrate] All migrations applied successfully')
   } catch (e) {
     console.error('[migrate] Migration error:', e.message)
@@ -296,6 +312,7 @@ app.use('/api/order-links',     require('./routes/orderLinks'))
 app.use('/api/shipment-events', require('./routes/shipmentEvents'))
 app.use('/api/pdf',             require('./routes/pdf'))
 app.use('/api/customs-excel',   require('./routes/customsExcel'))
+app.use('/api/credit-notes',    require('./routes/creditNotes'))
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ ok: true }))

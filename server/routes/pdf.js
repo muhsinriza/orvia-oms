@@ -2209,4 +2209,118 @@ ${sigHTML(true)}
   }
 })
 
+// ─── Credit Note PDF ─────────────────────────────────────────────────────────
+router.get('/credit-note/:id', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT cn.*,
+             so.lot_no, so.party_no, so.currency AS order_currency,
+             c.name    AS customer_name,
+             c.address AS customer_address,
+             c.country AS customer_country
+      FROM credit_notes cn
+      JOIN sales_orders so ON so.id = cn.sales_order_id
+      LEFT JOIN customers c ON c.id = so.customer_id
+      WHERE cn.id = $1
+    `, [req.params.id])
+
+    if (!rows[0]) return res.status(404).json({ error: 'Credit note bulunamadı' })
+    const cn = rows[0]
+
+    const REASON_LABELS = {
+      'fiyat_indirimi':  'Price Reduction',
+      'kalite_kusuru':   'Quality Defect',
+      'eksik_teslimat':  'Short Delivery',
+      'hasar':           'Damage',
+      'iade':            'Return',
+      'diger':           'Other',
+    }
+    const reasonLabel = REASON_LABELS[cn.reason] || cn.reason
+
+    const body = `
+${headerHTML('CREDIT NOTE', esc(cn.cn_number), fmtDate(cn.created_at), '')}
+
+<div class="info-grid" style="margin-bottom:4mm;">
+  <div class="info-row" style="grid-template-columns:1fr 1fr;">
+    <div class="info-cell">
+      <div class="info-label">Seller (Issuer)</div>
+      <div class="info-value" style="font-weight:700;">${esc(CO.name)}</div>
+      <div class="info-value">${esc(CO.address)}</div>
+      <div class="info-value">Tel: ${esc(CO.tel)}</div>
+      <div class="info-value">Tax No: ${esc(CO.tax)}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Buyer (Recipient)</div>
+      <div class="info-value" style="font-weight:700;">${esc(cn.customer_name)}</div>
+      <div class="info-value">${esc(cn.customer_address)}</div>
+      <div class="info-value">${esc(cn.customer_country)}</div>
+    </div>
+  </div>
+</div>
+
+<div class="info-grid" style="margin-bottom:4mm;">
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr;">
+    <div class="info-cell">
+      <div class="info-label">Related Order</div>
+      <div class="info-value">${esc(cn.lot_no || cn.party_no || '—')}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Reason</div>
+      <div class="info-value">${esc(reasonLabel)}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Issue Date</div>
+      <div class="info-value">${fmtDate(cn.created_at)}</div>
+    </div>
+  </div>
+</div>
+
+${cn.description ? `
+<div class="section-header">Description / Remarks</div>
+<div style="padding:3mm 4mm;background:#f9fafb;border:1px solid #e5e7eb;border-radius:2px;margin-bottom:4mm;font-size:8.5pt;color:#374151;">${esc(cn.description)}</div>
+` : ''}
+
+<div class="section-header">Credit Amount</div>
+<table class="items-table" style="margin-bottom:4mm;">
+  <thead>
+    <tr>
+      <th style="text-align:left;">Description</th>
+      <th style="text-align:right;width:35mm;">Amount (${esc(cn.currency)})</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Credit Note — ${esc(reasonLabel)}${cn.description ? ': ' + esc(cn.description.slice(0, 80)) : ''}</td>
+      <td style="text-align:right;font-weight:700;">${fmtNum(cn.amount)}</td>
+    </tr>
+  </tbody>
+  <tfoot>
+    <tr class="total-row">
+      <td style="font-weight:700;text-align:right;">TOTAL CREDIT AMOUNT</td>
+      <td style="font-weight:700;text-align:right;font-size:10.5pt;">${esc(cn.currency)} ${fmtNum(cn.amount)}</td>
+    </tr>
+  </tfoot>
+</table>
+
+<p style="font-size:7.5pt;color:#6b7280;margin-bottom:4mm;">
+  This credit note is issued against the referenced sales order and represents a credit in favour of the buyer for the amount stated above.
+  It does not constitute a tax invoice.
+</p>
+
+${sigHTML(false, true, false)}
+`
+
+    const html = wrapInvoice(body, '', '')
+    const pdf = await htmlToPDF(html)
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="${cn.cn_number}.pdf"`,
+    })
+    res.send(pdf)
+  } catch (e) {
+    console.error('[PDF] credit-note error:', e)
+    res.status(500).json({ error: 'PDF oluşturulamadı' })
+  }
+})
+
 module.exports = router
