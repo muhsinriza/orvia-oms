@@ -198,7 +198,7 @@ router.get('/:id', async (req, res) => {
 
       const rowData = [
         { col: 'A', value: idx + 1,              align: ctr, numFmt: '0' },
-        { col: 'B', value: palletCnt || '',       align: ctr },
+        { col: 'B', value: (items.length === 1 && so.pallets ? parseInt(so.pallets) : palletCnt) || '', align: ctr },
         { col: 'C', value: boxCount,              align: ctr, numFmt: '#,##0' },
         { col: 'D', value: item.product_category || '', align: lft },
         { col: 'E', value: item.variety          || '', align: lft },
