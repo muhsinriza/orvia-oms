@@ -170,7 +170,7 @@ router.get('/:id', async (req, res) => {
       const boxNetKg     = parseFloat(item.box_weight_kg  || item.p_box_net_kg   || 0)
       const boxGrossKg   = parseFloat(item.p_box_gross_kg || (boxNetKg > 0 ? boxNetKg * 1.05 : 0))
       const qtyKg        = parseFloat(item.quantity_kg    || 0)
-      const boxesPerPal  = parseInt(item.p_boxes_per_pallet || so.pallets || 66)
+      const boxesPerPal  = parseInt(item.p_boxes_per_pallet || 66)
       const pricePerUnit = parseFloat(item.price_per_unit  || 0)
 
       // Box count: always derived from KG ÷ box weight (sell_by='kg' path)
@@ -306,7 +306,7 @@ router.get('/:id', async (req, res) => {
       : '—'
 
     const summaryPairs = [
-      ['Kap Miktarı',    `${fmtNum(totBoxes, 0)} Koli`,   'Palet Sayısı',  `${fmtNum(totPallets, 0)} Adet`],
+      ['Kap Miktarı',    `${fmtNum(totBoxes, 0)} Koli`,   'Palet Sayısı',  `${fmtNum(so.pallets ? parseInt(so.pallets) : totPallets, 0)} Adet`],
       ['Brüt Ağırlık',  `${fmtNum(totGross)} KG`,         'Net Ağırlık',   `${fmtNum(totNet)} KG`         ],
       ['Ödeme Şekli',   paymentDisplay,                   'Teslim Şekli',  so.incoterm || '—'             ],
       ['Taşıma Şekli',  so.transport_mode || '—',         'Navlun Tutarı', freightDisplay                 ],
