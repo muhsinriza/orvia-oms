@@ -167,6 +167,28 @@ router.post('/', requireRole('admin'), async (req, res) => {
       finalSaNumber = `SA-${year}-${seq}`
     }
 
+    // Auto-generate party_no if not provided
+    let finalPartyNo = (party_no && party_no.trim()) ? party_no.trim() : null
+    if (!finalPartyNo) {
+      const year = new Date().getFullYear()
+      const { rows: pnRows } = await client.query(
+        `SELECT COUNT(*) FROM sales_orders WHERE party_no LIKE $1`,
+        [`SO-${year}-%`]
+      )
+      let pnSeq = parseInt(pnRows[0].count) + 1
+      let candidate = `SO-${year}-${String(pnSeq).padStart(4, '0')}`
+      // Ensure uniqueness in case of gaps/manual entries
+      while (true) {
+        const { rows: exists } = await client.query(
+          `SELECT 1 FROM sales_orders WHERE party_no = $1`, [candidate]
+        )
+        if (exists.length === 0) break
+        pnSeq++
+        candidate = `SO-${year}-${String(pnSeq).padStart(4, '0')}`
+      }
+      finalPartyNo = candidate
+    }
+
     // Derive legacy single-line fields from items[0] if items provided
     const firstItem = Array.isArray(items) && items.length > 0 ? items[0] : null
     const effProductId    = (firstItem?.product_id) || product_id
@@ -208,7 +230,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
       tracking_number || null, container_number || null, seawaybill_number || null, vessel_name || null,
       flight_number || null, driver_name || null, driver_phone || null,
       loading_address || null, freight_amount || null,
-      (party_no && party_no.trim()) ? party_no.trim() : null,
+      finalPartyNo,
     ])
 
     await upsertItems(client, rows[0].id, items)
