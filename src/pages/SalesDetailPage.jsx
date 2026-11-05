@@ -1192,7 +1192,7 @@ function CreditNoteModal({ order, onClose, onSaved }) {
         currency: form.currency,
         description: form.description || null,
       })
-      showToast(`Credit Note oluşturuldu: ${res.data?.cn_number || res.cn_number}`, 'success')
+      showToast(`Credit Note oluşturuldu: ${res.cn_number}`, 'success')
       onSaved()
       onClose()
     } catch (e) {
@@ -1280,7 +1280,7 @@ function DocumentsSection({ order, onOrderUpdate, onRefresh }) {
     setCnLoading(true)
     try {
       const res = await api.get(`/credit-notes/order/${order.id}`)
-      setCreditNotes(res.data ?? res)
+      setCreditNotes(Array.isArray(res) ? res : (res.data ?? []))
     } catch (e) {
       showToast('Credit notlar yüklenemedi', 'error')
     } finally {

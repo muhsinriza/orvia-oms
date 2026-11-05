@@ -296,8 +296,17 @@ async function runMigrations () {
     // migration 008b: make sales_order_id nullable, add manual fields
     await db.query(`ALTER TABLE credit_notes DROP CONSTRAINT IF EXISTS credit_notes_sales_order_id_fkey`)
     await db.query(`ALTER TABLE credit_notes ALTER COLUMN sales_order_id DROP NOT NULL`)
-    await db.query(`ALTER TABLE credit_notes ADD CONSTRAINT credit_notes_sales_order_id_fkey
-      FOREIGN KEY (sales_order_id) REFERENCES sales_orders(id) ON DELETE CASCADE`)
+    await db.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'credit_notes_sales_order_id_fkey'
+        ) THEN
+          ALTER TABLE credit_notes ADD CONSTRAINT credit_notes_sales_order_id_fkey
+            FOREIGN KEY (sales_order_id) REFERENCES sales_orders(id) ON DELETE CASCADE;
+        END IF;
+      END $$
+    `)
     await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS customer_name TEXT`)
     await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS order_ref TEXT`)
     await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS customer_address TEXT`)
