@@ -310,6 +310,10 @@ async function runMigrations () {
     await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS customer_name TEXT`)
     await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS order_ref TEXT`)
     await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS customer_address TEXT`)
+    // migration 009: add container_number, invoice_no, seawaybill_no to credit_notes
+    await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS container_number TEXT`)
+    await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS invoice_no TEXT`)
+    await db.query(`ALTER TABLE credit_notes ADD COLUMN IF NOT EXISTS seawaybill_no TEXT`)
     console.log('[migrate] All migrations applied successfully')
   } catch (e) {
     console.error('[migrate] Migration error:', e.message)

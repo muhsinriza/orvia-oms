@@ -38,7 +38,7 @@ router.get('/order/:salesOrderId', requireAuth, async (req, res) => {
 
 // Create a credit note (sales_order_id is optional for manual/standalone notes)
 router.post('/', requireAuth, async (req, res) => {
-  const { sales_order_id, customer_name, customer_address, order_ref, reason, amount, currency, description } = req.body
+  const { sales_order_id, customer_name, customer_address, order_ref, reason, amount, currency, description, container_number, invoice_no, seawaybill_no } = req.body
   if (!reason || !amount) {
     return res.status(400).json({ error: 'reason ve amount zorunludur' })
   }
@@ -48,8 +48,8 @@ router.post('/', requireAuth, async (req, res) => {
     const cn_number = `CN-${year}-${String(seq.rows[0].n).padStart(4, '0')}`
 
     const { rows } = await db.query(
-      `INSERT INTO credit_notes (sales_order_id, cn_number, reason, amount, currency, description, customer_name, customer_address, order_ref)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO credit_notes (sales_order_id, cn_number, reason, amount, currency, description, customer_name, customer_address, order_ref, container_number, invoice_no, seawaybill_no)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING *`,
       [
         sales_order_id    || null,
@@ -61,6 +61,9 @@ router.post('/', requireAuth, async (req, res) => {
         customer_name     || null,
         customer_address  || null,
         order_ref         || null,
+        container_number  || null,
+        invoice_no        || null,
+        seawaybill_no     || null,
       ]
     )
     res.json(rows[0])

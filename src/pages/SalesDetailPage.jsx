@@ -1175,7 +1175,15 @@ const CN_REASONS = [
 
 function CreditNoteModal({ order, onClose, onSaved }) {
   const { showToast } = useToast()
-  const [form, setForm] = useState({ reason: '', amount: '', description: '', currency: order.currency || 'USD' })
+  const [form, setForm] = useState({
+    reason: '',
+    amount: '',
+    description: '',
+    currency: order.currency || 'USD',
+    container_number: order.containers?.[0]?.container_number || order.container_number || '',
+    invoice_no: order.invoice_no || '',
+    seawaybill_no: order.seawaybill_number || '',
+  })
   const [saving, setSaving] = useState(false)
 
   async function handleSubmit() {
@@ -1191,6 +1199,9 @@ function CreditNoteModal({ order, onClose, onSaved }) {
         amount: Number(form.amount),
         currency: form.currency,
         description: form.description || null,
+        container_number: form.container_number || null,
+        invoice_no: form.invoice_no || null,
+        seawaybill_no: form.seawaybill_no || null,
       })
       showToast(`Credit Note oluşturuldu: ${res.cn_number}`, 'success')
       onSaved()
@@ -1240,6 +1251,38 @@ function CreditNoteModal({ order, onClose, onSaved }) {
           <div>
             <label className="label">Para Birimi</label>
             <input className="input bg-gray-50" value={form.currency} readOnly />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <label className="label">Konteyner No</label>
+            <input
+              className="input"
+              placeholder="ABCD1234567"
+              value={form.container_number}
+              onChange={e => setForm(f => ({ ...f, container_number: e.target.value }))}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Fatura No</label>
+              <input
+                className="input"
+                placeholder="ORV2026000001"
+                value={form.invoice_no}
+                onChange={e => setForm(f => ({ ...f, invoice_no: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="label">Seawaybill No</label>
+              <input
+                className="input"
+                placeholder="123456789"
+                value={form.seawaybill_no}
+                onChange={e => setForm(f => ({ ...f, seawaybill_no: e.target.value }))}
+              />
+            </div>
           </div>
         </div>
 
