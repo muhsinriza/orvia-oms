@@ -2215,6 +2215,9 @@ router.get('/credit-note/:id', requireAuth, async (req, res) => {
     const { rows } = await db.query(`
       SELECT cn.*,
              so.lot_no, so.party_no, so.currency AS order_currency,
+             so.invoice_no       AS so_invoice_no,
+             so.seawaybill_number AS so_seawaybill,
+             so.container_number  AS so_container_number,
              c.name    AS linked_customer_name,
              c.address AS customer_address,
              c.country AS customer_country
@@ -2239,6 +2242,11 @@ router.get('/credit-note/:id', requireAuth, async (req, res) => {
       'diger':           'Other',
     }
     const reasonLabel = REASON_LABELS[cn.reason] || cn.reason
+
+    // Prefer saved fields, fall back to joined sales_order fields
+    const displayContainer  = cn.container_number  || cn.so_container_number || '—'
+    const displayInvoiceNo  = cn.invoice_no        || cn.so_invoice_no       || '—'
+    const displaySeawaybill = cn.seawaybill_no     || cn.so_seawaybill       || '—'
 
     const body = `
 ${headerHTML('CREDIT NOTE', esc(cn.cn_number), fmtDate(cn.created_at), '')}
@@ -2274,6 +2282,23 @@ ${headerHTML('CREDIT NOTE', esc(cn.cn_number), fmtDate(cn.created_at), '')}
     <div class="info-cell">
       <div class="info-label">Issue Date</div>
       <div class="info-value">${fmtDate(cn.created_at)}</div>
+    </div>
+  </div>
+</div>
+
+<div class="info-grid" style="margin-bottom:4mm;">
+  <div class="info-row" style="grid-template-columns:1fr 1fr 1fr;">
+    <div class="info-cell">
+      <div class="info-label">Container No</div>
+      <div class="info-value">${esc(displayContainer)}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Invoice No</div>
+      <div class="info-value">${esc(displayInvoiceNo)}</div>
+    </div>
+    <div class="info-cell">
+      <div class="info-label">Seawaybill No</div>
+      <div class="info-value">${esc(displaySeawaybill)}</div>
     </div>
   </div>
 </div>
