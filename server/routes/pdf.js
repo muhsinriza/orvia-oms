@@ -266,8 +266,11 @@ function wrapInvoice (body, bankingHTML, sigBlockHTML) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 ${CSS}
-@page { size: A4; margin: 4mm 6mm; }
-html, body { margin: 0; padding: 0; width: 210mm; }
+@page { size: A4; margin: 0; }
+html, body { margin: 0; padding: 0; width: 210mm; height: 297mm; }
+.inv-page { width: 210mm; min-height: 297mm; height: 297mm; padding: 4mm 6mm; box-sizing: border-box; display: flex; flex-direction: column; }
+.inv-body { flex: 1; }
+.inv-footer { flex-shrink: 0; }
 /* Compact overrides for invoice — single page fit */
 .doc-header { padding:2mm 0; margin-bottom:1.5mm; }
 .doc-header-inner { gap:2mm; padding:0 2mm; }
@@ -291,14 +294,16 @@ tbody tr td { padding:0.6mm 1.5mm; font-size:6pt; }
 thead tr th { padding:0.6mm 1.5mm; font-size:5.5pt; }
 thead { display:table-header-group; }
 tbody tr { page-break-inside: avoid; }
-.invoice-footer { page-break-inside: avoid; margin-top:2mm; }
+.inv-footer { page-break-inside: avoid; }
 .tfoot-row { page-break-inside: avoid; }
 </style></head><body>
-${body}
-<div class="invoice-footer">
-  ${bankingHTML}
-  <div style="margin-bottom:2mm;">${sigBlockHTML}</div>
-  ${greenBar}
+<div class="inv-page">
+  <div class="inv-body">${body}</div>
+  <div class="inv-footer">
+    ${bankingHTML}
+    <div style="margin-bottom:1.5mm;">${sigBlockHTML}</div>
+    ${greenBar}
+  </div>
 </div>
 </body></html>`
 }
