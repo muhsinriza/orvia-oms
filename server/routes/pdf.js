@@ -30,6 +30,8 @@ async function htmlToPDF (html, opts = {}) {
   }, 60000)
   try {
     const page = await browser.newPage()
+    // Set a tall viewport so overflow:hidden elements don't clip content before PDF rendering
+    await page.setViewport({ width: 1240, height: 5000, deviceScaleFactor: 1 })
     await page.setContent(html, { waitUntil: opts.waitUntil || 'domcontentloaded', timeout: 30000 })
     await page.evaluate(() => document.fonts?.ready).catch(() => {})
 
