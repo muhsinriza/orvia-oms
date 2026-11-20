@@ -252,26 +252,14 @@ ${CSS}
 }
 
 // Invoice-specific wrap: single A4 page with fixed footer containing banking+sig+greenbar
-function wrapInvoice (body, bankingHTML, sigBlockHTML) {
-  const greenBar = `
-  <div class="page-footer-inner">
-    <div class="page-footer-logo">ORVIA</div>
-    <div class="page-footer-text">
-      ${CO.name}<br>
-      ${CO.address}
-    </div>
-    <div class="page-footer-right">WhatsApp: +90 530 552 83 06<br>Direct: +90 532 703 55 07<br>orviatropical.com &nbsp;·&nbsp; orviaoms.com</div>
-  </div>`
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-${CSS}
+const INV_CSS = `
 @page { size: A4; margin: 0; }
-html, body { margin: 0; padding: 0; width: 210mm; height: 297mm; }
-.inv-page { width: 210mm; min-height: 297mm; height: 297mm; padding: 4mm 6mm; box-sizing: border-box; display: flex; flex-direction: column; }
-.inv-body { flex: 1; }
+html, body { margin: 0; padding: 0; width: 210mm; }
+.inv-page { width: 210mm; height: 297mm; padding: 4mm 6mm; box-sizing: border-box; display: flex; flex-direction: column; page-break-after: always; }
+.inv-page:last-child { page-break-after: auto; }
+.inv-body { flex: 1; overflow: hidden; }
 .inv-footer { flex-shrink: 0; }
-/* Compact overrides for invoice — single page fit */
+/* Compact overrides for invoice */
 .doc-header { padding:2mm 0; margin-bottom:1.5mm; }
 .doc-header-inner { gap:2mm; padding:0 2mm; }
 .co-name { font-size:7.5pt; }
@@ -296,6 +284,161 @@ thead { display:table-header-group; }
 tbody tr { page-break-inside: avoid; }
 .inv-footer { page-break-inside: avoid; }
 .tfoot-row { page-break-inside: avoid; }
+`
+
+function makeGreenBar () {
+  return `<div class="page-footer-inner">
+    <div class="page-footer-logo">ORVIA</div>
+    <div class="page-footer-text">
+      ${CO.name}<br>
+      ${CO.address}
+    </div>
+    <div class="page-footer-right">WhatsApp: +90 530 552 83 06<br>Direct: +90 532 703 55 07<br>orviatropical.com &nbsp;·&nbsp; orviaoms.com</div>
+  </div>`
+}
+
+// Build a single inv-page div
+function makeInvPage (bodyHTML, bankingHTML, sigBlockHTML, pageNum, totalPages) {
+  const greenBar = makeGreenBar()
+  const pageCounter = totalPages > 1
+    ? `<div style="font-size:5pt;color:#9ca3af;text-align:right;margin-bottom:1mm;letter-spacing:0.5px;">Page ${pageNum} / ${totalPages}</div>`
+    : ''
+  return `<div class="inv-page">
+  <div class="inv-body">${bodyHTML}</div>
+  <div class="inv-footer">
+    ${pageCounter}
+    ${bankingHTML}
+    <div style="margin-bottom:1.5mm;">${sigBlockHTML}</div>
+    ${greenBar}
+  </div>
+</div>`
+}
+
+// Split items into page chunks and build a full multi-page invoice HTML document
+// headerBodyHTML  : everything before the goods table (header, parties, shipment info, india reg)
+// orderItems      : full array of line items
+// so              : sales order object (for currency etc.)
+// qualitySection  : optional quality notes HTML (shown only on last page)
+// bankingHTML / sigBlockHTML : footer blocks
+function wrapInvoiceMultiPage (headerBodyHTML, orderItems, so, qualitySection, bankingHTML, sigBlockHTML) {
+  const currency = so.currency || 'USD'
+  const sym = currency === 'EUR' ? '€' : '$'
+
+  // Compute totals for all items (used in TOTALS row on last page)
+  let totalNet = 0, totalGross = 0, totalAmt = 0, totalBoxes = 0
+  const computedItems = orderItems.map((it, i) => {
+    const bw      = Number(it.box_weight_kg || it.p_box_net_kg || 0)
+    const grossBw = Number(it.p_box_gross_kg || 0)
+    const qty   = bw > 0 ? Math.round(Number(it.quantity_kg || 0) / bw) : 0
+    const net   = Number(it.quantity_kg || 0)
+    const gross = grossBw > 0 ? qty * grossBw : qty * bw * 1.05
+    const price = Number(it.price_per_unit || 0)
+    const amount = (it.sell_by || 'box') === 'kg' ? price * net : price * qty
+    const unitLabel = (it.sell_by || 'box') === 'kg' ? '/kg' : '/box'
+    totalNet += net; totalGross += gross; totalAmt += amount; totalBoxes += qty
+    return { it, i, qty, net, gross, price, amount, unitLabel }
+  })
+
+  // Table header row HTML (reused on every page)
+  const theadHTML = `<thead><tr>
+    <th style="width:4%">#</th>
+    <th>Product</th>
+    <th style="width:14%">Variety / Caliber</th>
+    <th style="width:8%">Origin</th>
+    <th style="width:8%">Box Type</th>
+    <th class="num" style="width:6%">Boxes</th>
+    <th class="num" style="width:9%">Net KG</th>
+    <th class="num" style="width:9%">Gross KG</th>
+    <th class="num" style="width:10%">Unit Price</th>
+    <th class="num" style="width:10%">Amount</th>
+  </tr></thead>`
+
+  // Render a chunk of item rows into a tbody string
+  function renderRows (chunk) {
+    return chunk.map(({ it, i, qty, net, gross, price, amount, unitLabel }) => `<tr>
+      <td>${i + 1}</td>
+      <td>${val(it.product_name)}</td>
+      <td>${[it.variety, it.caliber].filter(Boolean).join(' / ') || '—'}</td>
+      <td>${val(it.origin)}</td>
+      <td>${val(it.box_type)}</td>
+      <td class="num">${fmtNum(qty, 0)}</td>
+      <td class="num">${fmtNum(net)}</td>
+      <td class="num">${fmtNum(gross)}</td>
+      <td class="num">${sym}${fmtNum(price)}<span style="font-size:5pt;color:#6b7280;">${unitLabel}</span></td>
+      <td class="num">${sym}${fmtNum(amount)}</td>
+    </tr>`).join('')
+  }
+
+  // Totals footer row (only on last page)
+  const tfootHTML = `<tr class="tfoot-row">
+    <td colspan="5"><strong>TOTALS</strong></td>
+    <td class="num">${fmtNum(totalBoxes, 0)} Boxes</td>
+    <td class="num">${fmtNum(totalNet)} KG</td>
+    <td class="num">${fmtNum(totalGross)} KG</td>
+    <td class="num"></td>
+    <td class="num">${sym}${fmtNum(totalAmt)}</td>
+  </tr>`
+
+  // ── Determine how many items fit per page ──────────────────────────────────
+  // Page 1 has header + parties + shipment info, so fewer rows fit.
+  // Subsequent pages have only the goods table continuation.
+  const ITEMS_PER_PAGE_1 = 12  // conservative: header takes ~110mm, table header ~6mm, footer ~40mm → ~140mm for rows
+  const ITEMS_PER_PAGE_N = 22  // continuation pages: table header ~6mm, footer ~40mm → ~250mm for rows
+
+  // Split items into pages
+  const pages = []
+  let remaining = [...computedItems]
+
+  // Page 1: header + first chunk
+  const firstChunk = remaining.splice(0, ITEMS_PER_PAGE_1)
+  pages.push({ isFirst: true, chunk: firstChunk })
+
+  // Remaining pages
+  while (remaining.length > 0) {
+    const chunk = remaining.splice(0, ITEMS_PER_PAGE_N)
+    pages.push({ isFirst: false, chunk })
+  }
+
+  const totalPages = pages.length
+
+  // Build HTML for each page
+  const pageHTMLs = pages.map((pg, pgIdx) => {
+    const isLast = pgIdx === pages.length - 1
+    const tableBody = `<div class="section-header">${pg.isFirst ? 'Description of Goods' : 'Description of Goods (continued)'}</div>
+<div class="table-wrapper">
+<table>
+  ${theadHTML}
+  <tbody>${renderRows(pg.chunk)}</tbody>
+  ${isLast ? tfootHTML : ''}
+</table>
+</div>
+${isLast && qualitySection ? qualitySection : ''}`
+
+    const bodyHTML = pg.isFirst
+      ? `${headerBodyHTML}${tableBody}`
+      : tableBody
+
+    return makeInvPage(bodyHTML, bankingHTML, sigBlockHTML, pgIdx + 1, totalPages)
+  })
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+${CSS}
+${INV_CSS}
+</style></head><body>
+${pageHTMLs.join('\n')}
+</body></html>`
+}
+
+// Legacy single-body wrapper (kept for other routes that may use it)
+function wrapInvoice (body, bankingHTML, sigBlockHTML) {
+  const greenBar = makeGreenBar()
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+${CSS}
+${INV_CSS}
 </style></head><body>
 <div class="inv-page">
   <div class="inv-body">${body}</div>
@@ -837,13 +980,17 @@ router.post('/invoice/:id', requireAuth, async (req, res) => {
 <div class="section-header">Quality Notes</div>
 <div class="notes-box">${esc(so.quality_notes)}</div>` : ''
 
-    const html = wrapInvoice(
-      `${headerHTML('COMMERCIAL INVOICE', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
+    // Build the "header body" — everything before the goods table rows
+    const headerBodyHTML = `${headerHTML('COMMERCIAL INVOICE', val(so.invoice_no || so.party_no), fmtDate(so.shipment_date || new Date()))}
 ${partiesHTML(so, customer, false)}
 ${indiaRegSection}
-${shipmentInfoHTML(so, allContainers)}
-${invoiceGoodsTableHTML(orderItems, so)}
-${qualitySection}`,
+${shipmentInfoHTML(so, allContainers)}`
+
+    const html = wrapInvoiceMultiPage(
+      headerBodyHTML,
+      orderItems,
+      so,
+      qualitySection,
       bankHTML(true),
       sigHTML(false, true, true)
     )
