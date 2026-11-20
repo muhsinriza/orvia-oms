@@ -266,29 +266,32 @@ function wrapInvoice (body, bankingHTML, sigBlockHTML) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 ${CSS}
-@page { size: A4; margin: 6mm 8mm; }
+@page { size: A4; margin: 4mm 6mm; }
 html, body { margin: 0; padding: 0; width: 210mm; }
-/* Compact overrides for invoice */
-.section-header { padding:0.7mm 3mm; margin:1.5mm 0 0; font-size:6pt; }
-.info-cell { padding:1mm 2mm; }
-.info-label { font-size:5pt; margin-bottom:0.3mm; }
-.info-value { font-size:7pt; line-height:1.2; }
-.parties { margin-bottom:1.5mm; }
-.party-col { padding:2mm; }
-.party-label { margin-bottom:1mm; padding-bottom:0.8mm; font-size:5.5pt; }
-.party-name { font-size:8pt; margin-bottom:0.5mm; }
-.party-detail { font-size:6pt; line-height:1.4; }
-.info-grid { margin-bottom:1.5mm !important; }
-.table-wrapper { margin-bottom:1.5mm; }
-tbody tr td { padding:1mm 2mm; font-size:6.5pt; }
-.tfoot-row td { padding:1.5mm 2mm; font-size:7pt; }
-thead tr th { padding:1mm 2mm; font-size:6pt; }
-/* Table headers repeat on each page, rows don't break mid-row */
+/* Compact overrides for invoice — single page fit */
+.doc-header { padding:2mm 0; margin-bottom:1.5mm; }
+.doc-header-inner { gap:2mm; padding:0 2mm; }
+.co-name { font-size:7.5pt; }
+.co-sub { font-size:5pt; }
+.doc-title { font-size:12pt; }
+.doc-meta { font-size:6pt; line-height:1.5; }
+.section-header { padding:0.5mm 2.5mm; margin:1mm 0 0; font-size:5.5pt; }
+.info-cell { padding:0.7mm 1.5mm; }
+.info-label { font-size:4.5pt; margin-bottom:0.2mm; }
+.info-value { font-size:6.5pt; line-height:1.15; }
+.parties { margin-bottom:1mm; }
+.party-col { padding:1.5mm; }
+.party-label { margin-bottom:0.7mm; padding-bottom:0.5mm; font-size:5pt; }
+.party-name { font-size:7.5pt; margin-bottom:0.3mm; }
+.party-detail { font-size:5.5pt; line-height:1.3; }
+.info-grid { margin-bottom:1mm !important; }
+.table-wrapper { margin-bottom:1mm; }
+tbody tr td { padding:0.6mm 1.5mm; font-size:6pt; }
+.tfoot-row td { padding:1mm 1.5mm; font-size:6.5pt; }
+thead tr th { padding:0.6mm 1.5mm; font-size:5.5pt; }
 thead { display:table-header-group; }
 tbody tr { page-break-inside: avoid; }
-/* Footer block stays together and doesn't break */
-.invoice-footer { page-break-inside: avoid; margin-top:4mm; }
-/* Totals row stays with table */
+.invoice-footer { page-break-inside: avoid; margin-top:2mm; }
 .tfoot-row { page-break-inside: avoid; }
 </style></head><body>
 ${body}
@@ -550,20 +553,18 @@ function saGoodsTableHTML (orderItems, so) {
 
 function bankHTML (compact) {
   if (compact) {
-    // Compact version for invoice footer — same info, tight padding
+    // Ultra-compact banking strip for single-page invoice
     return `
-<div style="background:#fff;border:1px solid #e5e7eb;border-radius:2px;overflow:hidden;margin-bottom:2mm;">
-  <div style="background:#0a5c3a;color:#fff;font-size:6pt;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:1mm 3mm;">Banking Details</div>
+<div style="background:#fff;border:1px solid #e5e7eb;border-radius:2px;overflow:hidden;margin-bottom:1.5mm;">
+  <div style="background:#0a5c3a;color:#fff;font-size:5pt;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;padding:0.6mm 2.5mm;">Banking Details &nbsp;·&nbsp; ${CO.bank} &nbsp;·&nbsp; Branch: ${CO.bankBranch} &nbsp;·&nbsp; SWIFT: ${CO.bic}</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
-    <div style="padding:2.5mm 3mm;border-right:1px solid #e5e7eb;">
-      <div style="font-size:6.5pt;font-weight:700;color:#0a5c3a;margin-bottom:1mm;padding-bottom:0.8mm;border-bottom:1px solid #e5e7eb;">USD Account</div>
-      <div style="font-size:7.5pt;font-weight:700;font-family:monospace;letter-spacing:0.4px;color:#111827;margin-bottom:1mm;">${CO.usd}</div>
-      <div style="font-size:6pt;color:#374151;line-height:1.6;"><strong style="color:#111827;">${CO.bank}</strong><br>Branch: ${CO.bankBranch}<br>${CO.bankAddress}<br>SWIFT: ${CO.bic}</div>
+    <div style="padding:1.5mm 2.5mm;border-right:1px solid #e5e7eb;">
+      <div style="font-size:5pt;font-weight:700;color:#0a5c3a;margin-bottom:0.5mm;">USD Account</div>
+      <div style="font-size:7pt;font-weight:700;font-family:monospace;letter-spacing:0.3px;color:#111827;">${CO.usd}</div>
     </div>
-    <div style="padding:2.5mm 3mm;">
-      <div style="font-size:6.5pt;font-weight:700;color:#0a5c3a;margin-bottom:1mm;padding-bottom:0.8mm;border-bottom:1px solid #e5e7eb;">EUR Account</div>
-      <div style="font-size:7.5pt;font-weight:700;font-family:monospace;letter-spacing:0.4px;color:#111827;margin-bottom:1mm;">${CO.eur}</div>
-      <div style="font-size:6pt;color:#374151;line-height:1.6;"><strong style="color:#111827;">${CO.bank}</strong><br>Branch: ${CO.bankBranch}<br>${CO.bankAddress}<br>SWIFT: ${CO.bic}</div>
+    <div style="padding:1.5mm 2.5mm;">
+      <div style="font-size:5pt;font-weight:700;color:#0a5c3a;margin-bottom:0.5mm;">EUR Account</div>
+      <div style="font-size:7pt;font-weight:700;font-family:monospace;letter-spacing:0.3px;color:#111827;">${CO.eur}</div>
     </div>
   </div>
 </div>`
@@ -839,7 +840,7 @@ ${shipmentInfoHTML(so, allContainers)}
 ${invoiceGoodsTableHTML(orderItems, so)}
 ${qualitySection}`,
       bankHTML(true),
-      sigHTML(false, true).replace('margin-top:4mm', 'margin-top:0')
+      sigHTML(false, true, true)
     )
 
     const pdf = await htmlToPDF(html, { margin: { top: '0', right: '0', bottom: '0', left: '0' }, preferCSSPageSize: true })
