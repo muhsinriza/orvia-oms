@@ -41,7 +41,7 @@ async function htmlToPDF (html, opts = {}) {
       // 96dpi: 1mm = 3.7795px → 275mm = ~1039px usable
       const usableHeightPx = 275 * 3.7795
       if (contentHeightPx > usableHeightPx) {
-        scale = Math.max(0.5, usableHeightPx / contentHeightPx)
+        scale = Math.max(0.3, usableHeightPx / contentHeightPx)
         // Re-apply scale and re-render so fonts/layout adjust
         await page.setViewport({ width: 794, height: Math.ceil(contentHeightPx), deviceScaleFactor: 1 })
       }
