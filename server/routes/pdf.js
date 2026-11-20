@@ -270,9 +270,9 @@ function wrapInvoice (body, bankingHTML, sigBlockHTML) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 ${CSS}
-.page { width:210mm; height:297mm; padding:6mm 8mm; display:flex; flex-direction:column; box-sizing:border-box; overflow:hidden; }
-.page-body { flex:1; display:flex; flex-direction:column; min-height:0; }
-.invoice-footer { flex-shrink:0; padding-top:1mm; }
+.page { width:210mm; min-height:297mm; padding:6mm 8mm; display:flex; flex-direction:column; box-sizing:border-box; }
+.page-body { flex:1; display:flex; flex-direction:column; }
+.invoice-footer { flex-shrink:0; padding-top:1mm; margin-top:auto; }
 /* Compact overrides for invoice single-page fit */
 .section-header { padding:0.7mm 3mm; margin:1.5mm 0 0; font-size:6pt; }
 .info-cell { padding:1mm 2mm; }
@@ -285,9 +285,9 @@ ${CSS}
 .party-detail { font-size:6pt; line-height:1.4; }
 .info-grid { margin-bottom:1.5mm !important; }
 .table-wrapper { margin-bottom:1.5mm; }
-tbody tr td { padding:1.5mm 2mm; font-size:6.5pt; }
-.tfoot-row td { padding:2mm 2mm; font-size:7pt; }
-thead tr th { padding:1.5mm 2mm; font-size:6pt; }
+tbody tr td { padding:1mm 2mm; font-size:6.5pt; }
+.tfoot-row td { padding:1.5mm 2mm; font-size:7pt; }
+thead tr th { padding:1mm 2mm; font-size:6pt; }
 </style></head><body>
 <div class="page">
   <div class="page-body">${body}</div>
@@ -393,10 +393,10 @@ function shipmentInfoHTML (so, extraContainers) {
   // Multi-container: chips laid out in a flex row, wrapping if needed
   const multiContainerRow = containers.length > 1 ? `
   <div class="info-row" style="grid-template-columns:1fr">
-    <div class="info-cell">
+    <div class="info-cell" style="padding:0.8mm 2mm;">
       <div class="info-label">Container No (${containers.length})</div>
-      <div class="info-value" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:1px;">
-        ${containers.map(c => `<span style="font-family:monospace;font-size:7pt;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:3px;padding:1px 5px;white-space:nowrap;">${c}</span>`).join('')}
+      <div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:1px;">
+        ${containers.map(c => `<span style="font-family:monospace;font-size:6pt;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:2px;padding:0.5px 4px;white-space:nowrap;">${c}</span>`).join('')}
       </div>
     </div>
   </div>` : ''
