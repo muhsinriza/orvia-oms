@@ -270,9 +270,9 @@ function wrapInvoice (body, bankingHTML, sigBlockHTML) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 ${CSS}
-.page { width:210mm; padding:6mm 8mm; display:flex; flex-direction:column; box-sizing:border-box; }
-.page-body { flex:1; display:flex; flex-direction:column; }
-.invoice-footer { flex-shrink:0; margin-top:auto; padding-top:1mm; }
+.page { width:210mm; height:297mm; padding:6mm 8mm; display:flex; flex-direction:column; box-sizing:border-box; overflow:hidden; }
+.page-body { flex:1; display:flex; flex-direction:column; min-height:0; }
+.invoice-footer { flex-shrink:0; padding-top:1mm; }
 /* Compact overrides for invoice single-page fit */
 .section-header { padding:0.7mm 3mm; margin:1.5mm 0 0; font-size:6pt; }
 .info-cell { padding:1mm 2mm; }
