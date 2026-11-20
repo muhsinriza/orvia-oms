@@ -44,7 +44,7 @@ async function htmlToPDF (html, opts = {}) {
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
-      preferCSSPageSize: false,
+      preferCSSPageSize: opts.preferCSSPageSize || false,
       margin: opts.margin || { top: '8mm', right: '8mm', bottom: '8mm', left: '8mm' },
       ...(scale ? { scale } : {}),
     })
@@ -264,9 +264,8 @@ function wrapInvoice (body, bankingHTML, sigBlockHTML) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 ${CSS}
-.page { width:210mm; min-height:297mm; padding:6mm 8mm; display:block; box-sizing:border-box; }
-.page-body { display:block; }
-.invoice-footer { padding-top:1mm; margin-top:4mm; }
+@page { size: A4; margin: 6mm 8mm; }
+html, body { margin: 0; padding: 0; width: 210mm; }
 /* Compact overrides for invoice */
 .section-header { padding:0.7mm 3mm; margin:1.5mm 0 0; font-size:6pt; }
 .info-cell { padding:1mm 2mm; }
@@ -282,16 +281,19 @@ ${CSS}
 tbody tr td { padding:1mm 2mm; font-size:6.5pt; }
 .tfoot-row td { padding:1.5mm 2mm; font-size:7pt; }
 thead tr th { padding:1mm 2mm; font-size:6pt; }
-/* Multi-page: keep header visible, allow natural page breaks */
-@media print { thead { display:table-header-group; } }
+/* Table headers repeat on each page, rows don't break mid-row */
+thead { display:table-header-group; }
+tbody tr { page-break-inside: avoid; }
+/* Footer block stays together and doesn't break */
+.invoice-footer { page-break-inside: avoid; margin-top:4mm; }
+/* Totals row stays with table */
+.tfoot-row { page-break-inside: avoid; }
 </style></head><body>
-<div class="page">
-  <div class="page-body">${body}</div>
-  <div class="invoice-footer">
-    ${bankingHTML}
-    <div style="margin-bottom:2mm;">${sigBlockHTML}</div>
-    ${greenBar}
-  </div>
+${body}
+<div class="invoice-footer">
+  ${bankingHTML}
+  <div style="margin-bottom:2mm;">${sigBlockHTML}</div>
+  ${greenBar}
 </div>
 </body></html>`
 }
@@ -838,7 +840,7 @@ ${qualitySection}`,
       sigHTML(false, true).replace('margin-top:4mm', 'margin-top:0')
     )
 
-    const pdf = await htmlToPDF(html, { margin: { top: '0', right: '0', bottom: '0', left: '0' }, autoScale: true })
+    const pdf = await htmlToPDF(html, { margin: { top: '0', right: '0', bottom: '0', left: '0' }, preferCSSPageSize: true })
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `inline; filename="Invoice_${so.party_no}.pdf"`,
