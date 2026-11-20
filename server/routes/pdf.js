@@ -254,10 +254,10 @@ ${CSS}
 // Invoice-specific wrap: single A4 page with fixed footer containing banking+sig+greenbar
 const INV_CSS = `
 @page { size: A4; margin: 0; }
-html, body { margin: 0; padding: 0; width: 210mm; }
+html, body { margin: 0; padding: 0; width: 210mm; height: 297mm; }
 .inv-page { width: 210mm; height: 297mm; padding: 4mm 6mm; box-sizing: border-box; display: flex; flex-direction: column; page-break-after: always; }
 .inv-page:last-child { page-break-after: auto; }
-.inv-body { flex: 1; overflow: hidden; }
+.inv-body { flex: 1; min-height: 0; }
 .inv-footer { flex-shrink: 0; }
 /* Compact overrides for invoice */
 .doc-header { padding:2mm 0; margin-bottom:1.5mm; }
@@ -382,7 +382,7 @@ function wrapInvoiceMultiPage (headerBodyHTML, orderItems, so, qualitySection, b
   // ── Determine how many items fit per page ──────────────────────────────────
   // Page 1 has header + parties + shipment info, so fewer rows fit.
   // Subsequent pages have only the goods table continuation.
-  const ITEMS_PER_PAGE_1 = 12  // conservative: header takes ~110mm, table header ~6mm, footer ~40mm → ~140mm for rows
+  const ITEMS_PER_PAGE_1 = 20  // header takes ~110mm, table header ~6mm, footer ~40mm → fits ~20 compact rows
   const ITEMS_PER_PAGE_N = 22  // continuation pages: table header ~6mm, footer ~40mm → ~250mm for rows
 
   // Split items into pages
