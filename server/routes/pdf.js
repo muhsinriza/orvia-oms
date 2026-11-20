@@ -37,14 +37,8 @@ async function htmlToPDF (html, opts = {}) {
     // A4 printable height at 96dpi = 297mm. We use 275mm as safe usable height (accounts for margins).
     let scale = opts.scale || undefined
     if (opts.autoScale) {
-      const contentHeightPx = await page.evaluate(() => document.body.scrollHeight)
-      // 96dpi: 1mm = 3.7795px → 275mm = ~1039px usable
-      const usableHeightPx = 275 * 3.7795
-      if (contentHeightPx > usableHeightPx) {
-        scale = Math.max(0.3, usableHeightPx / contentHeightPx)
-        // Re-apply scale and re-render so fonts/layout adjust
-        await page.setViewport({ width: 794, height: Math.ceil(contentHeightPx), deviceScaleFactor: 1 })
-      }
+      // For invoices: allow multi-page, only scale if content is extremely wide
+      // We do NOT scale down — just let Puppeteer paginate naturally
     }
 
     const pdf = await page.pdf({
@@ -270,10 +264,10 @@ function wrapInvoice (body, bankingHTML, sigBlockHTML) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 ${CSS}
-.page { width:210mm; min-height:297mm; padding:6mm 8mm; display:flex; flex-direction:column; box-sizing:border-box; }
-.page-body { flex:1; display:flex; flex-direction:column; }
-.invoice-footer { flex-shrink:0; padding-top:1mm; margin-top:auto; }
-/* Compact overrides for invoice single-page fit */
+.page { width:210mm; min-height:297mm; padding:6mm 8mm; display:block; box-sizing:border-box; }
+.page-body { display:block; }
+.invoice-footer { padding-top:1mm; margin-top:4mm; }
+/* Compact overrides for invoice */
 .section-header { padding:0.7mm 3mm; margin:1.5mm 0 0; font-size:6pt; }
 .info-cell { padding:1mm 2mm; }
 .info-label { font-size:5pt; margin-bottom:0.3mm; }
@@ -288,6 +282,8 @@ ${CSS}
 tbody tr td { padding:1mm 2mm; font-size:6.5pt; }
 .tfoot-row td { padding:1.5mm 2mm; font-size:7pt; }
 thead tr th { padding:1mm 2mm; font-size:6pt; }
+/* Multi-page: keep header visible, allow natural page breaks */
+@media print { thead { display:table-header-group; } }
 </style></head><body>
 <div class="page">
   <div class="page-body">${body}</div>
