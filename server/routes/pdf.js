@@ -991,8 +991,8 @@ ${shipmentInfoHTML(so, allContainers)}`
       orderItems,
       so,
       qualitySection,
-      bankHTML(true),
-      sigHTML(false, true, true)
+      bankHTML(false),
+      sigHTML(false, true, false)
     )
 
     const pdf = await htmlToPDF(html, { margin: { top: '0', right: '0', bottom: '0', left: '0' }, preferCSSPageSize: true })
